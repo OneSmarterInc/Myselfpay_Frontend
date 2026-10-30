@@ -1,5 +1,31 @@
 import { test, expect } from "@playwright/test";
 
+test("National lists directory centers with ten results per page", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Find imaging options", exact: true })
+    .click();
+  await page.locator("#location").fill("National");
+  await page
+    .locator("#searchForm")
+    .getByRole("button", { name: "Find options", exact: true })
+    .click();
+  await expect(page.locator("article.card")).toHaveCount(10);
+  const first = await page.locator("article.card h3").first().textContent();
+  await expect(
+    page.getByRole("navigation", { name: "Imaging center results pages" }),
+  ).toContainText("Page 1");
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page.locator("article.card")).toHaveCount(10);
+  await expect(page.locator("article.card h3").first()).not.toHaveText(first);
+  await page.getByRole("button", { name: "Previous", exact: true }).click();
+  await expect(page.locator("article.card h3").first()).toHaveText(first);
+  await page.locator("#directory").click();
+  await expect(page.locator("details.lead")).toHaveCount(10);
+});
+
 test("the original homepage branding and journeys are restored", async ({
   page,
 }) => {

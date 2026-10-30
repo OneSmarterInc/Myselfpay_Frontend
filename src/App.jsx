@@ -30,6 +30,7 @@ const initialState = () => ({
   resultsHeading: "",
   directoryQuery: "",
   directoryPage: 0,
+  resultsPage: 0,
   detailsOpen: false,
   searched: false,
   dirty: false,
@@ -353,6 +354,7 @@ export default function App() {
       unlocatedOfferCount: data.unlocated_offer_count || 0,
       noExamPrice: !!data.no_exam_price,
       searched: true,
+      resultsPage: 0,
       dirty: false,
     }));
   }
@@ -490,6 +492,18 @@ export default function App() {
     }
   }
   function click(event) {
+    const pageButton = event.target.closest("[data-results-page]");
+    if (pageButton) {
+      event.preventDefault();
+      setState((old) => ({
+        ...old,
+        resultsPage: Number(pageButton.dataset.resultsPage),
+      }));
+      document
+        .getElementById("searchNotice")
+        ?.scrollIntoView({ block: "start" });
+      return;
+    }
     const target = event.target.closest("button,a");
     if (!target) return;
     const id = target.id;
@@ -714,7 +728,7 @@ export default function App() {
       .toLowerCase()
       .includes(state.directoryQuery.trim().toLowerCase()),
   );
-  const pages = Math.max(1, Math.ceil(matches.length / 50)),
+  const pages = Math.max(1, Math.ceil(matches.length / 10)),
     directoryPage = Math.min(state.directoryPage, pages - 1);
   const choices = [...new Set(catalog.locations || [])].filter(
     (label) =>
@@ -852,7 +866,7 @@ export default function App() {
         <div id="dirRows">
           <OriginalHTML
             html={ui.directoryRows(
-              matches.slice(directoryPage * 50, directoryPage * 50 + 50),
+              matches.slice(directoryPage * 10, directoryPage * 10 + 10),
             )}
           />
         </div>
@@ -861,7 +875,7 @@ export default function App() {
       return (
         <p id="dirCount" role="status">
           {matches.length
-            ? `Showing ${directoryPage * 50 + 1}–${Math.min(directoryPage * 50 + 50, matches.length)} of ${matches.length} matches`
+            ? `Showing ${directoryPage * 10 + 1}–${Math.min(directoryPage * 10 + 10, matches.length)} of ${matches.length} matches`
             : "No directory entries match."}
         </p>
       );
