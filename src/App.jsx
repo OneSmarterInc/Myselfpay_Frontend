@@ -94,6 +94,9 @@ export function OriginalHTML({ html, onInput, replace, disabled = false }) {
           props.checked = props.defaultChecked;
           delete props.defaultChecked;
         }
+        if (node.name === "input" && props.type === "checkbox") {
+          props.checked = "checked" in node.attribs;
+        }
         if (disabled) props.disabled = true;
         if (node.name === "input") return <input {...props} />;
         return node.name === "select" ? (
@@ -800,7 +803,10 @@ export default function App() {
             ? "Search changed—click Find options to update results. Displayed results belong to your previous search."
             : /^Distances are approximate straight-line miles\b/.test(
                   state.locationNotice || "",
-                )
+                ) &&
+                !state.budget &&
+                !state.body.trim() &&
+                state.contrast === "unknown"
               ? ""
               : state.locationNotice}
         </div>

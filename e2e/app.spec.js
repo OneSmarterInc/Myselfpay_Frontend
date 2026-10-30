@@ -8,6 +8,7 @@ test("National lists directory centers with ten results per page", async ({
     .getByRole("button", { name: "Find imaging options", exact: true })
     .click();
   await page.locator("#location").fill("National");
+  await page.locator("#type").selectOption("quote");
   await page
     .locator("#searchForm")
     .getByRole("button", { name: "Find options", exact: true })
@@ -27,6 +28,9 @@ test("National lists directory centers with ten results per page", async ({
   ).toHaveCount(2);
   await page.locator("article.card [data-select]").first().check();
   await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(
+    page.getByRole("navigation", { name: "Imaging center results pages" }),
+  ).toContainText("Page 2");
   await page.locator("article.card [data-select]").first().check();
   await page.locator("#compare").click();
   await expect(page.locator(".comparison-table thead th")).toHaveCount(3);
@@ -40,6 +44,45 @@ test("National lists directory centers with ten results per page", async ({
   await page.locator("#directory").click();
   await expect(page.locator("#dirRows article.card")).toHaveCount(10);
   await expect(page.locator("#dirRows [data-select]")).toHaveCount(10);
+});
+
+test("state-only search works and optional filters apply independently", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Find imaging options", exact: true })
+    .click();
+  await page.locator("#location").fill("Ohio");
+  const search = async () => {
+    const response = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/search") &&
+        response.request().method() === "POST",
+    );
+    await page
+      .locator("#searchForm")
+      .getByRole("button", { name: "Find options", exact: true })
+      .click();
+    return (await response).json();
+  };
+  const all = await search();
+  expect(all.offers.length + all.nearby_unpriced.length).toBeGreaterThan(0);
+  expect(await page.locator("#body").getAttribute("required")).toBeNull();
+  await page.locator("#mod").selectOption("CT");
+  const ct = await search();
+  expect(ct.offers.length).toBeGreaterThan(0);
+  expect(ct.offers.every((offer) => offer.mod === "CT")).toBe(true);
+  await page.locator("#mod").selectOption("");
+  await page.locator("#budget").fill("500");
+  const budget = await search();
+  expect(budget.offers.length).toBeGreaterThan(0);
+  expect(
+    budget.offers.every(
+      (offer) => offer.amount !== null && offer.amount <= 500,
+    ),
+  ).toBe(true);
+  expect(budget.nearby_unpriced).toEqual([]);
 });
 
 test("the original homepage branding and journeys are restored", async ({
