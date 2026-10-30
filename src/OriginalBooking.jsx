@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { OriginalHTML } from "./App.jsx";
+import { deliveryMessage, productionBookingCopy } from "./booking-messages.js";
 const call = (action, data) => api("/booking/" + action, data);
 
 export default function OriginalBooking({
@@ -41,6 +42,12 @@ export default function OriginalBooking({
     call("options", { clinic_id: entry.booking_id, offer_id: offer?.id || "" })
       .then((value) => {
         if (active) {
+          if (value.delivery === "unavailable") {
+            setError(
+              "Online booking is not enabled for this center. Please contact the facility directly.",
+            );
+            return;
+          }
           setOptions(value);
           setDraft((old) => ({ ...old, price_text: value.price_text }));
         }
@@ -195,7 +202,7 @@ export default function OriginalBooking({
     void run(async () => {
       const result = await call("create", draft);
       onClose();
-      notify("No email sent to clinic (testing mode)");
+      notify(deliveryMessage(result.delivery));
       location.hash = `request/${result.id}/${result.tracking_token}`;
     });
   }
@@ -205,6 +212,13 @@ export default function OriginalBooking({
       : ui.bookingContact(draft, options)
     : '<h2>Book appointment</h2><p role="status">Loading request details…</p>';
   html = html.replace("<h2>", '<h2 id="dialogTitle">');
+  html = productionBookingCopy(html, options?.delivery === "enabled");
+  if (options?.is_test_center)
+    html = html.replace(
+      "</h2>",
+      '</h2><p class="booking-notice"><strong>TEST CENTER — no medical care is provided. Use synthetic patient details only.</strong></p>',
+    );
+  if (!options && error) html = '<h2 id="dialogTitle">Request unavailable</h2>';
   const replace = (node) => {
     const id = node.attribs.id;
     if (id === "bookingError")
@@ -358,8 +372,12 @@ export function OriginalBookingLink({ route, ui }) {
     if (button.id === "clinicCodeSend") {
       event.preventDefault();
       void run(async () => {
-        await call("code", { id, token });
-        setMessage("Email delivery is disabled. No code was sent.");
+        const result = await call("code", { id, token });
+        setMessage(
+          result.delivery === "sent"
+            ? "A verification code was emailed to the center. It expires in 10 minutes."
+            : "Email delivery is disabled. No code was sent.",
+        );
       });
     }
     if (button.id === "clinicLock") {
@@ -428,7 +446,7 @@ export function OriginalBookingLink({ route, ui }) {
       );
     return undefined;
   };
-  const html =
+  let html =
     kind === "clinic"
       ? session && value
         ? ui.clinicPage(value, id)
@@ -436,6 +454,37 @@ export function OriginalBookingLink({ route, ui }) {
       : value
         ? ui.receipt(value, token)
         : '<section class="panel booking-page"><h1>Appointment request</h1><p role="status">Loading request details…</p></section>';
+  if (kind === "clinic")
+    html = html
+      .replace(
+        "Email is disabled. On this local preview, a test code appears here instead of being emailed.",
+        "Request a verification code at the center’s registered email address to open patient contact details.",
+      )
+      .replace("Generate preview code", "Send verification code");
+  if (value) {
+    html = html.replace(
+      "No email sent to clinic (testing mode). This request does not reserve an appointment.",
+      ui.esc(deliveryMessage(value.delivery)),
+    );
+    html = html.replace(
+      "Request sent",
+      value.delivery === "sent" ? "Request sent" : "Request saved",
+    );
+    html = html.replace(
+      "Awaiting clinic action (preview only)",
+      "Awaiting clinic confirmation",
+    );
+    if (value.is_test_center)
+      html = html.replace(
+        "</h1>",
+        '</h1><p class="booking-notice"><strong>TEST CENTER — synthetic booking workflow. No medical care is provided.</strong></p>',
+      );
+    if (kind === "clinic" && session && value.patient_email)
+      html = html.replace(
+        "<h2>After the call</h2>",
+        `<p><strong>Email:</strong> <a href="mailto:${ui.esc(value.patient_email)}">${ui.esc(value.patient_email)}</a></p><h2>After the call</h2>`,
+      );
+  }
   return (
     <div onClick={click} onSubmit={submit}>
       <OriginalHTML html={html} replace={replace} disabled={busy} />

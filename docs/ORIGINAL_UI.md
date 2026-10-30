@@ -19,4 +19,4 @@ The original source reference and React pages were rendered in the same Chrome b
 
 The reference fixtures live under `tests/fixtures` and are served only by Vite's development middleware. They are not production pages. Visual tests also run in the frontend integration workflow against the separately checked-out Django backend and its local demo directory.
 
-Browser tests cover the original signup/login forms, guest search, comparison, directory filtering, expired-session sign-out, public pages and the two-step appointment dialog. Patient and clinic delivery retain the source application's testing-mode behavior. AWS directory data is not modified by this frontend restoration.
+Browser tests cover the original signup/login forms, guest search, comparison, directory filtering, expired-session sign-out, public pages and the two-step appointment dialog. Booking screens preserve their layout and adapt their wording to the API's email-delivery status. AWS directory data is not modified by this frontend restoration.
