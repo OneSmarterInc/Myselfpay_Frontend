@@ -1,10 +1,14 @@
 # MySelfPay frontend — React
 
+The original SelfPay UI is restored from commit `bf839ef9af6efde48b2666cc26e7e793a7d9bd06`: original layout, wording, CSS, logo, self-hosted Public Sans font, icons, information pages, filter controls, dialogs and booking screens. `src/original-ui.js` retains the source presentation templates; React converts them to elements and owns component state and events. The original imperative `app.js` is not loaded.
+
+Home and search screenshots match the original source reference pixel-for-pixel at 1440px desktop and 390px mobile widths. The visual regression tests compare both layout geometry and screenshot bytes in the same browser. These source-reference fixtures are served only by the development/test server and are not published in the production site. Live directory content can differ with your AWS data.
+
 React 19 + Vite frontend for [MySelfPay's Django REST Framework/PostgreSQL backend](https://github.com/OneSmarterInc/MyselfPay_Backend). Migrated from SelfPay main commit `bf839ef9af6efde48b2666cc26e7e793a7d9bd06`. React components own rendering and state; the original imperative `app.js` is not embedded or loaded.
 
 The frontend uses DRF's JSON APIs through `src/api.js`: explicit JSON content negotiation, credentialed cookies, per-session CSRF headers, structured field-validation errors, HTTP status codes and rate-limit retry headers. `APIError` exposes `status`, `fieldErrors`, `details` and `retryAfter` for UI behavior. Django REST Framework runs on the Python backend; React remains the frontend framework.
 
-Includes guest and account access, imaging search, location suggestions, directory browsing, qualified prices, facility details, three-option comparison, deterministic guided search, account-owned saved searches and location preferences, correction reports, email-verified appointment requests, patient tracking and the existing clinic capability flow. Informational pages preserve source content.
+Includes the original guest/account navigation, imaging search, location picker, paginated directory dialog, qualified prices, facility details and maps, three-option comparison dialog, guided search, two-step email-verified appointment requests, patient tracking and clinic capability screens. The backend's account-owned persistence APIs remain available; the visible navigation follows the original source instead of adding new controls.
 
 ## Run locally
 
@@ -56,7 +60,7 @@ For integration tests, start the seeded local Django server, then:
 npm run test:e2e
 ```
 
-Playwright uses installed Chrome by default. For Playwright's downloaded Chromium set `PLAYWRIGHT_CHANNEL=chromium` and install it with `npx playwright install chromium`. Tests exercise signup, saved account searches, login, guest search against the real DRF backend, comparison, sign-out and public pages. Backend SMTP and encrypted booking behavior are independently exercised in its DRF integration suite with synthetic contacts. GitHub Actions can run on pushes or manually from its Actions page.
+Playwright uses installed Chrome by default. For Playwright's downloaded Chromium set `PLAYWRIGHT_CHANNEL=chromium` and install it with `npx playwright install chromium`. Tests exercise the original signup/login forms, guest search against the real DRF backend, comparison and directory dialogs, expired-session sign-out, the two-step appointment dialog, public pages, and desktop/mobile visual parity. Backend SMTP and encrypted booking behavior are independently exercised in its DRF integration suite with synthetic contacts. GitHub Actions can run on pushes or manually from its Actions page.
 
 ## Existing feature limits
 

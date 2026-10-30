@@ -1,103 +1,245 @@
-import { cloneElement, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import parse, { attributesToProps, domToReact } from "html-react-parser";
 import { api, establishSession, setCsrf } from "./api.js";
-import { price, contrastLabel, safeWebsite, phoneOf } from "./format.js";
-import Booking, { BookingLink } from "./Booking.jsx";
+import { originalUI } from "./original-ui.js";
+import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
 
-const defaults = {
-  location: "",
-  scope: "state",
-  radius: 50,
+const initialState = () => ({
   mod: "",
   body: "",
   contrast: "unknown",
-  budget: "",
+  location: "",
+  budget: 0,
   type: "all",
-  sort: "distance",
+  mode: "classic",
   selected: [],
-};
-export function Field({ label, children }) {
-  const id = useId();
-  return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      {cloneElement(children, { id })}
-    </div>
-  );
+  private: true,
+  messages: [],
+  conversationId: null,
+  usage: {},
+  chatBlocked: false,
+  chatLimitReason: null,
+  member: "",
+  savedId: null,
+  sort: "distance",
+  scope: "state",
+  radius: 50,
+  programs: [],
+  programEntries: [],
+  nearbyUnpriced: [],
+  resultsHeading: "",
+  directoryQuery: "",
+  directoryPage: 0,
+  detailsOpen: false,
+  searched: false,
+  dirty: false,
+});
+const initialCatalog = { entries: [], offers: [], locations: [] };
+const filterNames = [
+  "mod",
+  "body",
+  "contrast",
+  "location",
+  "budget",
+  "type",
+  "scope",
+  "radius",
+  "sort",
+  "selected",
+];
+const payload = (state) =>
+  Object.fromEntries(filterNames.map((key) => [key, state[key]]));
+const route = () => decodeURIComponent(location.hash.slice(1) || "home");
+
+export function OriginalHTML({ html, onInput, replace, disabled = false }) {
+  const options = {
+    replace(node) {
+      if (node.type !== "tag") return undefined;
+      if (replace) {
+        const result = replace(node, options);
+        if (result !== undefined) return result;
+      }
+      if (disabled && node.name === "button")
+        return (
+          <button {...attributesToProps(node.attribs)} disabled>
+            {domToReact(node.children, options)}
+          </button>
+        );
+      if (node.name === "option") {
+        const props = attributesToProps(node.attribs);
+        delete props.selected;
+        return <option {...props}>{domToReact(node.children, options)}</option>;
+      }
+      if (["input", "select", "textarea"].includes(node.name)) {
+        const props = attributesToProps(node.attribs);
+        props.onChange = onInput || (() => {});
+        if (node.name === "select") {
+          const selected = node.children.find(
+            (child) => child.name === "option" && "selected" in child.attribs,
+          );
+          if (selected)
+            props.value =
+              selected.attribs.value ??
+              selected.children.map((x) => x.data || "").join("");
+        }
+        if (node.name === "textarea")
+          props.value = node.children.map((x) => x.data || "").join("");
+        if (props.defaultValue !== undefined) {
+          props.value = props.defaultValue;
+          delete props.defaultValue;
+        }
+        if (props.defaultChecked !== undefined) {
+          props.checked = props.defaultChecked;
+          delete props.defaultChecked;
+        }
+        if (disabled) props.disabled = true;
+        if (node.name === "input") return <input {...props} />;
+        return node.name === "select" ? (
+          <select {...props}>{domToReact(node.children, options)}</select>
+        ) : (
+          <textarea {...props} />
+        );
+      }
+      return undefined;
+    },
+  };
+  return parse(html, options);
 }
-export function Notice({ children }) {
-  return <p className="notice">{children}</p>;
-}
-export function Contact({ entry }) {
-  const phone = phoneOf(entry),
-    website = safeWebsite(entry.source);
-  return (
-    <div className="actions">
-      {phone && (
-        <a className="button" href={"tel:+1" + phone.replaceAll("-", "")}>
-          Call {phone}
-        </a>
-      )}
-      {website && (
-        <a
-          className="button"
-          href={website}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Facility website ↗
-        </a>
-      )}
-    </div>
-  );
-}
-export default function App() {
-  const [member, setMember] = useState(null),
-    [boot, setBoot] = useState(true),
-    [error, setError] = useState("");
-  const [route, setRoute] = useState(() => location.hash.slice(1) || "home");
-  const [catalog, setCatalog] = useState({
-      entries: [],
-      offers: [],
-      locations: [],
-    }),
-    [summary, setSummary] = useState(null);
-  const [filters, setFilters] = useState(defaults),
-    [results, setResults] = useState(null),
-    [busy, setBusy] = useState(false);
-  const [chosen, setChosen] = useState([]),
-    [booking, setBooking] = useState(null),
-    [privateMode, setPrivate] = useState(false);
-  const searchSequence = useRef(0);
-  function navigate(value) {
-    location.hash = value;
-  }
-  function clearSession() {
-    searchSequence.current++;
-    setCsrf("");
-    setMember(null);
-    setCatalog({ entries: [], offers: [], locations: [] });
-    setResults(null);
-    setChosen([]);
-    setFilters(defaults);
-    setBooking(null);
-  }
+
+function Dialog({ children, onClose }) {
+  const ref = useRef(null);
   useEffect(() => {
-    const expired = () => {
-      clearSession();
-      setError("Your session expired. Continue as guest or sign in again.");
-    };
-    window.addEventListener("selfpay:session-expired", expired);
-    return () => window.removeEventListener("selfpay:session-expired", expired);
+    ref.current?.showModal();
+    return () => ref.current?.close();
   }, []);
+  return (
+    <dialog
+      id="modal"
+      ref={ref}
+      aria-labelledby="dialogTitle"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+    >
+      <div className="modal-header row between">
+        <span className="eyebrow">MYSELFPAY</span>
+        <button id="closeModal" aria-label="Close dialog" onClick={onClose}>
+          Close
+        </button>
+      </div>
+      <div className="modal-body" id="modalBody">
+        {children}
+      </div>
+    </dialog>
+  );
+}
+
+export default function App() {
+  const [account, setAccount] = useState(null),
+    [state, setState] = useState(() => ({
+      ...initialState(),
+      mode: route() === "agent" ? "agent" : "classic",
+    })),
+    [catalog, setCatalog] = useState(initialCatalog),
+    [results, setResults] = useState([]);
+  const [view, setView] = useState(() =>
+      ["directory", "compare"].includes(route()) ? "home" : route(),
+    ),
+    [dialog, setDialog] = useState(() =>
+      ["directory", "compare"].includes(route()) ? { type: route() } : null,
+    ),
+    [toast, setToast] = useState(""),
+    [busy, setBusy] = useState(false),
+    [catalogReady, setCatalogReady] = useState(false),
+    [catalogError, setCatalogError] = useState(""),
+    [summary, setSummary] = useState(null),
+    [locationsOpen, setLocationsOpen] = useState(false),
+    [locationAll, setLocationAll] = useState(false),
+    [map, setMap] = useState(null),
+    [auth, setAuth] = useState({}),
+    [authError, setAuthError] = useState(""),
+    [boot, setBoot] = useState(true);
+  const sequence = useRef(0),
+    form = useRef(null);
+  const allOffers = useMemo(
+    () => [
+      ...new Map(
+        [...catalog.offers, ...results, ...(state.programs || [])].map((o) => [
+          o.id,
+          o,
+        ]),
+      ).values(),
+    ],
+    [catalog.offers, results, state.programs],
+  );
+  const ui = originalUI({
+    state: {
+      ...state,
+      member: account ? `${account.tenant} / ${account.name}` : "",
+    },
+    account,
+    DIRECTORY: catalog.entries,
+    offers: allOffers,
+    results,
+    catalogReady,
+    catalogError,
+    summary,
+  });
+  function navigate(next) {
+    location.hash = next;
+  }
+  function clear() {
+    sequence.current++;
+    setCsrf("");
+    setAccount(null);
+    setCatalog(initialCatalog);
+    setCatalogReady(false);
+    setState(initialState());
+    setResults([]);
+    setDialog(null);
+    setMap(null);
+  }
+  function close() {
+    setDialog(null);
+    if (["directory", "compare"].includes(route()))
+      history.replaceState(null, "", `${location.pathname}#${view}`);
+  }
   useEffect(() => {
     const change = () => {
-      setRoute(location.hash.slice(1) || "home");
-      setError("");
-      window.scrollTo(0, 0);
+      const next = route();
+      if (["directory", "compare"].includes(next)) {
+        setDialog({ type: next });
+        return;
+      }
+      setView(next);
+      if (next === "search" || next === "agent")
+        setState((old) => ({
+          ...old,
+          mode: next === "agent" ? "agent" : "classic",
+        }));
+      setDialog(null);
+      setMap(null);
+      setAuth({});
+      setAuthError("");
+      window.scrollTo({ top: 0, behavior: "instant" });
+    };
+    const expired = () => {
+      clear();
+      setToast("Your session expired. Sign in as guest or log in again.");
     };
     window.addEventListener("hashchange", change);
-    return () => window.removeEventListener("hashchange", change);
+    window.addEventListener("selfpay:session-expired", expired);
+    return () => {
+      window.removeEventListener("hashchange", change);
+      window.removeEventListener("selfpay:session-expired", expired);
+    };
   }, []);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(""), 4500);
+    return () => clearTimeout(timer);
+  }, [toast]);
   useEffect(() => {
     let active = true;
     api("/directory-summary")
@@ -107,10 +249,10 @@ export default function App() {
       .catch(() => {});
     api("/me")
       .then((value) => {
-        if (active) setMember(value.member);
+        if (active) setAccount(value.member);
       })
-      .catch((e) => {
-        if (active && e.status !== 401) setError(e.message);
+      .catch((error) => {
+        if (active && error.status !== 401) setToast(error.message);
       })
       .finally(() => {
         if (active) setBoot(false);
@@ -120,35 +262,53 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    if (!member) return;
+    if (!account) return;
     let active = true;
+    setCatalogReady(false);
     api("/catalog")
       .then((value) => {
-        if (active) setCatalog(value);
+        if (active) {
+          setCatalog(value);
+          setCatalogReady(true);
+          setCatalogError("");
+        }
       })
-      .catch((e) => {
-        if (active && e.status !== 401) setError(e.message);
+      .catch((error) => {
+        if (active) {
+          setCatalogError(error.message);
+          if (error.status !== 401) setToast(error.message);
+        }
       });
+    api("/guest-usage")
+      .then((value) => {
+        if (active) setState((old) => ({ ...old, usage: value.usage || {} }));
+      })
+      .catch(() => {});
     return () => {
       active = false;
     };
-  }, [member]);
+  }, [account]);
   async function run(action) {
-    setError("");
     setBusy(true);
     try {
       return await action();
-    } catch (e) {
-      if (e.status !== 401) setError(e.message);
+    } catch (error) {
+      if (error.status !== 401) setToast(error.message);
     } finally {
       setBusy(false);
     }
   }
-  async function guest(destination = "search") {
+  async function enter(kind = "search") {
     await run(async () => {
-      const value = await establishSession("/guest", {});
-      setMember(value.member);
-      navigate(destination);
+      if (!account) {
+        const value = await establishSession("/guest", {});
+        setAccount(value.member);
+      }
+      setState((old) => ({
+        ...old,
+        mode: kind === "agent" ? "agent" : "classic",
+      }));
+      navigate(kind === "agent" ? "agent" : "search");
     });
   }
   async function logout() {
@@ -158,1080 +318,704 @@ export default function App() {
       } catch (error) {
         if (error.status !== 401) throw error;
       }
-      clearSession();
-      setError("");
+      clear();
       navigate("home");
     });
   }
-  async function search(event, override) {
-    event?.preventDefault();
-    const value = override || filters;
-    if (!value.location.trim()) {
-      setError("Enter a state, city or ZIP code.");
+  function acceptResults(data) {
+    setResults(data.offers || []);
+    setState((old) => ({
+      ...old,
+      ...data.search,
+      programs: data.programs || [],
+      programEntries: data.program_entries || [],
+      nearbyUnpriced: data.nearby_unpriced || [],
+      resultsHeading: data.results_heading || "",
+      programHeading: data.program_heading || "",
+      locationSuggestions: data.location_suggestions || [],
+      locationUnresolved:
+        data.resolved_location === null &&
+        !!data.search.location &&
+        data.search.location.toLowerCase() !== "national",
+      locationNotice: data.location_notice || "",
+      unlocatedOfferCount: data.unlocated_offer_count || 0,
+      noExamPrice: !!data.no_exam_price,
+      searched: true,
+      dirty: false,
+    }));
+  }
+  async function search(override = {}) {
+    const next = { ...state, ...override };
+    if (!next.location.trim()) {
+      setToast("Enter your ZIP, city or state to continue.");
       return;
     }
-    const seq = ++searchSequence.current;
+    const seq = ++sequence.current;
     await run(async () => {
-      const data = await api("/search", value);
-      if (seq === searchSequence.current) {
-        setResults(data);
-        setFilters(data.search);
-        navigate("search");
+      const data = await api("/search", payload(next));
+      if (seq === sequence.current) acceptResults(data);
+    });
+  }
+  async function talk(message) {
+    if (!message?.trim()) return;
+    await run(async () => {
+      try {
+        const data = await api("/agent", {
+          message,
+          search: payload(state),
+          conversation_id: state.conversationId,
+        });
+        acceptResults(data);
+        setState((old) => ({
+          ...old,
+          messages: [
+            ...old.messages,
+            { role: "user", text: message },
+            { role: "assistant", text: data.reply },
+          ],
+          conversationId: data.conversation_id || old.conversationId,
+          usage: data.usage || old.usage,
+        }));
+      } catch (error) {
+        if (error.status === 429)
+          setState((old) => ({
+            ...old,
+            chatBlocked: true,
+            chatLimitReason: error.details.reason,
+          }));
+        throw error;
       }
     });
   }
-  const selectedOffer = route.startsWith("facility/")
-    ? [
-        ...catalog.offers,
-        ...(results?.offers || []),
-        ...(results?.programs || []),
-      ].find((o) => o.id === decodeURIComponent(route.slice(9)))
-    : null;
-  const isLink = route.startsWith("booking/") || route.startsWith("clinic/");
-  return (
-    <>
-      <header>
-        <a className="brand" href="#home">
-          MySelf<span>Pay</span>
-          <small>by One Smarter, Inc.</small>
-        </a>
-        <nav aria-label="Main navigation">
-          <a
-            href="#search"
-            onClick={(e) => {
-              if (!member) {
-                e.preventDefault();
-                void guest();
-              }
-            }}
-          >
-            Find imaging
-          </a>
-          <a
-            href="#directory"
-            onClick={(e) => {
-              if (!member) {
-                e.preventDefault();
-                void guest("directory");
-              }
-            }}
-          >
-            Directory
-          </a>
-          {member && member.tenant !== "guest" && (
-            <a href="#history">Saved history</a>
-          )}
-          {member ? (
-            <>
-              <a href="#preferences">Preferences</a>
-              <button disabled={busy} onClick={logout}>
-                Sign out
-              </button>
-            </>
-          ) : (
-            <a className="button" href="#login">
-              Log in
-            </a>
-          )}
-        </nav>
-      </header>
-      <main>
-        {error && (
-          <div className="error" role="alert">
-            {error}
-            <button aria-label="Dismiss error" onClick={() => setError("")}>
-              ×
-            </button>
-          </div>
-        )}
-        {boot ? (
-          <p role="status">Loading your session…</p>
-        ) : isLink ? (
-          <BookingLink route={route} onError={setError} />
-        ) : route === "login" || route === "signup" ? (
-          <Auth
-            signup={route === "signup"}
-            onSuccess={(value) => {
-              setMember(value.member);
-              navigate("search");
-            }}
-            onGuest={guest}
-          />
-        ) : route === "home" ? (
-          <>
-            <section className="hero">
-              <p className="eyebrow">YOUR EXAM. YOUR OPTIONS.</p>
-              <h1>
-                Know your options.
-                <br />
-                <em>Before you pay.</em>
-              </h1>
-              <p className="intro">
-                Explore self-pay MRI and CT prices, compare imaging centers, and
-                ask the right questions about your care.
-              </p>
-              <div className="actions">
-                <button
-                  className="primary"
-                  disabled={busy}
-                  onClick={() => (member ? navigate("search") : guest())}
-                >
-                  Find imaging near you →
-                </button>
-                <button
-                  disabled={busy}
-                  onClick={() => (member ? navigate("chat") : guest("chat"))}
-                >
-                  Try guided search
-                </button>
-              </div>
-              {summary && (
-                <p className="muted">
-                  {summary.listing_count} researched listings ·{" "}
-                  {summary.state_count} states represented
-                </p>
-              )}
-            </section>
-            <div className="three">
-              <section className="panel">
-                <span className="step">01</span>
-                <h2>Tell us where</h2>
-                <p>
-                  Search by state, city or ZIP and the exam your clinician
-                  ordered.
-                </p>
-              </section>
-              <section className="panel">
-                <span className="step">02</span>
-                <h2>Compare the details</h2>
-                <p>
-                  See published prices, what is included, and what needs
-                  confirmation.
-                </p>
-              </section>
-              <section className="panel">
-                <span className="step">03</span>
-                <h2>Contact the center</h2>
-                <p>
-                  Confirm your exact exam, total price and appointment
-                  availability.
-                </p>
-              </section>
-            </div>
-            <Notice>
-              Published research is a starting point. Listings are not
-              guaranteed quotes or medical recommendations. Confirm the ordered
-              exam, eligibility and all-in price with the facility.
-            </Notice>
-          </>
-        ) : [
-            "about",
-            "contact",
-            "privacy",
-            "terms",
-            "for-imaging-centers",
-          ].includes(route) ? (
-          <Info route={route} />
-        ) : !member ? (
-          <section className="panel">
-            <h1>Start your search</h1>
-            <p>Browse as a guest, or log in to save account history.</p>
-            <div className="actions">
-              <button className="primary" onClick={() => guest(route)}>
-                Continue as guest
-              </button>
-              <a href="#login">Log in</a>
-            </div>
-          </section>
-        ) : selectedOffer ? (
-          <Detail
-            offer={selectedOffer}
-            onBook={() =>
-              setBooking({ entry: selectedOffer.entry, offer: selectedOffer })
-            }
-            member={member}
-          />
-        ) : route.startsWith("facility/") ? (
-          <section className="panel">
-            <h1>Listing unavailable</h1>
-            <p>The listing may have changed.</p>
-            <a href="#search">Back to search</a>
-          </section>
-        ) : route === "directory" ? (
-          <Directory
-            catalog={catalog}
-            onBook={(entry) => setBooking({ entry })}
-          />
-        ) : route === "chat" ? (
-          <Chat
-            filters={filters}
-            onResults={(value) => {
-              setResults(value);
-              setFilters(value.search);
-            }}
-            onOpen={(id) => navigate("facility/" + encodeURIComponent(id))}
-            member={member}
-          />
-        ) : route === "history" ? (
-          <History
-            onRestore={(value) => {
-              setFilters({ ...defaults, ...value.search });
-              setResults(null);
-              navigate("search");
-            }}
-          />
-        ) : route === "preferences" ? (
-          <Preferences
-            privateMode={privateMode}
-            setPrivate={setPrivate}
-            filters={filters}
-            onLoad={(value) => setFilters({ ...defaults, ...value })}
-          />
-        ) : route === "compare" ? (
-          <Compare offers={chosen} />
-        ) : [
-            "about",
-            "contact",
-            "privacy",
-            "terms",
-            "for-imaging-centers",
-          ].includes(route) ? (
-          <Info route={route} />
-        ) : (
-          <>
-            <div className="page-heading">
-              <div>
-                <p className="eyebrow">SELF-PAY IMAGING</p>
-                <h1>Find your options</h1>
-              </div>
-              <a href="#chat">Prefer a conversation? Try guided search →</a>
-            </div>
-            <div className="search-layout">
-              <aside>
-                <SearchForm
-                  filters={filters}
-                  setFilters={setFilters}
-                  locations={catalog.locations}
-                  onSubmit={search}
-                  busy={busy}
-                />
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={privateMode}
-                    onChange={(e) => setPrivate(e.target.checked)}
-                  />
-                  Private mode: do not save searches
-                </label>
-                {member.tenant !== "guest" && !privateMode && results && (
-                  <button
-                    onClick={() =>
-                      run(() =>
-                        api("/conversations", {
-                          search: filters,
-                          messages: [],
-                          title: `${filters.mod || "Imaging"} in ${filters.location}`,
-                        }),
-                      )
-                    }
-                  >
-                    Save search to history
-                  </button>
-                )}
-              </aside>
-              <section aria-live="polite">
-                {busy && <p role="status">Searching…</p>}
-                {results ? (
-                  <>
-                    <h2>
-                      {results.results_heading ||
-                        `${results.offers.length} published price options`}
-                    </h2>
-                    {results.location_notice && (
-                      <Notice>{results.location_notice}</Notice>
-                    )}
-                    {results.location_suggestions?.length > 0 && (
-                      <div className="actions">
-                        {results.location_suggestions.map((label) => (
-                          <button
-                            key={label}
-                            onClick={() =>
-                              search(null, { ...filters, location: label })
-                            }
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {results.offers.map((offer) => (
-                      <OfferCard
-                        key={offer.id}
-                        offer={offer}
-                        chosen={chosen}
-                        onChoose={() =>
-                          setChosen((old) =>
-                            old.some((x) => x.id === offer.id)
-                              ? old.filter((x) => x.id !== offer.id)
-                              : old.length < 3
-                                ? [...old, offer]
-                                : old,
-                          )
-                        }
-                      />
-                    ))}
-                    {results.programs?.length > 0 && (
-                      <h2>
-                        {results.program_heading || "Programs and networks"}
-                      </h2>
-                    )}
-                    {results.programs?.map((offer) => (
-                      <OfferCard
-                        key={offer.id}
-                        offer={offer}
-                        chosen={chosen}
-                        onChoose={() =>
-                          setChosen((old) =>
-                            old.some((x) => x.id === offer.id)
-                              ? old.filter((x) => x.id !== offer.id)
-                              : old.length < 3
-                                ? [...old, offer]
-                                : old,
-                          )
-                        }
-                      />
-                    ))}
-                    {[
-                      ...(results.nearby_unpriced || []),
-                      ...(results.program_entries || []),
-                    ].map((entry, index) => (
-                      <EntryCard
-                        key={entry.booking_id || index}
-                        entry={entry}
-                        onBook={() => setBooking({ entry })}
-                      />
-                    ))}
-                    {!results.offers.length &&
-                      !results.nearby_unpriced?.length &&
-                      !results.programs?.length && (
-                        <Notice>
-                          No matching published price. Try broader filters or
-                          browse the directory to request a quote.
-                        </Notice>
-                      )}
-                  </>
-                ) : (
-                  <section className="empty">
-                    <span className="search-mark">⌕</span>
-                    <h2>Start with a location</h2>
-                    <p>Your next step toward a clearer price.</p>
-                    <button
-                      onClick={() => {
-                        const value = {
-                          ...defaults,
-                          location: "Cincinnati, OH",
-                          mod: "MRI",
-                          body: "knee",
-                        };
-                        setFilters(value);
-                        void search(null, value);
-                      }}
-                    >
-                      Try sample: knee MRI in Cincinnati
-                    </button>
-                  </section>
-                )}
-              </section>
-            </div>
-          </>
-        )}
-        {chosen.length > 0 && (
-          <div className="compare-bar">
-            <span>{chosen.length} of 3 selected</span>
-            <a className="button primary" href="#compare">
-              Compare options
-            </a>
-            <button onClick={() => setChosen([])}>Clear</button>
-          </div>
-        )}
-      </main>
-      <footer>
-        <a className="brand" href="#home">
-          MySelf<span>Pay</span>
-        </a>
-        <p>Clearer choices for self-pay imaging.</p>
-        <div className="actions">
-          {["about", "contact", "privacy", "for-imaging-centers"].map(
-            (link) => (
-              <a
-                href={"/" + (link === "privacy" ? "privacy-terms" : link) + "/"}
-                key={link}
-              >
-                {link.replaceAll("-", " ")}
-              </a>
-            ),
-          )}
-        </div>
-        <p className="small">
-          No payment, insurance calculation, external AI or clinical advice is
-          provided. Appointment delivery is currently in testing mode.
-        </p>
-      </footer>
-      {booking && (
-        <div className="overlay">
-          <section
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="booking-title"
-          >
-            <Booking
-              entry={booking.entry}
-              offer={booking.offer}
-              onClose={() => setBooking(null)}
-            />
-          </section>
-        </div>
-      )}
-    </>
-  );
-}
-function Auth({ signup, onSuccess, onGuest }) {
-  const [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
-  async function submit(e) {
-    e.preventDefault();
-    setError("");
-    const data = Object.fromEntries(new FormData(e.currentTarget));
-    if (signup && data.password !== data.confirm) {
-      setError("Passwords do not match.");
+  function input(event) {
+    const element = event.target,
+      id = element.id;
+    if (element.dataset.select) {
+      const selected = element.checked
+        ? [...state.selected, element.dataset.select]
+        : state.selected.filter((x) => x !== element.dataset.select);
+      if (selected.length > 3) return setToast("Compare up to three options.");
+      setState((old) => ({ ...old, selected }));
       return;
     }
-    delete data.confirm;
-    setBusy(true);
-    try {
-      await onSuccess(
-        await establishSession(signup ? "/register" : "/login", data),
-      );
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
+    if (id === "dirSearch") {
+      setState((old) => ({
+        ...old,
+        directoryQuery: element.value,
+        directoryPage: 0,
+      }));
+      return;
+    }
+    if (id?.startsWith("account")) {
+      setAuth((old) => ({ ...old, [id]: element.value }));
+      return;
+    }
+    if (id === "sort") {
+      void search({ sort: element.value });
+      return;
+    }
+    if (
+      [
+        "mod",
+        "body",
+        "contrast",
+        "location",
+        "type",
+        "budget",
+        "radius",
+      ].includes(id)
+    ) {
+      let changes = { [id]: element.value };
+      if (id === "budget") changes.budget = Number(element.value) || 0;
+      if (id === "radius")
+        changes = {
+          scope: element.value === "state" ? "state" : "radius",
+          radius: Number(element.value) || 50,
+        };
+      setState((old) => ({ ...old, ...changes, dirty: old.searched || false }));
+      if (id === "location") {
+        setLocationsOpen(true);
+        setLocationAll(false);
+      }
+      return;
     }
   }
-  return (
-    <section className="panel narrow">
-      <p className="eyebrow">WELCOME TO MYSELFPAY</p>
-      <h1>{signup ? "Create your account" : "Welcome back"}</h1>
-      <form onSubmit={submit}>
-        {signup && (
-          <Field label="Full name">
-            <input name="name" required maxLength={100} autoComplete="name" />
-          </Field>
-        )}
-        <Field label="Email address">
-          <input
-            name="email"
-            type="email"
-            required
-            maxLength={254}
-            autoComplete="username"
-          />
-        </Field>
-        {signup && (
-          <Field label="Phone number (optional)">
-            <input name="phone" type="tel" maxLength={30} autoComplete="tel" />
-          </Field>
-        )}
-        <Field label="Password">
-          <input
-            name="password"
-            type="password"
-            required
-            minLength={signup ? 12 : undefined}
-            maxLength={128}
-            autoComplete={signup ? "new-password" : "current-password"}
-          />
-        </Field>
-        {signup && (
-          <>
-            <p className="small">Use 12–128 characters.</p>
-            <Field label="Confirm password">
-              <input
-                name="confirm"
-                type="password"
-                required
-                autoComplete="new-password"
-              />
-            </Field>
-            <p className="small">
-              Your name, email, optional phone and password hash are stored.
-              Appointment requests require separate email verification.
-            </p>
-          </>
-        )}
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-        <button className="primary" disabled={busy}>
-          {busy ? "Please wait…" : signup ? "Create account" : "Log in"}
-        </button>
-      </form>
-      <p>
-        <a href={signup ? "#login" : "#signup"}>
-          {signup ? "Already have an account? Log in" : "Create an account"}
-        </a>
-      </p>
-      <button onClick={() => onGuest()}>Continue as guest</button>
-      <p className="small">
-        Password recovery is not available yet.{" "}
-        <a href="mailto:partners@onesmarter.com">Contact support</a>.
-      </p>
-    </section>
+  async function submit(event) {
+    event.preventDefault();
+    const target = event.target;
+    if (target.id === "searchForm") return search();
+    if (target.id === "chatForm") {
+      const message = target.querySelector("#message").value;
+      target.reset();
+      return talk(message);
+    }
+    if (target.id === "accountForm") {
+      const signup = view === "signup";
+      setAuthError("");
+      if (signup && auth.accountPassword !== auth.accountConfirm)
+        return setAuthError("Passwords do not match.");
+      setBusy(true);
+      try {
+        const value = await establishSession(signup ? "/register" : "/login", {
+          email: auth.accountEmail,
+          password: auth.accountPassword,
+          ...(signup
+            ? { name: auth.accountName, phone: auth.accountPhone || "" }
+            : {}),
+        });
+        setAccount(value.member);
+        setAuth({});
+        navigate("search");
+        setToast(
+          signup ? "Account created. You are signed in." : "You are signed in.",
+        );
+      } catch (error) {
+        setAuthError(error.message);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+  }
+  function click(event) {
+    const target = event.target.closest("button,a");
+    if (!target) return;
+    const id = target.id;
+    if (id === "closeModal") return;
+    if (id === "brandHome") {
+      event.preventDefault();
+      navigate("home");
+      return;
+    }
+    if (id === "profile") {
+      event.preventDefault();
+      return account ? logout() : enter();
+    }
+    if (id === "accountLogin") {
+      event.preventDefault();
+      navigate("login");
+      return;
+    }
+    if (id === "directory" || id === "browseDirectory" || id === "leads") {
+      event.preventDefault();
+      setDialog({ type: "directory" });
+      history.pushState(null, "", "#directory");
+      return;
+    }
+    if (id === "history") {
+      event.preventDefault();
+      void run(async () => {
+        const value = await api("/conversations");
+        setDialog({ type: "history", items: value.conversations });
+      });
+      return;
+    }
+    if (
+      id === "welcomeBegin" ||
+      id === "welcomeAccount" ||
+      id === "accountGuest"
+    ) {
+      event.preventDefault();
+      return enter();
+    }
+    if (target.dataset.journey) {
+      event.preventDefault();
+      return enter(target.dataset.journey);
+    }
+    if (id === "classic" || id === "agent") {
+      event.preventDefault();
+      setState((old) => ({
+        ...old,
+        mode: id === "agent" ? "agent" : "classic",
+      }));
+      navigate(id === "agent" ? "agent" : "search");
+      return;
+    }
+    if (id === "sampleSearch") {
+      event.preventDefault();
+      return search({
+        mod: "MRI",
+        body: "Knee",
+        contrast: "without",
+        location: "Cincinnati, OH",
+        budget: 500,
+        type: "all",
+      });
+    }
+    if (id === "widen") {
+      event.preventDefault();
+      return search({ location: "National" });
+    }
+    if (id === "locationToggle") {
+      event.preventDefault();
+      setLocationsOpen((old) => !old);
+      setLocationAll(true);
+      return;
+    }
+    if (target.dataset.locationChoice) {
+      event.preventDefault();
+      setState((old) => ({
+        ...old,
+        location: target.dataset.locationChoice,
+        dirty: old.searched,
+      }));
+      setLocationsOpen(false);
+      return;
+    }
+    if (target.dataset.city) {
+      event.preventDefault();
+      return search({ location: target.dataset.city });
+    }
+    if (id === "editLocation") {
+      event.preventDefault();
+      document.getElementById("location")?.focus();
+      document.getElementById("location")?.scrollIntoView({ block: "center" });
+      return;
+    }
+    if (target.dataset.detail) {
+      event.preventDefault();
+      navigate("facility/" + encodeURIComponent(target.dataset.detail));
+      return;
+    }
+    if (id === "back") {
+      event.preventDefault();
+      navigate(state.mode === "agent" ? "agent" : "search");
+      return;
+    }
+    if (id === "compare") {
+      event.preventDefault();
+      setDialog({ type: "compare" });
+      history.pushState(null, "", "#compare");
+      return;
+    }
+    if (id === "clearCompare") {
+      event.preventDefault();
+      setState((old) => ({ ...old, selected: [] }));
+      return;
+    }
+    if (id === "request") {
+      event.preventDefault();
+      const offer = allOffers.find(
+        (x) => x.id === decodeURIComponent(view.slice(9)),
+      );
+      if (offer) setDialog({ type: "quote", offer });
+      return;
+    }
+    if (target.dataset.appointment) {
+      event.preventDefault();
+      const entry = catalog.entries.find(
+        (x) => x.booking_id === target.dataset.appointment,
+      );
+      if (entry)
+        setDialog({
+          type: "booking",
+          entry,
+          offer: allOffers.find((x) => x.id === target.dataset.bookingOffer),
+        });
+      return;
+    }
+    if (target.dataset.mapIndex) {
+      event.preventDefault();
+      const offer = allOffers.find(
+        (x) => x.id === decodeURIComponent(view.slice(9)),
+      );
+      setMap(offer?.entry.locations?.[Number(target.dataset.mapIndex)]);
+      return;
+    }
+    if (id === "newGuestChat") {
+      event.preventDefault();
+      setState((old) => ({
+        ...old,
+        conversationId: null,
+        messages: [],
+        chatBlocked: false,
+      }));
+      return;
+    }
+    if (target.dataset.starter) {
+      event.preventDefault();
+      return talk(target.dataset.starter);
+    }
+    if (id === "voice") {
+      event.preventDefault();
+      setDialog({ type: "voice" });
+      return;
+    }
+    if (id === "useTranscript") {
+      event.preventDefault();
+      const text = document.getElementById("transcript").value;
+      setDialog(null);
+      return talk(text);
+    }
+    if (id === "dirPrev" || id === "dirNext") {
+      event.preventDefault();
+      setState((old) => ({
+        ...old,
+        directoryPage: Math.max(
+          0,
+          old.directoryPage + (id === "dirPrev" ? -1 : 1),
+        ),
+      }));
+      return;
+    }
+    if (target.dataset.resume) {
+      event.preventDefault();
+      const saved = dialog.items.find((x) => x.id === target.dataset.resume);
+      setState((old) => ({
+        ...old,
+        ...saved.search,
+        messages: saved.messages || [],
+        private: false,
+      }));
+      close();
+      navigate(saved.messages?.length ? "agent" : "search");
+      void search(saved.search);
+      return;
+    }
+    if (target.dataset.delete) {
+      event.preventDefault();
+      void run(async () => {
+        await api(
+          "/conversations/" + target.dataset.delete,
+          undefined,
+          "DELETE",
+        );
+        const value = await api("/conversations");
+        setDialog({ type: "history", items: value.conversations });
+      });
+      return;
+    }
+  }
+  const matches = catalog.entries.filter((entry) =>
+    [entry.name, entry.area, entry.states]
+      .join(" ")
+      .toLowerCase()
+      .includes(state.directoryQuery.trim().toLowerCase()),
   );
-}
-function SearchForm({ filters, setFilters, locations, onSubmit, busy }) {
-  const update = (key, value) =>
-    setFilters((old) => ({ ...old, [key]: value }));
-  return (
-    <form className="panel filters" onSubmit={onSubmit}>
-      <h2>Your search</h2>
-      <Field label="State, city or ZIP">
-        <input
-          required
-          value={filters.location}
-          onChange={(e) => update("location", e.target.value)}
-          list="locations"
-          placeholder="e.g. Cincinnati, OH"
-          maxLength={120}
-        />
-      </Field>
-      <datalist id="locations">
-        {locations.map((value) => (
-          <option key={value} value={value} />
-        ))}
-      </datalist>
-      <Field label="Search area">
-        <select
-          value={filters.scope === "state" ? "state" : filters.radius}
-          onChange={(e) => {
-            update("scope", e.target.value === "state" ? "state" : "radius");
-            if (e.target.value !== "state")
-              update("radius", Number(e.target.value));
+  const pages = Math.max(1, Math.ceil(matches.length / 50)),
+    directoryPage = Math.min(state.directoryPage, pages - 1);
+  const choices = [...new Set(catalog.locations || [])].filter(
+    (label) =>
+      locationAll ||
+      !state.location.trim() ||
+      label.toLowerCase().includes(state.location.toLowerCase()),
+  );
+  function replace(node, options) {
+    const id = node.attribs.id;
+    if (id === "locationPicker")
+      return (
+        <div
+          {...attributesToProps(node.attribs)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget))
+              setLocationsOpen(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setLocationsOpen(false);
+              document.getElementById("location")?.focus();
+            } else if (
+              event.key === "ArrowDown" &&
+              event.target.id === "location"
+            ) {
+              event.preventDefault();
+              setLocationsOpen(true);
+              setLocationAll(true);
+              requestAnimationFrame(() =>
+                document.querySelector("#cityChoices button")?.focus(),
+              );
+            }
           }}
         >
-          <option value="state">Entire state</option>
-          {[25, 50, 100, 250].map((n) => (
-            <option value={n} key={n}>
-              {n} miles
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Imaging service">
-        <select
-          value={filters.mod}
-          onChange={(e) => update("mod", e.target.value)}
-        >
-          <option value="">All imaging services</option>
-          <option>MRI</option>
-          <option>CT</option>
-        </select>
-      </Field>
-      <Field label="Body part / ordered exam">
-        <input
-          value={filters.body}
-          onChange={(e) => update("body", e.target.value)}
-          placeholder="e.g. knee"
-          maxLength={100}
-        />
-      </Field>
-      <Field label="Contrast">
-        <select
-          value={filters.contrast}
-          onChange={(e) => update("contrast", e.target.value)}
-        >
-          {["unknown", "without", "with", "both"].map((value) => (
-            <option key={value} value={value}>
-              {contrastLabel(value)}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Budget in USD">
-        <input
-          type="number"
-          min="0"
-          max="1000000"
-          value={filters.budget || ""}
-          onChange={(e) => update("budget", e.target.value)}
-        />
-      </Field>
-      <Field label="Price status">
-        <select
-          value={filters.type}
-          onChange={(e) => update("type", e.target.value)}
-        >
-          {[
-            "all",
-            "fixed",
-            "starting",
-            "range",
-            "maximum",
-            "average",
-            "quote",
-            "conflict",
-          ].map((value) => (
-            <option value={value} key={value}>
-              {value === "all" ? "All price types" : value}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Sort by">
-        <select
-          value={filters.sort}
-          onChange={(e) => update("sort", e.target.value)}
-        >
-          <option value="distance">Distance</option>
-          <option value="price">Price</option>
-          <option value="scope">Scope</option>
-        </select>
-      </Field>
-      <button className="primary full" disabled={busy}>
-        Search imaging
-      </button>
-    </form>
-  );
-}
-function OfferCard({ offer, chosen, onChoose }) {
-  const selected = chosen.some((x) => x.id === offer.id);
-  return (
-    <article className="card">
-      <div className="card-top">
-        <span className="badge">
-          {offer.mod} · {offer.type}
-        </span>
-        <strong className="price">{price(offer)}</strong>
-      </div>
-      <h3>
-        <a href={"#facility/" + encodeURIComponent(offer.id)}>
-          {offer.entry.name}
-        </a>
-      </h3>
-      <p>
-        {offer.entry.area} · {contrastLabel(offer.contrast)}
-      </p>
-      <p>{offer.scope}</p>
-      {Number.isFinite(offer.distance_miles) && (
-        <p className="small">
-          About {Math.round(offer.distance_miles)} straight-line miles away
-        </p>
-      )}
-      {offer.budget_status && <p className="small">{offer.budget_status}</p>}
-      <div className="actions">
-        <a
-          className="button"
-          href={"#facility/" + encodeURIComponent(offer.id)}
-        >
-          View details
-        </a>
-        <button
-          aria-pressed={selected}
-          disabled={!selected && chosen.length >= 3}
-          onClick={onChoose}
-        >
-          {selected ? "Remove comparison" : "Compare"}
-        </button>
-      </div>
-    </article>
-  );
-}
-function EntryCard({ entry, onBook }) {
-  return (
-    <article className="card">
-      <span className="badge">Request a quote</span>
-      <h3>{entry.name}</h3>
-      <p>
-        {entry.area} · {entry.states}
-      </p>
-      <p>{entry.coverage}</p>
-      <Contact entry={entry} />
-      {entry.booking_id && (
-        <button onClick={onBook}>Request an appointment</button>
-      )}
-    </article>
-  );
-}
-function Directory({ catalog, onBook }) {
-  const [query, setQuery] = useState("");
-  const entries = catalog.entries.filter((e) =>
-    `${e.name} ${e.area} ${e.states}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
-  );
-  return (
-    <>
-      <p className="eyebrow">RESEARCHED LISTINGS</p>
-      <h1>Imaging directory</h1>
-      <Field label="Filter directory">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Center, city or state"
-        />
-      </Field>
-      <p>
-        {entries.length} entries · Published research, subject to confirmation.
-      </p>
-      <div className="two">
-        {entries.map((entry) => (
-          <EntryCard
-            key={entry.booking_id}
-            entry={entry}
-            onBook={() => onBook(entry)}
-          />
-        ))}
-      </div>
-    </>
-  );
-}
-function Detail({ offer, onBook, member }) {
-  const [report, setReport] = useState(""),
-    [message, setMessage] = useState("");
-  async function correction(e) {
-    e.preventDefault();
-    try {
-      await api("/corrections", {
-        offer_id: offer.id,
-        description: report,
-        category: "Listing correction",
-      });
-      setMessage("Report submitted for review.");
-      setReport("");
-    } catch (e) {
-      setMessage(e.message);
-    }
-  }
-  return (
-    <>
-      <a href="#search">← Back to search</a>
-      <div className="detail-layout">
-        <section className="panel">
-          <span className="badge">
-            {offer.mod} · {offer.type}
-          </span>
-          <h1>{offer.entry.name}</h1>
-          <p>{offer.entry.area}</p>
-          <p className="price large">{price(offer)}</p>
-          <p>
-            {contrastLabel(offer.contrast)} · {offer.scope}
-          </p>
-          <Notice>
-            Confirm the exact exam, eligibility and all-in price. Published
-            prices do not guarantee availability.
-          </Notice>
-          <h2>What is included</h2>
-          <p>{offer.included || "Confirm with the facility."}</p>
-          <h2>Requirements</h2>
-          <p>{offer.order || "Ask whether a referral or order is required."}</p>
-          <h2>Restrictions and notes</h2>
-          <p>{offer.entry.notes}</p>
-          <h2>Questions to ask</h2>
-          <ul>
-            <li>
-              Does this price include the radiologist, facility, contrast and
-              supplies?
-            </li>
-            <li>Are the report and images included?</li>
-            <li>Can I use the self-pay price if I have insurance?</li>
-            <li>What are the cancellation and refund terms?</li>
-          </ul>
-        </section>
-        <aside className="panel">
-          <h2>Contact this facility</h2>
-          <p>{offer.entry.coverage}</p>
-          <Contact entry={offer.entry} />
-          <button className="primary" onClick={onBook}>
-            Request an appointment
-          </button>
-          <p className="small">
-            Source checked: {String(offer.entry.checked || "").slice(0, 10)}
-          </p>
-          {member.tenant !== "guest" && (
-            <form onSubmit={correction}>
-              <h3>Report a listing issue</h3>
-              <Field label="Describe the correction">
-                <textarea
-                  required
-                  maxLength={1000}
-                  value={report}
-                  onChange={(e) => setReport(e.target.value)}
-                />
-              </Field>
-              <button>Submit report</button>
-              <p role="status">{message}</p>
-            </form>
-          )}
-        </aside>
-      </div>
-    </>
-  );
-}
-function Compare({ offers }) {
-  return (
-    <>
-      <a href="#search">← Back to search</a>
-      <h1>Compare your options</h1>
-      {!offers.length ? (
-        <p>Select up to three options in search results.</p>
-      ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Details</th>
-                {offers.map((o) => (
-                  <th key={o.id}>{o.entry.name}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ["Published price", price],
-                ["Price status", (o) => o.type],
-                ["Exam", (o) => o.mod + " · " + contrastLabel(o.contrast)],
-                ["Scope", (o) => o.scope],
-                ["Included", (o) => o.included],
-                ["Requirements", (o) => o.order],
-                ["Source checked", (o) => String(o.entry.checked).slice(0, 10)],
-              ].map(([label, value]) => (
-                <tr key={label}>
-                  <th>{label}</th>
-                  {offers.map((o) => (
-                    <td key={o.id}>{value(o)}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {domToReact(node.children, options)}
         </div>
-      )}
-      <Notice>
-        Compare the same exam and contrast. Published prices are not current
-        quotes.
-      </Notice>
-    </>
-  );
-}
-function Chat({ filters, onResults, onOpen, member }) {
-  const [messages, setMessages] = useState([]),
-    [text, setText] = useState(""),
-    [conversation, setConversation] = useState(null),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
-  async function send(e) {
-    e.preventDefault();
-    if (!text.trim()) return;
-    setBusy(true);
-    setError("");
-    const value = text;
-    try {
-      const result = await api("/agent", {
-        message: value,
-        search: filters,
-        conversation_id: conversation,
-      });
-      setMessages((old) => [
-        ...old,
-        { role: "user", text: value },
-        { role: "assistant", text: result.reply, offers: result.offers },
-      ]);
-      setConversation(result.conversation_id);
-      onResults(result);
-      setText("");
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <section className="panel chat">
-      <p className="eyebrow">GUIDED SEARCH</p>
-      <h1>What are you looking for?</h1>
-      <p>
-        This deterministic search helper uses the directory. No external AI or
-        microphone is connected.
-      </p>
-      {member.tenant === "guest" && (
-        <Notice>
-          Guest preview: 3 conversations, 5 messages each, 500 characters per
-          message. Chat text is not stored.
-        </Notice>
-      )}
-      <div role="log" aria-live="polite">
-        {messages.map((m, index) => (
-          <div className={"bubble " + m.role} key={index}>
-            <strong>{m.role === "user" ? "You" : "MySelfPay"}</strong>
-            <p>{m.text}</p>
-            {m.offers?.slice(0, 3).map((o) => (
-              <button key={o.id} onClick={() => onOpen(o.id)}>
-                {o.entry.name} · {price(o)}
-              </button>
-            ))}
-          </div>
-        ))}
-      </div>
-      <form onSubmit={send}>
-        <Field label="Your message">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            required
-            maxLength={member.tenant === "guest" ? 500 : 2000}
-            placeholder="Find a self-pay knee MRI near Cincinnati under $500"
-          />
-        </Field>
-        {error && (
-          <p role="alert" className="error">
-            {error}
+      );
+    if (id === "publicCoverage" && summary)
+      return (
+        <section className="panel" id="publicCoverage" aria-live="polite">
+          <p>
+            <strong>{summary.listing_count.toLocaleString()}</strong> imaging
+            facilities and programs listed so far.
           </p>
-        )}
-        <div className="actions">
-          <button className="primary" disabled={busy}>
-            {busy ? "Searching…" : "Send message"}
+        </section>
+      );
+    if (id === "searchNotice")
+      return (
+        <div id="searchNotice" role="status">
+          {state.dirty
+            ? "Search changed—click Find options to update results. Displayed results belong to your previous search."
+            : /^Distances are approximate straight-line miles\b/.test(
+                  state.locationNotice || "",
+                )
+              ? ""
+              : state.locationNotice}
+        </div>
+      );
+    if (id === "locationSuggestions")
+      return (
+        <div id="locationSuggestions" role="status" aria-live="polite">
+          {state.locationSuggestions?.length > 0 && (
+            <>
+              <p className="small">
+                <strong>Which location did you mean?</strong> Choose a city and
+                state to find the nearest offers.
+              </p>
+              {state.locationSuggestions.map((label) => (
+                <button type="button" key={label} data-city={label}>
+                  {label}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      );
+    if (id === "cityChoices")
+      return (
+        <div
+          id="cityChoices"
+          hidden={!locationsOpen}
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            maxHeight: 260,
+            overflowY: "auto",
+            background: "white",
+            border: "1px solid #b9cbd4",
+            borderRadius: 8,
+            padding: 6,
+            boxShadow: "0 4px 12px #0002",
+          }}
+        >
+          {choices.length ? (
+            choices.map((label) => (
+              <button
+                type="button"
+                data-location-choice={label}
+                key={label}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  margin: 0,
+                  border: 0,
+                }}
+              >
+                {label}
+              </button>
+            ))
+          ) : (
+            <p className="small">
+              No suggestions. You can still search by city or ZIP.
+            </p>
+          )}
+        </div>
+      );
+    if (id === "locationToggle")
+      return (
+        <button
+          type="button"
+          id="locationToggle"
+          aria-label="Show all location options"
+          aria-expanded={locationsOpen}
+          aria-controls="cityChoices"
+        >
+          ▼
+        </button>
+      );
+    if (id === "dirRows")
+      return (
+        <div id="dirRows">
+          <OriginalHTML
+            html={ui.directoryRows(
+              matches.slice(directoryPage * 50, directoryPage * 50 + 50),
+            )}
+          />
+        </div>
+      );
+    if (id === "dirCount")
+      return (
+        <p id="dirCount" role="status">
+          {matches.length
+            ? `Showing ${directoryPage * 50 + 1}–${Math.min(directoryPage * 50 + 50, matches.length)} of ${matches.length} matches`
+            : "No directory entries match."}
+        </p>
+      );
+    if (id === "dirPrev" || id === "dirNext")
+      return (
+        <button
+          type="button"
+          id={id}
+          disabled={
+            id === "dirPrev" ? directoryPage === 0 : directoryPage >= pages - 1
+          }
+        >
+          {id === "dirPrev" ? "Previous" : "Next"}
+        </button>
+      );
+    if (id === "accountError")
+      return (
+        <p id="accountError" role="alert" tabIndex={-1}>
+          {authError}
+        </p>
+      );
+    if (id?.startsWith("account") && node.name === "input") {
+      const props = attributesToProps(node.attribs);
+      return <input {...props} value={auth[id] || ""} onChange={input} />;
+    }
+    if (id === "dirSearch")
+      return (
+        <input
+          id="dirSearch"
+          placeholder="e.g. Tellica, OH, Vermont"
+          value={state.directoryQuery}
+          onChange={input}
+        />
+      );
+    if (id === "facilityMapCanvas" && map) {
+      const bbox = [
+        map.longitude - 0.04,
+        map.latitude - 0.025,
+        map.longitude + 0.04,
+        map.latitude + 0.025,
+      ];
+      return (
+        <div id="facilityMapCanvas" aria-live="polite">
+          <iframe
+            title={`Map reference for ${map.city}, ${map.state}`}
+            referrerPolicy="no-referrer"
+            loading="lazy"
+            src={
+              "https://www.openstreetmap.org/export/embed.html?bbox=" +
+              encodeURIComponent(bbox.join(",")) +
+              "&layer=mapnik&marker=" +
+              encodeURIComponent(map.latitude + "," + map.longitude)
+            }
+          />
+        </div>
+      );
+    }
+    if (
+      node.name === "button" &&
+      (busy ||
+        (state.dirty && ("data-detail" in node.attribs || id === "compare")))
+    )
+      return (
+        <button {...attributesToProps(node.attribs)} disabled>
+          {domToReact(node.children, options)}
+        </button>
+      );
+    return undefined;
+  }
+  let markup;
+  if (view === "login" || view === "signup")
+    markup = ui.auth(view === "signup");
+  else if (view.startsWith("facility/") && account)
+    markup = ui.detail(view.slice(9));
+  else if ((view === "search" || view === "agent") && account)
+    markup = ui.search();
+  else markup = ui.home();
+  let dialogHTML = "";
+  if (dialog?.type === "directory") dialogHTML = ui.directory();
+  if (dialog?.type === "compare") dialogHTML = ui.compare();
+  if (dialog?.type === "quote") dialogHTML = ui.request(dialog.offer);
+  if (dialog?.type === "voice") dialogHTML = ui.voice();
+  if (dialog?.type === "history")
+    dialogHTML =
+      "<h2>Saved conversations and searches</h2>" +
+      dialog.items
+        .map(
+          (item) =>
+            `<div class="lead"><strong>${ui.esc(item.title)}</strong><p class="small">Expires ${new Date(item.expires).toLocaleDateString()}</p><button data-resume="${ui.esc(item.id)}">Continue</button> <button data-delete="${ui.esc(item.id)}">Delete</button></div>`,
+        )
+        .join("");
+  dialogHTML = dialogHTML.replace("<h2>", '<h2 id="dialogTitle">');
+  const linkedBooking = /^(booking|request|clinic)\//.test(view);
+  return (
+    <div onClick={click} onSubmit={submit} ref={form}>
+      <header>
+        <a
+          className="brand"
+          id="brandHome"
+          href="/"
+          aria-label="MySelfPay by One Smarter, Inc. homepage"
+        >
+          <img
+            className="brand-logo"
+            src="/logo.png"
+            alt=""
+            width="44"
+            height="44"
+          />
+          <span className="brand-text">
+            <span className="brand-name">
+              MySelf<span>Pay</span>
+            </span>
+            <span className="brand-by">by One Smarter, Inc.</span>
+          </span>
+        </a>
+        <nav>
+          <a href="/for-imaging-centers">For imaging centers</a>
+          <button id="history" hidden>
+            Saved conversations
+          </button>
+          <button id="directory" hidden={!account}>
+            Directory
+          </button>
+          <button id="profile" disabled={busy || boot}>
+            {account ? "Sign out" : "Sign in as guest"}
           </button>
           <button
-            type="button"
-            onClick={() => {
-              setMessages([]);
-              setConversation(null);
-            }}
+            id="accountLogin"
+            hidden={!!account && account.tenant !== "guest"}
           >
-            New conversation
+            Log in
           </button>
-        </div>
-      </form>
-    </section>
-  );
-}
-function History({ onRestore }) {
-  const [items, setItems] = useState([]),
-    [error, setError] = useState("");
-  useEffect(() => {
-    api("/conversations")
-      .then((v) => setItems(v.conversations))
-      .catch((e) => setError(e.message));
-  }, []);
-  async function remove(id) {
-    try {
-      await api(
-        "/conversations/" + encodeURIComponent(id),
-        undefined,
-        "DELETE",
-      );
-      setItems((old) => old.filter((x) => x.id !== id));
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-  return (
-    <>
-      <h1>Saved history</h1>
-      {error && <p role="alert">{error}</p>}
-      {!items.length && <p>No saved conversations or searches.</p>}
-      {items.map((item) => (
-        <article className="card" key={item.id}>
-          <h2>{item.title}</h2>
-          <div className="actions">
-            <button onClick={() => onRestore(item)}>Restore search</button>
-            <button onClick={() => remove(item.id)}>Delete</button>
-          </div>
-        </article>
-      ))}
-    </>
-  );
-}
-function Preferences({ privateMode, setPrivate, filters, onLoad }) {
-  const [message, setMessage] = useState("");
-  async function action(kind) {
-    try {
-      if (kind === "save")
-        await api("/preferences", { location: filters.location });
-      if (kind === "delete") await api("/preferences", undefined, "DELETE");
-      if (kind === "load") onLoad(await api("/preferences"));
-      setMessage(
-        kind === "load"
-          ? "Location loaded into search."
-          : kind === "save"
-            ? "Location saved."
-            : "Saved location deleted.",
-      );
-    } catch (e) {
-      setMessage(e.message);
-    }
-  }
-  return (
-    <section className="panel narrow">
-      <h1>Preferences</h1>
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={privateMode}
-          onChange={(e) => setPrivate(e.target.checked)}
-        />
-        Private mode: do not save searches or preferences
-      </label>
-      <p>
-        Only a listed location preference is stored. Chat content is not
-        included.
-      </p>
-      <p>Current search location: {filters.location || "None"}</p>
-      <div className="actions">
-        <button
-          disabled={privateMode || !filters.location}
-          onClick={() => action("save")}
-        >
-          Save location
-        </button>
-        <button onClick={() => action("load")}>Load saved location</button>
-        <button onClick={() => action("delete")}>Delete saved location</button>
+        </nav>
+      </header>
+      <main className="shell" id="app">
+        {linkedBooking ? (
+          <OriginalBookingLink route={view} ui={ui} />
+        ) : (
+          <OriginalHTML html={markup} onInput={input} replace={replace} />
+        )}
+      </main>
+      <footer className="site-footer">
+        <span className="footer-brand">
+          <img src="/logo.png" alt="" width="28" height="28" />
+          MySelfPay by One Smarter, Inc. · Dayton, Ohio
+        </span>
+        <span className="footer-links">
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+          <a href="/privacy-terms">Terms &amp; Privacy</a>
+        </span>
+      </footer>
+      {dialog && (
+        <Dialog onClose={close}>
+          {dialog.type === "booking" ? (
+            <OriginalBooking
+              entry={dialog.entry}
+              offer={dialog.offer}
+              search={state}
+              ui={ui}
+              onClose={close}
+              notify={setToast}
+            />
+          ) : (
+            <OriginalHTML html={dialogHTML} onInput={input} replace={replace} />
+          )}
+        </Dialog>
+      )}
+      <div
+        id="toast"
+        className={"toast" + (toast ? "" : " hidden")}
+        role="status"
+      >
+        {toast}
       </div>
-      <p role="status">{message}</p>
-    </section>
-  );
-}
-function Info({ route }) {
-  const pages = {
-    about: [
-      "About MySelfPay",
-      "MySelfPay by One Smarter, Inc. helps people research published self-pay MRI and CT options. Coverage is limited and listings require confirmation. We do not provide medical advice, insurance calculations or payment services.",
-    ],
-    contact: [
-      "Contact us",
-      "For support and listing corrections, contact partners@onesmarter.com. Do not email medical records or sensitive health information.",
-    ],
-    privacy: [
-      "Privacy and terms",
-      "Account registration stores your name, email, optional phone and a password hash. Sessions expire after eight hours. Guest search chat text is not stored; limited usage metadata and listed location preferences may be retained. Explicit appointment requests store encrypted contact and request details. Published prices and availability must be confirmed with the facility. No payment processing or clinical advice is provided.",
-    ],
-    terms: [
-      "Terms of use",
-      "Research listings are not guaranteed quotes, a contracted provider network or medical recommendations. Ask your clinician which test you need and confirm all-in pricing directly with the facility.",
-    ],
-    "for-imaging-centers": [
-      "For imaging centers",
-      "Contact partners@onesmarter.com to discuss your listing, verified pricing and appointment workflows. Clinic notification delivery is currently disabled during testing.",
-    ],
-  };
-  return (
-    <section className="panel narrow">
-      <h1>{pages[route][0]}</h1>
-      <p>{pages[route][1]}</p>
-      <a href="mailto:partners@onesmarter.com">partners@onesmarter.com</a>
-    </section>
+    </div>
   );
 }

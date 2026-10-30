@@ -1,131 +1,132 @@
 import { test, expect } from "@playwright/test";
 
-test("an expired cookie clears signed-in screens and allows a new guest session", async ({
+test("the original homepage branding and journeys are restored", async ({
   page,
-  context,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Find imaging near you" }).click();
   await expect(
-    page.getByRole("heading", { name: "Find your options" }),
+    page.getByRole("heading", { name: "Find self-pay MRI and CT near you." }),
   ).toBeVisible();
-  await context.clearCookies();
-  await page.getByLabel("State, city or ZIP").fill("Ohio");
-  await page
-    .getByRole("button", { name: "Search imaging", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Start your search" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Sign out", exact: true }),
-  ).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Continue as guest", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Find your options" }),
-  ).toBeVisible();
+  await expect(page.locator(".brand-logo")).toHaveAttribute("src", "/logo.png");
+  await expect(page.locator(".welcome-steps .step-number")).toHaveCount(3);
+  await expect(page.locator(".journey-card")).toHaveCount(2);
+  await expect(page.locator(".site-footer")).toContainText("Dayton, Ohio");
 });
 
-test("sign out works when the backend session has already disappeared", async ({
-  page,
-  context,
-}) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Find imaging near you" }).click();
-  await expect(
-    page.getByRole("button", { name: "Sign out", exact: true }),
-  ).toBeVisible();
-  await context.clearCookies();
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: /Know your options/ }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Sign out", exact: true }),
-  ).toHaveCount(0);
-});
-
-test("React account signup, saved search and login use DRF sessions", async ({
-  page,
-}) => {
-  const email = `drf-${Date.now()}@example.com`;
-  const password = "Synthetic-only-passphrase!";
-  await page.goto("/#signup");
-  await page
-    .getByLabel("Full name", { exact: true })
-    .fill("Synthetic DRF Test");
-  await page.getByLabel("Email address", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByLabel("Confirm password", { exact: true }).fill(password);
-  await page
-    .getByRole("button", { name: "Create account", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Find your options" }),
-  ).toBeVisible();
-  await page.getByLabel("State, city or ZIP").fill("Ohio");
-  await page
-    .getByRole("button", { name: "Search imaging", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Save search to history" }).click();
-  await page.getByRole("link", { name: "Saved history" }).click();
-  await expect(
-    page.getByRole("button", { name: "Restore search" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
-  await page.getByRole("link", { name: "Log in", exact: true }).click();
-  await page.getByLabel("Email address", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Log in", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Find your options" }),
-  ).toBeVisible();
-});
-test("guest searches actual backend, compares offers and signs out", async ({
+test("original search, comparison and directory work with the DRF backend", async ({
   page,
 }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await page.getByRole("button", { name: "Find imaging near you" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Find your options" }),
-  ).toBeVisible();
-  await page.getByLabel("State, city or ZIP").fill("Cincinnati, OH");
-  await page.getByLabel("Imaging service", { exact: true }).selectOption("MRI");
-  await page.getByLabel("Body part / ordered exam").fill("knee");
   await page
-    .getByRole("button", { name: "Search imaging", exact: true })
+    .getByRole("button", { name: "Find imaging options", exact: true })
     .click();
   await expect(
-    page.getByRole("link", { name: "View details" }).first(),
+    page.getByRole("heading", { name: "Find and compare imaging options" }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Compare", exact: true })
-    .first()
+    .getByRole("button", { name: "Try sample: knee MRI in Cincinnati" })
     .click();
-  await page.getByRole("link", { name: "Compare options" }).click();
+  await expect(page.locator("[data-detail]").first()).toBeVisible();
+  await page.locator("[data-select]").first().check();
+  await page
+    .getByRole("button", { name: "Compare selected", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Compare your options" }),
+    page.getByRole("heading", { name: "Compare selected options" }),
   ).toBeVisible();
-  await expect(page.getByRole("cell", { name: /MRI ·/ })).toBeVisible();
+  await page.getByRole("button", { name: "Close dialog" }).click();
+  await page.locator("#directory").click();
+  await expect(
+    page.getByRole("heading", { name: /Research directory/ }),
+  ).toBeVisible();
+  await page.locator("#dirSearch").fill("Ohio");
+  await expect(page.locator("#dirCount")).toContainText(/matches|match/);
+  await page.getByRole("button", { name: "Close dialog" }).click();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: /Know your options/ }),
+    page.getByRole("heading", { name: "Find self-pay MRI and CT near you." }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });
-test("public pages remain available without authentication", async ({
+
+test("original signup and login forms retain verified DRF sessions", async ({
   page,
 }) => {
+  const email = `ui-${Date.now()}@example.com`,
+    password = "Synthetic-only-passphrase!";
+  await page.goto("/#signup");
+  await page.locator("#accountName").fill("Synthetic UI Test");
+  await page.locator("#accountEmail").fill(email);
+  await page.locator("#accountPassword").fill(password);
+  await page.locator("#accountConfirm").fill(password);
+  await page.locator("#accountSubmit").click();
+  await expect(
+    page.getByRole("heading", { name: "Find and compare imaging options" }),
+  ).toBeVisible();
+  await page.locator("#profile").click();
+  await page.locator("#accountLogin").click();
+  await page.locator("#accountEmail").fill(email);
+  await page.locator("#accountPassword").fill(password);
+  await page.locator("#accountSubmit").click();
+  await expect(
+    page.getByRole("heading", { name: "Find and compare imaging options" }),
+  ).toBeVisible();
+});
+
+test("expired cookies clear signed-in UI and permit sign-out", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Find imaging options", exact: true })
+    .click();
+  await expect(page.locator("#profile")).toHaveText("Sign out");
+  await context.clearCookies();
+  await page.locator("#profile").click();
+  await expect(page.locator("#profile")).toHaveText("Sign in as guest");
+  await expect(
+    page.getByRole("heading", { name: "Find self-pay MRI and CT near you." }),
+  ).toBeVisible();
+});
+
+test("original information pages remain public", async ({ page }) => {
   await page.goto("/privacy-terms/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     /Privacy/,
   );
   await page.goto("/#login");
   await expect(
-    page.getByRole("heading", { name: "Welcome back" }),
+    page.getByRole("heading", { name: "Log in", exact: true }),
   ).toBeVisible();
+});
+
+test("original appointment dialog retains its two-step layout", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Find imaging options", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Try sample: knee MRI in Cincinnati" })
+    .click();
+  await page.locator("[data-detail]").first().click();
+  await page.locator("[data-appointment]").first().click();
+  await expect(
+    page.getByRole("heading", { name: "Request a time" }),
+  ).toBeVisible();
+  await page.locator("#bookingZone").selectOption("America/New_York");
+  const date = new Date();
+  date.setDate(date.getDate() + 3);
+  await page.locator("#bookingDate").fill(date.toISOString().slice(0, 10));
+  await page.locator('[data-add-slot="morning"]').click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Confirm your request" }),
+  ).toBeVisible();
+  await expect(page.locator("#bookingSubmit")).toBeDisabled();
 });
