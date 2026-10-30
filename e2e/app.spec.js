@@ -1,4 +1,41 @@
 import { test, expect } from "@playwright/test";
+
+test("React account signup, saved search and login use DRF sessions", async ({
+  page,
+}) => {
+  const email = `drf-${Date.now()}@example.com`;
+  const password = "Synthetic-only-passphrase!";
+  await page.goto("/#signup");
+  await page
+    .getByLabel("Full name", { exact: true })
+    .fill("Synthetic DRF Test");
+  await page.getByLabel("Email address", { exact: true }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByLabel("Confirm password", { exact: true }).fill(password);
+  await page
+    .getByRole("button", { name: "Create account", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Find your options" }),
+  ).toBeVisible();
+  await page.getByLabel("State, city or ZIP").fill("Ohio");
+  await page
+    .getByRole("button", { name: "Search imaging", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Save search to history" }).click();
+  await page.getByRole("link", { name: "Saved history" }).click();
+  await expect(
+    page.getByRole("button", { name: "Restore search" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.getByRole("link", { name: "Log in", exact: true }).click();
+  await page.getByLabel("Email address", { exact: true }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Find your options" }),
+  ).toBeVisible();
+});
 test("guest searches actual backend, compares offers and signs out", async ({
   page,
 }) => {
