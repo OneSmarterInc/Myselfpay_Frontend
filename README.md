@@ -20,6 +20,14 @@ Open **http://localhost:5173**. Use that exact hostname because backend `FRONTEN
 
 ## Build and deploy
 
+### This Vercel frontend with the AWS backend
+
+Set the Vercel production environment variable **`VITE_API_BASE_URL=/api`** and redeploy. The included `vercel.json` forwards `/api/*` to `https://myselfpaybackend.onesmarter.com/api/*` without changing the browser URL. The API session cookie is then first-party on the frontend origin, so the backend's `SameSite=Lax; Secure; HttpOnly` cookie works without cross-site-cookie access. API responses remain private and uncached.
+
+Keep AWS `FRONTEND_ORIGIN=https://myselfpay-frontend.vercel.app` and include `myselfpaybackend.onesmarter.com` in its allowed hosts. No database migration or weaker cookie policy is needed for this fix. If the AWS API hostname changes, update the rewrite destination. For other static hosting setups, use the separate-host configuration below.
+
+The React app confirms cookie persistence through `/api/me` before showing signed-in screens, clears account state when a protected request returns 401, and allows local sign-out if the server session has already expired.
+
 ```sh
 npm run build
 ```

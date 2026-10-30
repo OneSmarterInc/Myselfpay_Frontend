@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://myselfpaybackend.onesmarter.com/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/:path*",
+      "headers": [{ "key": "Cache-Control", "value": "private, no-store" }]
+    }
+  ]
+}

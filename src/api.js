@@ -1,5 +1,6 @@
 const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 let csrf = "";
+let sessionVersion = 0;
 
 function validationMessages(value, field = "") {
   if (typeof value === "string") {
@@ -40,13 +41,30 @@ export class APIError extends Error {
 }
 
 export function setCsrf(value) {
+  if (csrf !== (value || "")) sessionVersion++;
   csrf = value || "";
+}
+
+export async function establishSession(path, data) {
+  await api(path, data);
+  // A successful login response alone does not prove that the browser accepted
+  // its HttpOnly cookie. Check it before showing authenticated screens.
+  try {
+    return await api("/me");
+  } catch (error) {
+    if (error.status !== 401) throw error;
+    setCsrf("");
+    throw new Error(
+      "Your browser could not keep your session. Reload this page and try again.",
+    );
+  }
 }
 export async function api(
   path,
   data,
   method = data === undefined ? "GET" : "POST",
 ) {
+  const requestSessionVersion = sessionVersion;
   const response = await fetch(base + path, {
     method,
     credentials: "include",
@@ -68,6 +86,16 @@ export async function api(
     );
   }
   if (!response.ok) {
+    const publicSessionPaths = ["/me", "/guest", "/login", "/register"];
+    if (
+      response.status === 401 &&
+      !publicSessionPaths.includes(path) &&
+      !path.startsWith("/booking/") &&
+      requestSessionVersion === sessionVersion
+    ) {
+      setCsrf("");
+      globalThis.dispatchEvent?.(new Event("selfpay:session-expired"));
+    }
     throw new APIError(body, response);
   }
   if (body.csrf) setCsrf(body.csrf);

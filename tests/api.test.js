@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api, APIError, setCsrf } from "../src/api.js";
+import { api, APIError, establishSession, setCsrf } from "../src/api.js";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -18,6 +18,46 @@ function mockResponse(body, status = 200, headers = {}) {
 }
 
 describe("React client for the Django REST Framework API", () => {
+  it("does not accept a successful guest response when the cookie is missing", async () => {
+    const fetch = mockResponse({
+      member: { name: "Guest" },
+      csrf: "guest-csrf",
+    });
+    fetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ member: { name: "Guest" }, csrf: "guest-csrf" }),
+        { status: 200 },
+      ),
+    );
+    fetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: "Authentication credentials were not provided.",
+        }),
+        { status: 401 },
+      ),
+    );
+    await expect(establishSession("/guest", {})).rejects.toThrow(
+      "could not keep your session",
+    );
+  });
+
+  it("clears expired session credentials and signals the UI on protected 401s", async () => {
+    const dispatch = vi.fn();
+    vi.stubGlobal("dispatchEvent", dispatch);
+    setCsrf("old-csrf");
+    const fetch = mockResponse(
+      { error: "Authentication credentials were not provided." },
+      401,
+    );
+    await expect(api("/catalog")).rejects.toMatchObject({ status: 401 });
+    expect(dispatch).toHaveBeenCalledOnce();
+    fetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({}), { status: 200 }),
+    );
+    await api("/directory-summary");
+    expect(fetch.mock.calls[1][1].headers["X-CSRF-Token"]).toBeUndefined();
+  });
   it("sends JSON negotiation, cookie credentials and the returned CSRF token", async () => {
     const fetch = mockResponse({
       member: { name: "Guest" },

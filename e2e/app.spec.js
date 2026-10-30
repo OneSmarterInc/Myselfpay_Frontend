@@ -1,5 +1,52 @@
 import { test, expect } from "@playwright/test";
 
+test("an expired cookie clears signed-in screens and allows a new guest session", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Find imaging near you" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Find your options" }),
+  ).toBeVisible();
+  await context.clearCookies();
+  await page.getByLabel("State, city or ZIP").fill("Ohio");
+  await page
+    .getByRole("button", { name: "Search imaging", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Start your search" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Sign out", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Continue as guest", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Find your options" }),
+  ).toBeVisible();
+});
+
+test("sign out works when the backend session has already disappeared", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Find imaging near you" }).click();
+  await expect(
+    page.getByRole("button", { name: "Sign out", exact: true }),
+  ).toBeVisible();
+  await context.clearCookies();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: /Know your options/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Sign out", exact: true }),
+  ).toHaveCount(0);
+});
+
 test("React account signup, saved search and login use DRF sessions", async ({
   page,
 }) => {

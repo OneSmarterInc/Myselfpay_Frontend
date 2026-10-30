@@ -1,5 +1,5 @@
 import { cloneElement, useEffect, useId, useRef, useState } from "react";
-import { api, setCsrf } from "./api.js";
+import { api, establishSession, setCsrf } from "./api.js";
 import { price, contrastLabel, safeWebsite, phoneOf } from "./format.js";
 import Booking, { BookingLink } from "./Booking.jsx";
 
@@ -71,6 +71,24 @@ export default function App() {
   function navigate(value) {
     location.hash = value;
   }
+  function clearSession() {
+    searchSequence.current++;
+    setCsrf("");
+    setMember(null);
+    setCatalog({ entries: [], offers: [], locations: [] });
+    setResults(null);
+    setChosen([]);
+    setFilters(defaults);
+    setBooking(null);
+  }
+  useEffect(() => {
+    const expired = () => {
+      clearSession();
+      setError("Your session expired. Continue as guest or sign in again.");
+    };
+    window.addEventListener("selfpay:session-expired", expired);
+    return () => window.removeEventListener("selfpay:session-expired", expired);
+  }, []);
   useEffect(() => {
     const change = () => {
       setRoute(location.hash.slice(1) || "home");
@@ -109,7 +127,7 @@ export default function App() {
         if (active) setCatalog(value);
       })
       .catch((e) => {
-        if (active) setError(e.message);
+        if (active && e.status !== 401) setError(e.message);
       });
     return () => {
       active = false;
@@ -121,28 +139,27 @@ export default function App() {
     try {
       return await action();
     } catch (e) {
-      setError(e.message);
+      if (e.status !== 401) setError(e.message);
     } finally {
       setBusy(false);
     }
   }
   async function guest(destination = "search") {
     await run(async () => {
-      const value = await api("/guest", {});
+      const value = await establishSession("/guest", {});
       setMember(value.member);
       navigate(destination);
     });
   }
   async function logout() {
     await run(async () => {
-      await api("/logout", {});
-      setCsrf("");
-      setMember(null);
-      setCatalog({ entries: [], offers: [], locations: [] });
-      setResults(null);
-      setChosen([]);
-      setFilters(defaults);
-      setBooking(null);
+      try {
+        await api("/logout", {});
+      } catch (error) {
+        if (error.status !== 401) throw error;
+      }
+      clearSession();
+      setError("");
       navigate("home");
     });
   }
@@ -593,7 +610,9 @@ function Auth({ signup, onSuccess, onGuest }) {
     delete data.confirm;
     setBusy(true);
     try {
-      onSuccess(await api(signup ? "/register" : "/login", data));
+      await onSuccess(
+        await establishSession(signup ? "/register" : "/login", data),
+      );
     } catch (e) {
       setError(e.message);
     } finally {
