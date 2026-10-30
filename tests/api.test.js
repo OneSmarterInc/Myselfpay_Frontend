@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, APIError, establishSession, setCsrf } from "../src/api.js";
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   setCsrf("");
 });
@@ -18,6 +19,24 @@ function mockResponse(body, status = 200, headers = {}) {
 }
 
 describe("React client for the Django REST Framework API", () => {
+  it("aborts a stalled request and reports unconfirmed delivery without retrying", async () => {
+    vi.useFakeTimers();
+    const fetch = vi.fn(
+      (_url, options) =>
+        new Promise((_resolve, reject) => {
+          options.signal.addEventListener("abort", () =>
+            reject(new DOMException("Aborted", "AbortError")),
+          );
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const result = expect(
+      api("/booking/email-code", { email: "synthetic@example.com" }),
+    ).rejects.toThrow("Delivery is not confirmed");
+    await vi.advanceTimersByTimeAsync(45000);
+    await result;
+    expect(fetch).toHaveBeenCalledOnce();
+  });
   it("does not accept a successful guest response when the cookie is missing", async () => {
     const fetch = mockResponse({
       member: { name: "Guest" },

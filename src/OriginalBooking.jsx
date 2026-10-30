@@ -65,6 +65,7 @@ export default function OriginalBooking({
     try {
       await fn();
     } catch (e) {
+      setStatus("");
       setError(e.message);
     } finally {
       setBusy(false);
@@ -230,7 +231,7 @@ export default function OriginalBooking({
     if (id === "patientEmailStatus")
       return (
         <p id="patientEmailStatus" role="status">
-          {status}
+          {status || error}
         </p>
       );
     if (id === "bookingSelected")

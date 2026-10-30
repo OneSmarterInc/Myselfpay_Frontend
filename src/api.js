@@ -64,8 +64,31 @@ export async function api(
   data,
   method = data === undefined ? "GET" : "POST",
 ) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 45000);
+  try {
+    return await request(path, data, method, controller.signal);
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(
+        "The server took too long to respond. Delivery is not confirmed. Check your inbox or request status before trying again.",
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function request(
+  path,
+  data,
+  method = data === undefined ? "GET" : "POST",
+  signal,
+) {
   const requestSessionVersion = sessionVersion;
   const response = await fetch(base + path, {
+    signal,
     method,
     credentials: "include",
     cache: "no-store",

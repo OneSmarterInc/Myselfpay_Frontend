@@ -129,4 +129,22 @@ test("original appointment dialog retains its two-step layout", async ({
     page.getByRole("heading", { name: "Confirm your request" }),
   ).toBeVisible();
   await expect(page.locator("#bookingSubmit")).toBeDisabled();
+  await page.route("**/api/booking/email-code", (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "Email delivery is unavailable. Please try again later.",
+      }),
+    }),
+  );
+  await page.locator("#bookingEmail").fill("synthetic@example.com");
+  await page.locator("#patientCodeSend").click();
+  await expect(page.locator("#patientEmailStatus")).toContainText(
+    "Email delivery is unavailable",
+  );
+  await expect(page.locator("#patientEmailStatus")).not.toContainText(
+    "Sending",
+  );
+  await expect(page.locator("#patientCodeSend")).toBeEnabled();
 });
