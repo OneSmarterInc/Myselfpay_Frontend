@@ -136,6 +136,7 @@ function Dialog({ children, onClose }) {
 }
 
 export default function App() {
+  const [pendingBooking, setPendingBooking] = useState(null);
   const [account, setAccount] = useState(null),
     [state, setState] = useState(() => ({
       ...initialState(),
@@ -200,6 +201,17 @@ export default function App() {
     setDialog(null);
     setMap(null);
   }
+  useEffect(() => {
+    if (
+      pendingBooking &&
+      account &&
+      account.tenant !== "guest" &&
+      view === "search"
+    ) {
+      setDialog(pendingBooking);
+      setPendingBooking(null);
+    }
+  }, [pendingBooking, account, view]);
   function close() {
     setDialog(null);
     if (["directory", "compare"].includes(route()))
@@ -606,12 +618,22 @@ export default function App() {
       const entry = catalog.entries.find(
         (x) => x.booking_id === target.dataset.appointment,
       );
-      if (entry)
-        setDialog({
+      if (entry) {
+        const bookingDialog = {
           type: "booking",
           entry,
           offer: allOffers.find((x) => x.id === target.dataset.bookingOffer),
-        });
+        };
+        if (!account || account.tenant === "guest") {
+          setPendingBooking(bookingDialog);
+          navigate("login");
+          setToast(
+            "Please log in or create a user account to book an appointment.",
+          );
+        } else {
+          setDialog(bookingDialog);
+        }
+      }
       return;
     }
     if (target.dataset.mapIndex) {

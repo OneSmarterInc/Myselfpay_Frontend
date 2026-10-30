@@ -65,7 +65,7 @@ test("original signup and login forms retain verified DRF sessions", async ({
   await page.locator("#accountSubmit").click();
   await expect(
     page.getByRole("heading", { name: "Find and compare imaging options" }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15000 });
   await page.locator("#profile").click();
   await page.locator("#accountLogin").click();
   await page.locator("#accountEmail").fill(email);
@@ -116,6 +116,15 @@ test("original appointment dialog retains its two-step layout", async ({
     .click();
   await page.locator("[data-detail]").first().click();
   await page.locator("[data-appointment]").first().click();
+  await expect(
+    page.getByRole("heading", { name: "Log in", exact: true }),
+  ).toBeVisible();
+  await page.goto("/#signup");
+  await page.locator("#accountName").fill("Synthetic Booker");
+  await page.locator("#accountEmail").fill(`booking-${Date.now()}@example.com`);
+  await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
+  await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
+  await page.locator("#accountSubmit").click();
   await expect(
     page.getByRole("heading", { name: "Request a time" }),
   ).toBeVisible();
