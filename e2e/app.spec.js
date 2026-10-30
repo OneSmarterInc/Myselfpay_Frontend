@@ -22,8 +22,24 @@ test("National lists directory centers with ten results per page", async ({
   await expect(page.locator("article.card h3").first()).not.toHaveText(first);
   await page.getByRole("button", { name: "Previous", exact: true }).click();
   await expect(page.locator("article.card h3").first()).toHaveText(first);
+  await expect(
+    page.locator("article.card").first().locator(".facts .fact"),
+  ).toHaveCount(2);
+  await page.locator("article.card [data-select]").first().check();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await page.locator("article.card [data-select]").first().check();
+  await page.locator("#compare").click();
+  await expect(page.locator(".comparison-table thead th")).toHaveCount(3);
+  await expect(page.locator(".comparison-table")).toContainText(
+    "Ask for a price",
+  );
+  await page.getByRole("button", { name: "Close dialog" }).click();
+  await page.locator("article.card [data-detail]").first().click();
+  await expect(page.locator(".detailgrid h1")).toBeVisible();
+  await expect(page.locator(".detailgrid")).toContainText("Ask for a price");
   await page.locator("#directory").click();
-  await expect(page.locator("details.lead")).toHaveCount(10);
+  await expect(page.locator("#dirRows article.card")).toHaveCount(10);
+  await expect(page.locator("#dirRows [data-select]")).toHaveCount(10);
 });
 
 test("the original homepage branding and journeys are restored", async ({

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import parse, { attributesToProps, domToReact } from "html-react-parser";
 import { api, establishSession, setCsrf } from "./api.js";
 import { originalUI } from "./original-ui.js";
+import { directoryOffer } from "./directory-offer.js";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
 
 const initialState = () => ({
@@ -167,13 +168,28 @@ export default function App() {
   const allOffers = useMemo(
     () => [
       ...new Map(
-        [...catalog.offers, ...results, ...(state.programs || [])].map((o) => [
-          o.id,
-          o,
-        ]),
+        [
+          ...catalog.entries.map((entry) => directoryOffer(entry, state)),
+          ...(state.nearbyUnpriced || []).map((entry) =>
+            directoryOffer(entry, state),
+          ),
+          ...(state.programEntries || []).map((entry) =>
+            directoryOffer(entry, state),
+          ),
+          ...catalog.offers,
+          ...results,
+          ...(state.programs || []),
+        ].map((o) => [o.id, o]),
       ).values(),
     ],
-    [catalog.offers, results, state.programs],
+    [
+      catalog,
+      results,
+      state.programs,
+      state.nearbyUnpriced,
+      state.programEntries,
+      state.mod,
+    ],
   );
   const ui = originalUI({
     state: {
@@ -608,7 +624,7 @@ export default function App() {
       navigate(state.mode === "agent" ? "agent" : "search");
       return;
     }
-    if (id === "compare") {
+    if (id === "compare" || target.dataset.compareDirectory) {
       event.preventDefault();
       setDialog({ type: "compare" });
       history.pushState(null, "", "#compare");
@@ -636,7 +652,9 @@ export default function App() {
         const bookingDialog = {
           type: "booking",
           entry,
-          offer: allOffers.find((x) => x.id === target.dataset.bookingOffer),
+          offer: allOffers.find(
+            (x) => x.id === target.dataset.bookingOffer && !x.directory_only,
+          ),
         };
         if (!account || account.tenant === "guest") {
           setPendingBooking(bookingDialog);
@@ -868,6 +886,7 @@ export default function App() {
             html={ui.directoryRows(
               matches.slice(directoryPage * 10, directoryPage * 10 + 10),
             )}
+            onInput={input}
           />
         </div>
       );
