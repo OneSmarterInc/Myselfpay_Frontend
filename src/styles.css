@@ -94,6 +94,6 @@ dialog .modal-body>*{max-width:100%}
 
 .search-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;margin:12px 0 0}.search-toolbar .chips{margin:0}.search-toolbar .chips:empty{display:none}.search-toolbar .chip{padding:5px 10px}.search-toolbar>button{padding:8px 12px}.tabs.search-tabs{margin-bottom:12px}
 
-.price.published-prices{font-size:18px;line-height:1.5;white-space:pre-line;overflow-wrap:anywhere;max-width:52%;font-weight:650}.detailgrid .price.published-prices{max-width:100%}@media(max-width:760px){.price.published-prices{max-width:100%;font-size:17px}}
+.price.published-prices{font-size:30px;line-height:1.5;white-space:pre-line;overflow-wrap:anywhere;max-width:52%;font-weight:750}.detailgrid .price.published-prices{max-width:100%}@media(max-width:760px){.price.published-prices{max-width:100%;font-size:26px}}
 
 .directory-service-details dt{font-weight:700;margin-top:16px}.directory-service-details dd{margin:4px 0 16px;white-space:pre-line;overflow-wrap:anywhere}
