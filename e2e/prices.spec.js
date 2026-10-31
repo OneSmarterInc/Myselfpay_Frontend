@@ -13,6 +13,7 @@ test("directory cards display stored prices and keep quote-only centers distinct
     source: "https://example.com",
     mri: "$399 per noncontrast scan/body region",
     ct: "RESTRICTED: coronary calcium-scoring screening CT $79",
+    other: "Mammogram from $140; ultrasound from $115; X-ray from $33",
   };
   const quote = {
     ...priced,
@@ -44,18 +45,18 @@ test("directory cards display stored prices and keep quote-only centers distinct
     .locator("#searchForm")
     .getByRole("button", { name: "Find options", exact: true })
     .click();
-  const card = page
-    .locator("article.card")
-    .filter({
-      has: page.getByRole("heading", { name: priced.name, exact: true }),
-    });
+  const card = page.locator("article.card").filter({
+    has: page.getByRole("heading", { name: priced.name, exact: true }),
+  });
+  await expect(card.locator(".price")).toContainText("MRI: $399");
   await expect(card.locator(".price")).toContainText(
-    "MRI: $399 per noncontrast scan/body region",
-  );
-  await expect(card.locator(".price")).toContainText(
-    "CT: RESTRICTED: coronary calcium-scoring screening CT $79",
+    "CT: $79 (screening only)",
   );
   await expect(card).not.toContainText("Ask for a price");
+  await expect(card.locator(".price")).not.toContainText(
+    "noncontrast scan/body region",
+  );
+  await expect(card.locator(".price")).not.toContainText("Other imaging");
   await expect(
     page
       .locator("article.card")
@@ -80,4 +81,13 @@ test("directory cards display stored prices and keep quote-only centers distinct
   await expect(card.locator(".price")).not.toContainText("$79");
   await card.locator("[data-detail]").click();
   await expect(page.locator(".detailgrid .price")).toContainText("MRI: $399");
+  await expect(page.locator(".directory-service-details")).toContainText(
+    priced.mri,
+  );
+  await expect(page.locator(".directory-service-details")).toContainText(
+    priced.ct,
+  );
+  await expect(page.locator(".directory-service-details")).toContainText(
+    priced.other,
+  );
 });
