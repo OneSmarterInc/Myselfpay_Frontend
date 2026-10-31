@@ -34,7 +34,8 @@ it("renders directory centers with the standard card, comparison and real bookin
   expect(html).toContain("Price includes");
   expect(html).toContain("Order requirements");
   expect(html).toContain('data-appointment="real-center-id"');
-  expect(html).toContain('href="tel:+15135550123"');
+  expect(html).not.toContain('href="tel:');
+  expect(html).not.toContain('Facilities to contact for a quote');
   expect(html).toContain('data-booking-offer=""');
   expect(html).toContain("View details");
   expect(ui.compare()).toContain("Synthetic Center");
