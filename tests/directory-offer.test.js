@@ -9,6 +9,7 @@ it("renders directory centers with the standard card, comparison and real bookin
     area: "Ohio",
     source: "https://example.com",
     checked: "2026-10-30",
+    phone_number: "5135550123",
   };
   const offer = directoryOffer(entry);
   expect(offer.amount).toBeNull();
@@ -31,6 +32,7 @@ it("renders directory centers with the standard card, comparison and real bookin
   expect(html).toContain("Price includes");
   expect(html).toContain("Order requirements");
   expect(html).toContain('data-appointment="real-center-id"');
+  expect(html).toContain('href="tel:+15135550123"');
   expect(html).toContain('data-booking-offer=""');
   expect(html).toContain("View details");
   expect(ui.compare()).toContain("Synthetic Center");

@@ -211,6 +211,9 @@ test("original appointment dialog retains its two-step layout", async ({
     .getByRole("button", { name: "Try sample: knee MRI in Cincinnati" })
     .click();
   await page.locator("[data-detail]").first().click();
+  await expect(
+    page.locator(".card-actions [data-appointment]").first(),
+  ).toHaveCSS("background-color", "rgb(121, 85, 72)");
   await page.locator("[data-appointment]").first().click();
   await expect(
     page.getByRole("heading", {
