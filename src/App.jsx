@@ -814,7 +814,10 @@ export default function App() {
                 !state.body.trim() &&
                 state.contrast === "unknown"
               ? ""
-              : state.locationNotice}
+              : state.locationNotice?.replace(
+                  /^Showing indexed imaging centers across the selected state\. Optional filters apply\.\s*/,
+                  "",
+                )}
         </div>
       );
     if (id === "locationSuggestions")
