@@ -472,7 +472,10 @@ export default function App() {
       ].includes(id)
     ) {
       let changes = { [id]: element.value };
-      if (id === "budget") changes.budget = Number(element.value) || 0;
+      if (id === "budget") {
+        if (!/^[0-9]{0,6}$/.test(element.value)) return;
+        changes.budget = Number(element.value) || 0;
+      }
       if (id === "radius")
         changes = {
           scope: ["state", "city"].includes(element.value)
