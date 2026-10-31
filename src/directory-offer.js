@@ -1,10 +1,28 @@
-// Presentation-only quote listing. It does not create a price or backend offer.
+// Presentation-only directory listing. Keep stored price wording and scope intact.
+export function storedPrices(entry, service = "") {
+  const fields = service
+    ? [[service, service.toLowerCase()]]
+    : [
+        ["MRI", "mri"],
+        ["CT", "ct"],
+        ["Other imaging", "other"],
+      ];
+  return fields.flatMap(([label, key]) => {
+    const text = String(entry[key] || "").trim();
+    return /(?:\$\s*\d|\bUSD\s*\d|\b\d[\d,.]*\s*USD\b)/i.test(text)
+      ? [{ service: label, text }]
+      : [];
+  });
+}
+
 export function directoryOffer(entry, search = {}) {
+  const publishedPrices = storedPrices(entry, search.mod);
   return {
     id: "directory-" + encodeURIComponent(entry.booking_id || entry.name),
     directory_only: true,
     entry: { ...entry, checked: String(entry.checked || "") },
-    type: "quote",
+    type: publishedPrices.length ? "published" : "quote",
+    published_prices: publishedPrices,
     amount: null,
     region: entry.area || entry.states || "Confirm location with facility",
     mod: search.mod || "Imaging services",
