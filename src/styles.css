@@ -91,3 +91,5 @@ dialog .modal-body>*{max-width:100%}
 .account-page{max-width:520px;margin:0 auto}.account-page button{min-height:44px}.account-page #accountError{color:#b01b23}.account-page input:focus-visible{outline:3px solid #b01b23;outline-offset:2px}
 
 .card-actions button[data-appointment]{background:#795548;border-color:#795548;color:#fff}.card-actions button[data-appointment]:hover{background:#5d4037;border-color:#5d4037}
+
+.search-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;margin:12px 0 0}.search-toolbar .chips{margin:0}.search-toolbar .chips:empty{display:none}.search-toolbar .chip{padding:5px 10px}.search-toolbar>button{padding:8px 12px}.tabs.search-tabs{margin-bottom:12px}
