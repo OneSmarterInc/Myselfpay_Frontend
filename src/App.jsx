@@ -3,6 +3,7 @@ import parse, { attributesToProps, domToReact } from "html-react-parser";
 import { api, establishSession, setCsrf } from "./api.js";
 import { originalUI } from "./original-ui.js";
 import { directoryOffer } from "./directory-offer.js";
+import { predefinedQuestion } from "./chat-questions.js";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
 
 const initialState = () => ({
@@ -232,6 +233,10 @@ export default function App() {
       setPendingBooking(null);
     }
   }, [pendingBooking, account, view]);
+  useEffect(() => {
+    const chat = document.getElementById("chat");
+    if (chat) chat.scrollTop = chat.scrollHeight;
+  }, [state.messages, view]);
   function close() {
     if (dialog?.type === "booking-login") setPendingBooking(null);
     setDialog(null);
@@ -391,11 +396,18 @@ export default function App() {
     });
   }
   async function talk(message) {
-    if (!message?.trim()) return;
+    const question = predefinedQuestion(message);
+    if (!question) {
+      setToast(
+        "Choose one of the predefined questions. Free-text questions are not supported.",
+      );
+      return;
+    }
+    setToast("");
     await run(async () => {
       try {
         const data = await api("/agent", {
-          message,
+          message: question,
           search: payload(state),
           conversation_id: state.conversationId,
         });
@@ -404,7 +416,7 @@ export default function App() {
           ...old,
           messages: [
             ...old.messages,
-            { role: "user", text: message },
+            { role: "user", text: question },
             { role: "assistant", text: data.reply },
           ],
           conversationId: data.conversation_id || old.conversationId,
@@ -687,6 +699,7 @@ export default function App() {
     }
     if (id === "newGuestChat") {
       event.preventDefault();
+      setToast("");
       setState((old) => ({
         ...old,
         conversationId: null,
@@ -814,13 +827,15 @@ export default function App() {
                 !state.body.trim() &&
                 state.contrast === "unknown"
               ? ""
-              : state.locationNotice?.replace(
-                  /^Showing indexed imaging centers across the selected state\. Optional filters apply\.\s*/,
-                  "",
-                )?.replace(
-                  /^Showing indexed imaging centers across all states\. Exam and price filters still apply; confirm availability and prices directly\.\s*/,
-                  "",
-                )}
+              : state.locationNotice
+                  ?.replace(
+                    /^Showing indexed imaging centers across the selected state\. Optional filters apply\.\s*/,
+                    "",
+                  )
+                  ?.replace(
+                    /^Showing indexed imaging centers across all states\. Exam and price filters still apply; confirm availability and prices directly\.\s*/,
+                    "",
+                  )}
         </div>
       );
     if (id === "locationSuggestions")

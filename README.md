@@ -69,3 +69,7 @@ Published prices require confirmation; no clinical advice, insurance calculation
 Clinic notification and clinic OTP email are supported by the backend after SMTP configuration and outbox migration. The UI follows the API delivery mode: disabled-mode warnings remain for suppressed mail, while enabled requests show their real queued/sent/failed status. The Geetesh Pawar Test Imaging Center is explicitly fictional and provides no medical care. SMTP credentials remain server-only. A booking request is not a confirmed appointment. Automated password recovery is not implemented.
 
 No existing live patient/account data, production credentials or live database backups are included. The bundled directory is research demo data, not a copy of the current live catalog. Informational-page text is retained from the source and should be reviewed by the owner for the new deployment domains and any future delivery-policy changes.
+
+## Predefined chat
+
+Ask MySelfPay retains the original chat layout and supports only the three questions in `src/chat-questions.js`. The suggestion buttons, Send field and voice-preview selector use this allowlist. Other text is rejected locally. Registered users receive the same questions; guest conversation quotas still apply. The backend must also be updated to enforce the allowlist on `/api/agent`. No external AI or speech service is called.
