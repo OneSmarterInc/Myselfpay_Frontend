@@ -42,8 +42,15 @@ test("National lists directory centers with ten results per page", async ({
   await expect(page.locator(".detailgrid h1")).toBeVisible();
   await expect(page.locator(".detailgrid")).toContainText("Ask for a price");
   await page.locator("#directory").click();
-  await expect(page.locator("#dirRows article.card")).toHaveCount(10);
-  await expect(page.locator("#dirRows [data-select]")).toHaveCount(10);
+  await expect(page.locator("#dirRows details.lead")).toHaveCount(10);
+  await page.locator("#dirRows summary").first().click();
+  await expect(page.locator("#dirRows details[open]")).toContainText("MRI:");
+  await expect(page.locator("#dirRows details[open]")).toContainText("CT:");
+  await expect(
+    page
+      .locator("#dirRows details[open]")
+      .getByRole("link", { name: "Provider source" }),
+  ).toBeVisible();
 });
 
 test("state-only search works and optional filters apply independently", async ({

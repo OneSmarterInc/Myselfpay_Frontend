@@ -475,7 +475,9 @@ export default function App() {
       if (id === "budget") changes.budget = Number(element.value) || 0;
       if (id === "radius")
         changes = {
-          scope: element.value === "state" ? "state" : "radius",
+          scope: ["state", "city"].includes(element.value)
+            ? element.value
+            : "radius",
           radius: Number(element.value) || 50,
         };
       setState((old) => ({ ...old, ...changes, dirty: old.searched || false }));
@@ -564,6 +566,7 @@ export default function App() {
     }
     if (id === "directory" || id === "browseDirectory" || id === "leads") {
       event.preventDefault();
+      setState((old) => ({ ...old, directoryQuery: "", directoryPage: 0 }));
       setDialog({ type: "directory" });
       history.pushState(null, "", "#directory");
       return;
@@ -600,17 +603,28 @@ export default function App() {
     if (id === "sampleSearch") {
       event.preventDefault();
       return search({
-        mod: "MRI",
-        body: "Knee",
-        contrast: "without",
+        mod: "",
+        body: "",
+        contrast: "unknown",
         location: "Cincinnati, OH",
-        budget: 500,
+        scope: "city",
+        budget: 0,
         type: "all",
+        selected: [],
       });
     }
-    if (id === "widen") {
+    if (id === "widen" || id === "browseNational") {
       event.preventDefault();
-      return search({ location: "National" });
+      return search({
+        location: "National",
+        scope: "state",
+        mod: "",
+        body: "",
+        contrast: "unknown",
+        budget: 0,
+        type: "all",
+        selected: [],
+      });
     }
     if (id === "locationToggle") {
       event.preventDefault();
@@ -834,6 +848,10 @@ export default function App() {
                   )
                   ?.replace(
                     /^Showing indexed imaging centers across all states\. Exam and price filters still apply; confirm availability and prices directly\.\s*/,
+                    "",
+                  )
+                  ?.replace(
+                    /Directory-only centers need matching exam or contrast information to appear; unverified matches are excluded\.\s*/g,
                     "",
                   )}
         </div>

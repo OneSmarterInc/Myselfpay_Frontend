@@ -19,6 +19,8 @@ it("renders directory centers with the standard card, comparison and real bookin
     location: "National",
     mod: "",
     messages: [],
+    searched: true,
+    nearbyUnpriced: [entry],
   };
   const ui = originalUI({
     state,
@@ -26,7 +28,7 @@ it("renders directory centers with the standard card, comparison and real bookin
     DIRECTORY: [entry],
     results: [],
   });
-  const html = ui.directoryRows([entry]);
+  const html = ui.search();
   expect(html).toContain('type="checkbox"');
   expect(html).toContain("Price on request");
   expect(html).toContain("Price includes");
@@ -37,4 +39,10 @@ it("renders directory centers with the standard card, comparison and real bookin
   expect(html).toContain("View details");
   expect(ui.compare()).toContain("Synthetic Center");
   expect(ui.detail(offer.id)).not.toContain("Listing unavailable");
+  const directory = ui.directoryRows([entry]);
+  expect(directory).toContain('<details class="lead">');
+  expect(directory).toContain("<summary>Synthetic Center");
+  expect(directory).toContain("Other imaging:");
+  expect(directory).toContain("Location / coverage:");
+  expect(directory).toContain("Provider source");
 });
