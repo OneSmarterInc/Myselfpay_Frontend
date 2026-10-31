@@ -817,6 +817,9 @@ export default function App() {
               : state.locationNotice?.replace(
                   /^Showing indexed imaging centers across the selected state\. Optional filters apply\.\s*/,
                   "",
+                )?.replace(
+                  /^Showing indexed imaging centers across all states\. Exam and price filters still apply; confirm availability and prices directly\.\s*/,
+                  "",
                 )}
         </div>
       );
