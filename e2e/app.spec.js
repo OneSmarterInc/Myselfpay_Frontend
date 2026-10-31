@@ -68,6 +68,17 @@ test("state-only search works and optional filters apply independently", async (
   };
   const all = await search();
   expect(all.offers.length + all.nearby_unpriced.length).toBeGreaterThan(0);
+  const total =
+    all.offers.length +
+    all.nearby_unpriced.length +
+    all.programs.length +
+    all.program_entries.length;
+  await expect(
+    page.getByRole("heading", {
+      name: `${total} matching listing${total === 1 ? "" : "s"}`,
+      exact: true,
+    }),
+  ).toBeVisible();
   expect(await page.locator("#body").getAttribute("required")).toBeNull();
   await page.locator("#mod").selectOption("CT");
   const ct = await search();
@@ -202,9 +213,29 @@ test("original appointment dialog retains its two-step layout", async ({
   await page.locator("[data-detail]").first().click();
   await page.locator("[data-appointment]").first().click();
   await expect(
+    page.getByRole("heading", {
+      name: "Log in to book an appointment",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Log in", exact: true })
+    .click();
+  await expect(
     page.getByRole("heading", { name: "Log in", exact: true }),
   ).toBeVisible();
-  await page.goto("/#signup");
+  await page.goBack();
+  await page.locator("[data-appointment]").first().click();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await page.locator("[data-appointment]").first().click();
+  await page
+    .getByRole("button", { name: "Create account and continue", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Create an account", exact: true }),
+  ).toBeVisible();
   await page.locator("#accountName").fill("Synthetic Booker");
   await page.locator("#accountEmail").fill(`booking-${Date.now()}@example.com`);
   await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");

@@ -233,6 +233,7 @@ export default function App() {
     }
   }, [pendingBooking, account, view]);
   function close() {
+    if (dialog?.type === "booking-login") setPendingBooking(null);
     setDialog(null);
     if (["directory", "compare"].includes(route()))
       history.replaceState(null, "", `${location.pathname}#${view}`);
@@ -511,6 +512,14 @@ export default function App() {
     }
   }
   function click(event) {
+    const bookingChoice = event.target.closest("[data-booking-auth]");
+    if (bookingChoice) {
+      event.preventDefault();
+      const choice = bookingChoice.dataset.bookingAuth;
+      if (choice === "cancel") close();
+      else navigate(choice);
+      return;
+    }
     const pageButton = event.target.closest("[data-results-page]");
     if (pageButton) {
       event.preventDefault();
@@ -661,10 +670,7 @@ export default function App() {
         };
         if (!account || account.tenant === "guest") {
           setPendingBooking(bookingDialog);
-          navigate("login");
-          setToast(
-            "Please log in or create a user account to book an appointment.",
-          );
+          setDialog({ type: "booking-login" });
         } else {
           setDialog(bookingDialog);
         }
@@ -979,6 +985,9 @@ export default function App() {
     markup = ui.search();
   else markup = ui.home();
   let dialogHTML = "";
+  if (dialog?.type === "booking-login")
+    dialogHTML =
+      '<h2>Log in to book an appointment</h2><p>You cannot book an appointment without a user account. Would you like to create an account and continue?</p><p>Your selected center will be kept so you can continue after signing in.</p><div class="actions"><button type="button" class="primary" data-booking-auth="signup">Create account and continue</button><button type="button" data-booking-auth="login">Log in</button><button type="button" data-booking-auth="cancel">Cancel</button></div>';
   if (dialog?.type === "directory") dialogHTML = ui.directory();
   if (dialog?.type === "compare") dialogHTML = ui.compare();
   if (dialog?.type === "quote") dialogHTML = ui.request(dialog.offer);

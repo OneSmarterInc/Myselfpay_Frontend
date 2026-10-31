@@ -46,6 +46,31 @@ const ui = originalUI({
   summary: null,
 });
 describe("original SelfPay presentation contracts", () => {
+  it("counts every matching offer, program and directory listing across pages", () => {
+    const context = {
+      state: {
+        ...state,
+        searched: true,
+        nearbyUnpriced: [entry, entry],
+        programs: [],
+        programEntries: [entry],
+      },
+      account: { tenant: "guest" },
+      DIRECTORY: [],
+      offers: [offer],
+      results: [offer],
+      catalogReady: true,
+    };
+    expect(originalUI(context).search()).toContain("4 matching listings");
+    context.state.resultsPage = 1;
+    expect(originalUI(context).search()).toContain("4 matching listings");
+    context.results = [];
+    context.state.nearbyUnpriced = [];
+    context.state.programEntries = [];
+    expect(originalUI(context).search()).toContain("0 matching listings");
+    context.results = [offer];
+    expect(originalUI(context).search()).toContain("1 matching listing</h2>");
+  });
   it("retains the original homepage sections and search controls", () => {
     expect(ui.home()).toContain("Find self-pay MRI and CT near you.");
     expect(ui.home()).toContain("welcome-choices");
