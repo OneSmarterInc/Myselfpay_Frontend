@@ -84,3 +84,19 @@ describe("original SelfPay presentation contracts", () => {
     expect(ui.detail("one")).toContain("Starting price · quote needed");
   });
 });
+
+it("prioritizes complete cards across categories before paginating, then sorts by miles", () => {
+  const completeEntry = { ...entry, name: "Complete", coverage: "123 Main Street", booking_id: "clinic" };
+  const nearby = { ...offer, id: "near", entry: { ...entry, name: "Nearby" }, distance_miles: 1 };
+  const complete = { ...offer, id: "complete", entry: completeEntry, distance_miles: 80 };
+  const farther = { ...offer, id: "far", entry: { ...entry, name: "Farther" }, distance_miles: 20 };
+  const unknown = { ...entry, name: "Unknown distance" };
+  const context = { state: { ...state, searched: true, programs: [complete], nearbyUnpriced: [unknown] }, results: [farther, nearby], DIRECTORY: [], offers: [], catalogReady: true };
+  const html = originalUI(context).search();
+  const names = [...html.matchAll(/<h3>([^<]+)<\/h3>/g)].map(m => m[1]);
+  expect(names).toEqual(["Complete", "Nearby", "Farther", "Unknown distance"]);
+  context.results = Array.from({length: 11}, (_, i) => ({ ...nearby, id: "near" + i }));
+  const page = originalUI(context).search();
+  expect(page).toContain("of 13 listings");
+  expect(page.indexOf("<h3>Complete</h3>")).toBeLessThan(page.indexOf("<h3>Nearby</h3>"));
+});
