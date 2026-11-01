@@ -43,7 +43,8 @@ test("directory opens as an accordion and sample and National reset restrictive 
   const pendingNational = page.waitForResponse((response) =>
     response.url().endsWith("/api/search"),
   );
-  await page.locator("#browseNational").click();
+  await page.locator("#location").fill("National");
+  await page.getByRole("button", { name: "Find options", exact: true }).click();
   const national = await (await pendingNational).json();
   expect(national.search.location).toBe("National");
   expect(national.search.mod).toBe("");
