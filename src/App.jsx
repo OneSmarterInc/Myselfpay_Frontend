@@ -383,23 +383,25 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    if (!account || !summary?.spatial_api_version) return;
+    if (!account) return;
     let active = true;
     setCatalogReady(false);
-    api("/catalog?metadata=1")
-      .then((value) => {
-        if (active) {
-          setCatalog(value);
-          setCatalogReady(true);
-          setCatalogError("");
-        }
-      })
-      .catch((error) => {
-        if (active) {
-          setCatalogError(error.message);
-          if (error.status !== 401) setToast(error.message);
-        }
-      });
+    if (summary?.spatial_api_version) {
+      api("/catalog?metadata=1")
+        .then((value) => {
+          if (active) {
+            setCatalog(value);
+            setCatalogReady(true);
+            setCatalogError("");
+          }
+        })
+        .catch((error) => {
+          if (active) {
+            setCatalogError(error.message);
+            if (error.status !== 401) setToast(error.message);
+          }
+        });
+    }
     api("/guest-usage")
       .then((value) => {
         if (active) setState((old) => ({ ...old, usage: value.usage || {} }));
@@ -717,6 +719,8 @@ export default function App() {
         void run(async () => {
           const value = await api("/catalog");
           setCatalog(value);
+          setCatalogReady(true);
+          setCatalogError("");
         });
       }
       setState((old) => ({ ...old, directoryQuery: "", directoryPage: 0 }));
