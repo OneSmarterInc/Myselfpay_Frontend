@@ -144,7 +144,7 @@ export class SpatialDataManager {
     if (cached && this.now() - cached.time < this.ttl) return cached.bundle;
     if (this.pending.has(cell)) return this.pending.get(cell);
     const generation = this.generation;
-    const promise = this.request(`/v1/spatial-bundle/${cell}/`)
+    const promise = this.request(`/v1/spatial-bundle/${cell}`)
       .then((value) => {
         const bundle = validateBundle(value, cell);
         if (generation === this.generation) {

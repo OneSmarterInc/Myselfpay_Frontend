@@ -19,6 +19,12 @@ function mockResponse(body, status = 200, headers = {}) {
 }
 
 describe("React client for the Django REST Framework API", () => {
+  it("renders nested API errors as readable text", async () => {
+    mockResponse({ error: { message: "Location service unavailable." } }, 404);
+    const error = await api("/v1/spatial-bundle/test").catch((e) => e);
+    expect(error.message).toContain("Location service unavailable.");
+    expect(error.message).not.toContain("[object Object]");
+  });
   it("aborts a stalled request and reports unconfirmed delivery without retrying", async () => {
     vi.useFakeTimers();
     const fetch = vi.fn(
