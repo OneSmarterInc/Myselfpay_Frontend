@@ -31,7 +31,7 @@ test("browser GPS reaches authenticated indexed data using only H3 7 and reuses 
   ).toBeVisible({ timeout: 20000 });
   await expect(page.locator("article.card").first()).toBeVisible();
   expect(requests).toHaveLength(1);
-  expect(requests[0].url).toMatch(/\/api\/v1\/spatial-bundle\/[0-9a-f]{15}\/$/);
+  expect(requests[0].url).toMatch(/\/api\/v1\/spatial-bundle\/[0-9a-f]{15}$/);
   expect(requests[0].body).toBeNull();
   expect(apiRequests.some((url) => /\/api\/catalog$/.test(url))).toBe(false);
   expect(JSON.stringify(apiRequests)).not.toContain("39.140183");

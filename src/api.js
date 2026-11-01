@@ -26,8 +26,8 @@ export class APIError extends Error {
     const messages = validationMessages(fields);
     super(
       messages.join(" ") ||
-        body.error ||
-        body.detail ||
+        validationMessages(body.error).join(" ") ||
+        validationMessages(body.detail).join(" ") ||
         "Request failed. Please retry.",
     );
     this.name = "APIError";
