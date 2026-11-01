@@ -34,6 +34,7 @@ export default defineConfig({
       },
     },
   ],
+  build: { rollupOptions: { output: { manualChunks: { h3: ["h3-js"] } } } },
   server: {
     proxy: { "/api": process.env.DEV_API_TARGET || "http://127.0.0.1:8000" },
   },

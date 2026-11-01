@@ -34,13 +34,11 @@ test("National lists directory centers with ten results per page", async ({
   await page.locator("article.card [data-select]").first().check();
   await page.locator("#compare").click();
   await expect(page.locator(".comparison-table thead th")).toHaveCount(3);
-  await expect(page.locator(".comparison-table")).toContainText(
-    "Ask for a price",
-  );
+  await expect(page.locator(".comparison-table")).toContainText("Published price");
   await page.getByRole("button", { name: "Close dialog" }).click();
   await page.locator("article.card [data-detail]").first().click();
   await expect(page.locator(".detailgrid h1")).toBeVisible();
-  await expect(page.locator(".detailgrid")).toContainText("Ask for a price");
+  await expect(page.locator(".detailgrid")).toContainText("Service details and prices");
   await page.locator("#directory").click();
   await expect(page.locator("#dirRows details.lead")).toHaveCount(10);
   await page.locator("#dirRows summary").first().click();
@@ -163,6 +161,7 @@ test("original signup and login forms retain verified DRF sessions", async ({
   await page.goto("/#signup");
   await page.locator("#accountName").fill("Synthetic UI Test");
   await page.locator("#accountEmail").fill(email);
+  if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202-1234");
   await page.locator("#accountPassword").fill(password);
   await page.locator("#accountConfirm").fill(password);
   await page.locator("#accountSubmit").click();
@@ -172,6 +171,7 @@ test("original signup and login forms retain verified DRF sessions", async ({
   await page.locator("#profile").click();
   await page.locator("#accountLogin").click();
   await page.locator("#accountEmail").fill(email);
+  if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202-1234");
   await page.locator("#accountPassword").fill(password);
   await page.locator("#accountSubmit").click();
   await expect(

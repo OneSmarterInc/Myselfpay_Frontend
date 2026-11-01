@@ -3,6 +3,7 @@ import parse, { attributesToProps, domToReact } from "html-react-parser";
 import { api, establishSession, setCsrf } from "./api.js";
 import { originalUI } from "./original-ui.js";
 import { directoryOffer } from "./directory-offer.js";
+import { SpatialDataManager, spatialOffers, watchLocation } from "./spatial.js";
 import { predefinedQuestion } from "./chat-questions.js";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
 
@@ -167,6 +168,84 @@ export default function App() {
     [auth, setAuth] = useState({}),
     [authError, setAuthError] = useState(""),
     [boot, setBoot] = useState(true);
+  const [spatialEnabled, setSpatialEnabled] = useState(false);
+  const [spatialSnapshot, setSpatialSnapshot] = useState(null);
+  const [spatialManager] = useState(() => new SpatialDataManager(api));
+  const displayResults = useMemo(
+    () =>
+      spatialSnapshot ? spatialOffers(spatialSnapshot.records, state) : results,
+    [
+      spatialSnapshot,
+      results,
+      state.mod,
+      state.contrast,
+      state.budget,
+      state.type,
+      state.sort,
+    ],
+  );
+  useEffect(() => {
+    spatialManager.clear();
+    setSpatialEnabled(false);
+    setSpatialSnapshot(null);
+  }, [account?.id, spatialManager]);
+  useEffect(() => {
+    if (!spatialEnabled || !account || view !== "search") return;
+    let active = true;
+    let stop = () => {};
+    const fail = (error) => {
+      if (!active) return;
+      if (![2, 3].includes(error.code)) setSpatialEnabled(false);
+      setState((old) => ({
+        ...old,
+        spatialLoading: false,
+        spatialStatus: error.message,
+      }));
+    };
+    stop = watchLocation(async (latitude, longitude) => {
+      try {
+        const bundle = await spatialManager.update(latitude, longitude);
+        if (!active || !bundle) return;
+        setSpatialSnapshot(bundle);
+        setState((old) => ({
+          ...old,
+          spatialLoading: false,
+          spatialStatus:
+            bundle.truncated || bundle.offers_truncated
+              ? "This area contains more records than one bundle can display. Results are limited; use ZIP or state search for the wider directory."
+              : bundle.records.length
+                ? "Nearby results updated. Distances are approximate straight-line miles."
+                : "No indexed centers in this nearby area. Try ZIP or state search for a wider area.",
+          resultsPage: 0,
+        }));
+      } catch (error) {
+        fail(error);
+      }
+    }, fail);
+    const hide = () => {
+      if (document.hidden) setSpatialEnabled(false);
+    };
+    document.addEventListener("visibilitychange", hide);
+    return () => {
+      active = false;
+      stop();
+      document.removeEventListener("visibilitychange", hide);
+    };
+  }, [spatialEnabled, account?.id, view, spatialManager]);
+  function stopSpatial() {
+    setSpatialEnabled(false);
+    setSpatialSnapshot(null);
+    spatialManager.clear();
+    setState((old) => ({
+      ...old,
+      spatialActive: false,
+      spatialStatus: "",
+      spatialLoading: false,
+      ...(old.location === "Near my location"
+        ? { location: "", searched: false }
+        : {}),
+    }));
+  }
   const sequence = useRef(0),
     form = useRef(null);
   const allOffers = useMemo(
@@ -181,14 +260,14 @@ export default function App() {
             directoryOffer(entry, state),
           ),
           ...catalog.offers,
-          ...results,
+          ...displayResults,
           ...(state.programs || []),
         ].map((o) => [o.id, o]),
       ).values(),
     ],
     [
       catalog,
-      results,
+      displayResults,
       state.programs,
       state.nearbyUnpriced,
       state.programEntries,
@@ -198,12 +277,15 @@ export default function App() {
   const ui = originalUI({
     state: {
       ...state,
+      spatialActive: !!spatialSnapshot || spatialEnabled || state.spatialActive,
+      spatialEnabled,
       member: account ? `${account.tenant} / ${account.name}` : "",
     },
     account,
     DIRECTORY: catalog.entries,
+    catalogCounts: catalog,
     offers: allOffers,
-    results,
+    results: displayResults,
     catalogReady,
     catalogError,
     summary,
@@ -212,6 +294,7 @@ export default function App() {
     location.hash = next;
   }
   function clear() {
+    stopSpatial();
     sequence.current++;
     setCsrf("");
     setAccount(null);
@@ -300,10 +383,10 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    if (!account) return;
+    if (!account || !summary?.spatial_api_version) return;
     let active = true;
     setCatalogReady(false);
-    api("/catalog")
+    api("/catalog?metadata=1")
       .then((value) => {
         if (active) {
           setCatalog(value);
@@ -325,7 +408,7 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [account]);
+  }, [account, summary?.spatial_api_version]);
   async function run(action) {
     setBusy(true);
     try {
@@ -384,6 +467,19 @@ export default function App() {
     }));
   }
   async function search(override = {}) {
+    if (
+      spatialSnapshot &&
+      (!override.location || override.location === "Near my location")
+    ) {
+      setState((old) => ({
+        ...old,
+        ...override,
+        resultsPage: 0,
+        dirty: false,
+      }));
+      return;
+    }
+    if (spatialEnabled || spatialSnapshot) stopSpatial();
     const next = { ...state, ...override };
     if (!next.location.trim()) {
       setToast("Enter your ZIP, city or state to continue.");
@@ -396,6 +492,7 @@ export default function App() {
     });
   }
   async function talk(message) {
+    if (spatialEnabled || spatialSnapshot) stopSpatial();
     const question = predefinedQuestion(message);
     if (!question) {
       setToast(
@@ -471,6 +568,8 @@ export default function App() {
         "radius",
       ].includes(id)
     ) {
+      if (id === "location" && (spatialEnabled || spatialSnapshot))
+        stopSpatial();
       let changes = { [id]: element.value };
       if (id === "budget") {
         if (!/^[0-9]{0,6}$/.test(element.value)) return;
@@ -483,7 +582,11 @@ export default function App() {
             : "radius",
           radius: Number(element.value) || 50,
         };
-      setState((old) => ({ ...old, ...changes, dirty: old.searched || false }));
+      setState((old) => ({
+        ...old,
+        ...changes,
+        dirty: spatialSnapshot ? false : old.searched || false,
+      }));
       if (id === "location") {
         setLocationsOpen(true);
         setLocationAll(false);
@@ -511,12 +614,23 @@ export default function App() {
           email: auth.accountEmail,
           password: auth.accountPassword,
           ...(signup
-            ? { name: auth.accountName, phone: auth.accountPhone || "" }
+            ? {
+                name: auth.accountName,
+                phone: auth.accountPhone || "",
+                zip_code: auth.accountZip || "",
+              }
             : {}),
         });
         setAccount(value.member);
         setAuth({});
         navigate("search");
+        if (value.member.zip_code && !pendingBooking) {
+          await search({
+            ...initialState(),
+            location: value.member.zip_code.slice(0, 5),
+            sort: "distance",
+          });
+        }
         setToast(
           signup ? "Account created. You are signed in." : "You are signed in.",
         );
@@ -529,6 +643,36 @@ export default function App() {
     }
   }
   function click(event) {
+    const locationAction = event.target.closest("[data-spatial-action]");
+    if (locationAction) {
+      event.preventDefault();
+      if (locationAction.dataset.spatialAction === "stop") stopSpatial();
+      else {
+        navigate("search");
+        sequence.current++;
+        setResults([]);
+        setState((old) => ({
+          ...old,
+          location: "Near my location",
+          mode: "classic",
+          programs: [],
+          programEntries: [],
+          nearbyUnpriced: [],
+          locationSuggestions: [],
+          locationUnresolved: false,
+          resultsHeading: "",
+          spatialActive: true,
+          spatialLoading: true,
+          spatialStatus: "Waiting for browser location permission…",
+          searched: true,
+          dirty: false,
+          selected: [],
+          resultsPage: 0,
+        }));
+        setSpatialEnabled(true);
+      }
+      return;
+    }
     const bookingChoice = event.target.closest("[data-booking-auth]");
     if (bookingChoice) {
       event.preventDefault();
@@ -569,6 +713,12 @@ export default function App() {
     }
     if (id === "directory" || id === "browseDirectory" || id === "leads") {
       event.preventDefault();
+      if (catalog.metadata_only || !catalogReady) {
+        void run(async () => {
+          const value = await api("/catalog");
+          setCatalog(value);
+        });
+      }
       setState((old) => ({ ...old, directoryQuery: "", directoryPage: 0 }));
       setDialog({ type: "directory" });
       history.pushState(null, "", "#directory");
@@ -686,9 +836,10 @@ export default function App() {
     }
     if (target.dataset.appointment) {
       event.preventDefault();
-      const entry = catalog.entries.find(
-        (x) => x.booking_id === target.dataset.appointment,
-      );
+      const entry = [
+        ...catalog.entries,
+        ...allOffers.map((offer) => offer.entry),
+      ].find((x) => x.booking_id === target.dataset.appointment);
       if (entry) {
         const bookingDialog = {
           type: "booking",
