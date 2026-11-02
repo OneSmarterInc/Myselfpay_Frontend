@@ -53,12 +53,8 @@ for (const scenario of [
         { exact: false },
       ),
     ).not.toBeVisible();
-    if (scenario.location === "National")
-      await expect(
-        page.getByText("Showing centers across the US directory.", {
-          exact: false,
-        }),
-      ).toBeVisible();
+    await expect(page.getByText("Showing centers across", {exact:false})).toHaveCount(0);
+    await expect(page.getByRole("combobox", {name:"Sort results"})).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Find and compare imaging options" })).toHaveCount(0);
     const nav = await page.locator("header").boundingBox();
     const firstCard = await page.locator("article.card").first().boundingBox();
@@ -151,11 +147,7 @@ for (const scenario of [
     expect((await (await gps).json()).resolved_location.state).toBe(
       scenario.expected,
     );
-    await expect(
-      page.getByText(`Showing centers across ${scenario.expected}.`, {
-        exact: false,
-      }),
-    ).toBeVisible();
+    await expect(page.getByText("Showing centers across", {exact:false})).toHaveCount(0);
     await page
       .getByRole("button", { name: "Find options", exact: true })
       .click();
