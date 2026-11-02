@@ -194,15 +194,28 @@ export async function searchLocationHint(value) {
 
 
 
-// Device coordinates stay transient in the browser; no reverse-geocoder requests.
-
+// City lookup is local; no device coordinates are sent to a geocoder.
+let cityData;
 export async function currentLocationLabel(latitude, longitude) {
-
-  const code = await stateForCoordinates(latitude, longitude);
-
-  const state = code && (await boundaries()).find((item) => item.code === code);
-
-  return `Current location: ${state ? state.name + " · " : ""}${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude)>90 || Math.abs(longitude)>180)
+    return "Current location unavailable";
+  try {
+    cityData ||= import("./data/world-cities.json").then(module => module.default);
+    const cities = await cityData;
+    const rad = Math.PI / 180;
+    let nearest, best = Infinity;
+    for (const city of cities) {
+      const a = Math.sin((city[1]-latitude)*rad/2)**2 +
+        Math.cos(latitude*rad)*Math.cos(city[1]*rad)*Math.sin((city[2]-longitude)*rad/2)**2;
+      if (a < best) { best=a; nearest=city; }
+    }
+    if (!nearest || 12742*Math.asin(Math.sqrt(Math.min(1,best)))>100)
+      return "Current location: city unavailable";
+    let country = nearest[3];
+    try { country = new Intl.DisplayNames(["en"], {type:"region"}).of(country); } catch {}
+    return `Near ${nearest[0]}, ${country}`;
+  } catch {
+    cityData = undefined;
+    return "Current location: city unavailable";
+  }
 }
-
