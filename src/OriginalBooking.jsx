@@ -186,7 +186,7 @@ export default function OriginalBooking({
           verification_token: value.verification_token,
         }));
         setCode("");
-        setStatus("Email verified. Submit your request within 15 minutes.");
+        setStatus("Email verified successfully. You can now send your appointment request.");
       });
     }
   }
@@ -214,11 +214,7 @@ export default function OriginalBooking({
     : '<h2>Book appointment</h2><p role="status">Loading request details…</p>';
   html = html.replace("<h2>", '<h2 id="dialogTitle">');
   html = productionBookingCopy(html, options?.delivery === "enabled");
-  if (options?.is_test_center)
-    html = html.replace(
-      "</h2>",
-      '</h2><p class="booking-notice"><strong>TEST CENTER — no medical care is provided. Use synthetic patient details only.</strong></p>',
-    );
+  html = html.replace(/<p class="booking-notice">[\s\S]*?<\/p>/g, "");
   if (!options && error) html = '<h2 id="dialogTitle">Request unavailable</h2>';
   const replace = (node) => {
     const id = node.attribs.id;
@@ -230,8 +226,9 @@ export default function OriginalBooking({
       );
     if (id === "patientEmailStatus")
       return (
-        <p id="patientEmailStatus" role="status">
-          {status || error}
+        <p id="patientEmailStatus" role="status" aria-live="polite" aria-atomic="true"
+          className={draft.verification_token ? "email-verification-status verified" : "email-verification-status"}>
+          {draft.verification_token ? "Email verified successfully. You can now send your appointment request." : status || error}
         </p>
       );
     if (id === "bookingSelected")
