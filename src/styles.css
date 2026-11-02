@@ -116,3 +116,16 @@ dialog .modal-body>*{max-width:100%}
  .search-results-grid>.stack:first-child>p{margin:6px 0;font-size:12px}
  .search-results-grid aside details:not([open]){margin:0}
 }
+
+.near-control{display:inline-flex;align-items:center;gap:9px}
+button.near-switch{display:inline-flex;align-items:center;gap:9px;background:transparent;border:0;padding:10px 2px;min-height:44px;white-space:nowrap}
+.near-switch-track{display:inline-flex;align-items:center;width:42px;height:24px;border-radius:20px;background:#777d83;padding:3px;transition:background .15s}
+.near-switch-thumb{width:18px;height:18px;border-radius:50%;background:white;box-shadow:0 1px 3px #0003;transition:transform .15s}
+.near-switch[aria-checked="true"] .near-switch-track{background:#795548}
+.near-switch[aria-checked="true"] .near-switch-thumb{transform:translateX(18px)}
+.near-switch:focus-visible,.near-info-icon:focus-visible{outline:2px solid #795548;outline-offset:3px}
+.near-info{position:relative;display:inline-flex}
+button.near-info-icon{border-radius:50%;width:26px;height:26px;min-width:26px;padding:0;font-size:16px;font-weight:700;line-height:24px;border-color:#69727b;color:#49535d}
+.near-info [role="tooltip"]{display:none;position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:280px;max-width:calc(100vw - 48px);padding:12px 14px;background:#1e2226;color:#fff;border-radius:8px;font-size:13px;line-height:1.5;box-shadow:0 4px 12px #0003}
+.near-info:hover [role="tooltip"],.near-info:focus-within [role="tooltip"]{display:block}
+@media(prefers-reduced-motion:reduce){.near-switch-track,.near-switch-thumb{transition:none}}

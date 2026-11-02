@@ -62,8 +62,14 @@ for (const scenario of [
     if (page.viewportSize().width > 760) expect(firstCard.y - nav.y - nav.height).toBeLessThan(220);
     const toggle = page.getByRole("switch", { name: /Near to me/ });
     await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await expect(page.getByRole("button", { name: "About nearest results" })).toHaveCount(0);
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-checked", "true");
+    const info = page.getByRole("button", { name: "About nearest results" });
+    await info.hover();
+    await expect(page.getByRole("tooltip")).toContainText("Complete details");
+    await info.focus();
+    await expect(page.getByRole("tooltip")).toBeVisible();
     const miles = await page.locator("article.card").evaluateAll(cards => cards.map(card => {
       const match = card.textContent.match(/about ([\d,]+\.\d) miles away/);
       return match ? Number(match[1].replaceAll(",", "")) : Infinity;
