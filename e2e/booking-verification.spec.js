@@ -31,3 +31,12 @@ test("booking has optional exam and contrast, no yellow notices, and verificatio
  await page.locator("#bookingEmail").fill("changed@example.test");
  await expect(page.locator("#patientEmailStatus")).not.toContainText("Email verified successfully");
 });
+
+test("receipt replaces yellow notices with center contact message",async({page})=>{
+ await page.route("**/api/booking/patient",r=>r.fulfill({json:{id:"MSP-TEST",status:"requested",delivery:"sent",clinic_name:"Gitesh Imaging Center",location:"Dayton",service:"MRI",exam:"",contrast:"unknown",timezone:"America/New_York",slots:[{date:"2026-11-10",period:"morning"}],price_text:"Clinic will confirm the exact total.",is_test_center:true}}));
+ await page.goto("/#request/MSP-TEST/synthetic-token");
+ await expect(page.getByRole("heading",{name:"Request sent",exact:true})).toBeVisible();
+ await expect(page.locator(".booking-notice")).toHaveCount(0);
+ await expect(page.locator(".booking-follow-up")).toContainText("The center will contact you by email or phone");
+ await expect(page.getByRole("button",{name:"Copy request link"})).toBeVisible();
+});

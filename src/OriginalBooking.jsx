@@ -483,6 +483,13 @@ export function OriginalBookingLink({ route, ui }) {
         `<p><strong>Email:</strong> <a href="mailto:${ui.esc(value.patient_email)}">${ui.esc(value.patient_email)}</a></p><h2>After the call</h2>`,
       );
   }
+  if (value && kind !== "clinic") {
+    html = html.replace(/<p class="booking-notice">[\s\S]*?<\/p>/g, "");
+    const followUp = value.delivery === "sent"
+      ? "The center will contact you by email or phone about your appointment request. Please wait for the center to confirm your appointment."
+      : deliveryMessage(value.delivery);
+    html = html.replace("</h1>", `</h1><p class="booking-follow-up" role="status">${ui.esc(followUp)}</p>`);
+  }
   return (
     <div onClick={click} onSubmit={submit}>
       <OriginalHTML html={html} replace={replace} disabled={busy} />
