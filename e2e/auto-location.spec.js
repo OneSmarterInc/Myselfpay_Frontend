@@ -56,6 +56,17 @@ for (const scenario of [
           exact: false,
         }),
       ).toBeVisible();
+    const toggle = page.getByRole("switch", { name: /Near to me/ });
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
+    const miles = await page.locator("article.card").evaluateAll(cards => cards.map(card => {
+      const match = card.textContent.match(/about ([\d,]+\.\d) miles away/);
+      return match ? Number(match[1].replaceAll(",", "")) : Infinity;
+    }));
+    expect(miles).toEqual([...miles].sort((a,b)=>a-b));
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
     expect(JSON.stringify(requests)).not.toContain(String(scenario.latitude));
     expect(JSON.stringify(requests)).not.toContain(String(scenario.longitude));
     expect(

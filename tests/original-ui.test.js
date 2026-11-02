@@ -91,6 +91,7 @@ it("prioritizes complete cards across categories before paginating, then sorts b
     name: "Complete",
     coverage: "123 Main Street",
     booking_id: "clinic",
+    email: "center@example.com",
   };
   const nearby = {
     ...offer,
@@ -126,6 +127,11 @@ it("prioritizes complete cards across categories before paginating, then sorts b
   const html = originalUI(context).search();
   const names = [...html.matchAll(/<h3>([^<]+)<\/h3>/g)].map((m) => m[1]);
   expect(names).toEqual(["Complete", "Nearby", "Farther", "Unknown distance"]);
+  context.state.nearToMe = true;
+  const nearHtml = originalUI(context).search();
+  expect([...nearHtml.matchAll(/<h3>([^<]+)<\/h3>/g)].map(m=>m[1])).toEqual(["Nearby", "Farther", "Complete", "Unknown distance"]);
+  expect(nearHtml).toContain('role="switch" aria-checked="true"');
+  context.state.nearToMe = false;
   context.results = Array.from({ length: 11 }, (_, i) => ({
     ...nearby,
     id: "near" + i,
@@ -155,6 +161,7 @@ it("sorts GPS cards by actual miles, displays decimals and keeps missing distanc
       searched: true,
       location: "Ohio",
       spatialActive: true,
+      nearToMe: true,
       sort: "distance",
     },
     account: { tenant: "guest" },

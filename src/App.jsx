@@ -15,6 +15,7 @@ const initialState = () => ({
   contrast: "unknown",
   location: "",
   locationExplicit: false,
+  nearToMe: false,
   budget: 0,
   type: "all",
   mode: "classic",
@@ -577,7 +578,8 @@ export default function App() {
       return;
     }
     if (id === "sort") {
-      void search({ sort: element.value });
+      setState((old) => ({ ...old, nearToMe: false }));
+      void search({ sort: element.value, nearToMe: false });
       return;
     }
     if (
@@ -679,6 +681,11 @@ export default function App() {
     }
   }
   function click(event) {
+    if (event.target.closest("#nearToMe")) {
+      event.preventDefault();
+      setState((old) => ({ ...old, nearToMe: !old.nearToMe, sort: "distance", resultsPage: 0 }));
+      return;
+    }
     const locationAction = event.target.closest("[data-spatial-action]");
     if (locationAction) {
       event.preventDefault();
