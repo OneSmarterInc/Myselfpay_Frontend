@@ -1305,7 +1305,7 @@ export default function App() {
           </button>
         </nav>
       </header>
-      <main className="shell" id="app">
+      <main className={"shell" + (view === "search" && state.searched ? " results-shell" : "")} id="app">
         {linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (

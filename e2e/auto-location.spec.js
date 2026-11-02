@@ -56,6 +56,10 @@ for (const scenario of [
           exact: false,
         }),
       ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Find and compare imaging options" })).toHaveCount(0);
+    const nav = await page.locator("header").boundingBox();
+    const firstCard = await page.locator("article.card").first().boundingBox();
+    if (page.viewportSize().width > 760) expect(firstCard.y - nav.y - nav.height).toBeLessThan(220);
     const toggle = page.getByRole("switch", { name: /Near to me/ });
     await expect(toggle).toHaveAttribute("aria-checked", "false");
     await toggle.click();

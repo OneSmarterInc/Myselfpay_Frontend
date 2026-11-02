@@ -97,3 +97,22 @@ dialog .modal-body>*{max-width:100%}
 .price.published-prices{font-size:30px;line-height:1.5;white-space:pre-line;overflow-wrap:anywhere;max-width:52%;font-weight:750}.detailgrid .price.published-prices{max-width:100%}@media(max-width:760px){.price.published-prices{max-width:100%;font-size:26px}}
 
 .directory-service-details dt{font-weight:700;margin-top:16px}.directory-service-details dd{margin:4px 0 16px;white-space:pre-line;overflow-wrap:anywhere}
+
+/* Results begin beneath navigation; secondary controls sit beside the cards. */
+.results-shell{margin-top:14px}
+.search-results-grid{margin-top:0}
+.search-results-grid .search-tabs{margin:0;gap:6px}
+.search-results-grid .search-tabs button{padding:9px 10px}
+.search-results-grid .search-toolbar{margin-top:0;gap:8px}
+.search-results-grid .search-toolbar .chips{width:100%}
+.search-results-grid #searchNotice:empty{display:none}
+.search-results-grid .search-result-cards{gap:10px}
+.search-results-grid .search-result-cards>p{margin:0 0 4px}
+.search-results-grid .search-result-cards h2{margin:0}
+@media(max-width:760px){
+ .search-results-grid{gap:14px}
+ .search-results-grid>.stack:first-child{display:block}
+ .search-results-grid .search-tabs,.search-results-grid .search-toolbar{margin-bottom:8px}
+ .search-results-grid>.stack:first-child>p{margin:6px 0;font-size:12px}
+ .search-results-grid aside details:not([open]){margin:0}
+}
