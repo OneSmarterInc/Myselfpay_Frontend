@@ -130,3 +130,11 @@ button.near-info-icon:hover{background:#ffe3a3;border-color:#784b00}
 .near-info [role="tooltip"]{display:none;position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:280px;max-width:calc(100vw - 48px);padding:12px 14px;background:#1e2226;color:#fff;border-radius:8px;font-size:13px;line-height:1.5;box-shadow:0 4px 12px #0003}
 .near-info:hover [role="tooltip"],.near-info:focus-within [role="tooltip"]{display:block}
 @media(prefers-reduced-motion:reduce){.near-switch-track,.near-switch-thumb{transition:none}}
+
+.near-info.is-open [role="tooltip"]{display:block}
+@media(max-width:760px){
+ .near-info [role="tooltip"]{position:fixed;left:16px;right:16px;top:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:auto;max-width:none;max-height:40dvh;overflow-y:auto;box-sizing:border-box;font-size:14px;line-height:1.6;padding:16px;overflow-wrap:anywhere;z-index:100}
+ .near-info:hover [role="tooltip"],.near-info:focus-within [role="tooltip"]{display:none}
+ .near-info.is-open [role="tooltip"]{display:block}
+ .near-info{min-width:44px;min-height:44px;align-items:center;justify-content:center}
+}

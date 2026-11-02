@@ -16,6 +16,7 @@ const initialState = () => ({
   location: "",
   locationExplicit: false,
   nearToMe: false,
+  nearInfoOpen: false,
   budget: 0,
   type: "all",
   mode: "classic",
@@ -681,9 +682,16 @@ export default function App() {
     }
   }
   function click(event) {
+    if (event.target.closest(".near-info-icon")) {
+      event.preventDefault();
+      setState(old => ({ ...old, nearInfoOpen: !old.nearInfoOpen }));
+      return;
+    }
+    if (state.nearInfoOpen && !event.target.closest(".near-info"))
+      setState(old => ({ ...old, nearInfoOpen: false }));
     if (event.target.closest("#nearToMe")) {
       event.preventDefault();
-      setState((old) => ({ ...old, nearToMe: !old.nearToMe, sort: "distance", resultsPage: 0 }));
+      setState((old) => ({ ...old, nearToMe: !old.nearToMe, nearInfoOpen: false, sort: "distance", resultsPage: 0 }));
       return;
     }
     const locationAction = event.target.closest("[data-spatial-action]");
