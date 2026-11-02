@@ -4,6 +4,7 @@ import { api, establishSession, setCsrf } from "./api.js";
 import { originalUI } from "./original-ui.js";
 import { directoryOffer } from "./directory-offer.js";
 import { spatialOffers, watchLocation } from "./spatial.js";
+import { currentLocationLabel } from "./auto-location.js";
 import { StatewideLocationManager } from "./statewide-location.js";
 import { predefinedQuestion } from "./chat-questions.js";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
@@ -214,6 +215,8 @@ export default function App() {
       try {
         const bundle = await spatialManager.update(latitude, longitude);
         if (!active || !bundle) return;
+        bundle.currentLocationLabel = await currentLocationLabel(latitude, longitude);
+        if (!active) return;
         setSpatialSnapshot(bundle);
         setState((old) => ({
           ...old,
@@ -288,6 +291,7 @@ export default function App() {
       ...state,
       spatialActive: !!spatialSnapshot || spatialEnabled || state.spatialActive,
       spatialEnabled,
+      currentLocationLabel: spatialSnapshot?.currentLocationLabel || "",
       member: account ? `${account.tenant} / ${account.name}` : "",
     },
     account,
