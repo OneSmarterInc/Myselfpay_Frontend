@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 for (const scenario of [
-  { name: "US state", latitude: 39.14, longitude: -84.5, location: "OH" },
+  { name: "US state", latitude: 39.14, longitude: -84.5, location: "Ohio" },
   {
     name: "overseas national fallback",
     latitude: 19.076,
@@ -31,6 +31,11 @@ for (const scenario of [
     await expect(page.getByRole("button",{name:"Use my location",exact:true})).toHaveCount(0);
     await expect(page.getByText("Signed in: guest / Guest",{exact:true})).toHaveCount(0);
     await expect(page.getByRole("button",{name:"Sign out of guest session"})).toBeVisible();
+    await expect(page.getByRole("switch", {name:"Near to me",exact:true})).toHaveCount(0);
+    expect(await page.locator("#accountLogin").evaluate(el=>!!(el.compareDocumentPosition(document.querySelector("#profile")) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+    await page.locator("#location").fill(scenario.location);
+    await page.getByRole("button",{name:"Find options",exact:true}).click();
+    await expect(page.locator("article.card").first()).toBeVisible();
     const loaded = page.waitForResponse(
       (response) =>
         response.url().endsWith("/api/search") &&
@@ -98,6 +103,10 @@ for (const scenario of [
     await page
       .getByRole("button", { name: "Find imaging options", exact: true })
       .click();
+    await expect(page.getByRole("switch", {name:"Near to me",exact:true})).toHaveCount(0);
+    await page.locator("#location").fill("National");
+    await page.getByRole("button",{name:"Find options",exact:true}).click();
+    await expect(page.locator("article.card").first()).toBeVisible();
     await page
       .getByRole("switch", { name: "Near to me", exact: true })
       .click();

@@ -19,6 +19,8 @@ test("current-location search loads the whole selected state and recalculates ov
     .getByRole("button", { name: "Find imaging options", exact: true })
     .click();
   await page.locator("#location").fill("Ohio");
+  await page.getByRole("button",{name:"Find options",exact:true}).click();
+  await expect(page.locator("article.card").first()).toBeVisible();
   await page
     .getByRole("button", { name: "Ask MySelfPay", exact: true })
     .click();
@@ -34,9 +36,9 @@ test("current-location search loads the whole selected state and recalculates ov
   expect(data.resolved_location.state).toBe("OH");
   await expect(
     page.getByText("Showing centers across OH.", { exact: false }),
-  ).toBeVisible();
+  ).not.toBeVisible();
   await expect(page.locator("article.card").first()).toBeVisible();
-  expect(requests).toHaveLength(1);
+  expect(requests).toHaveLength(2);
   expect(requests[0]).toMatchObject({
     location: "Ohio",
     scope: "state",
@@ -50,7 +52,7 @@ test("current-location search loads the whole selected state and recalculates ov
   );
   await page.locator("#body").fill("reference only");
   await page.getByRole("button", { name: "Find options", exact: true }).click();
-  expect(requests).toHaveLength(1);
+  expect(requests).toHaveLength(2);
   await page.bringToFront();
   const resume = page.getByRole("switch", {
     name: "Near to me",
@@ -75,7 +77,7 @@ test("current-location search loads the whole selected state and recalculates ov
       { timeout: 15000 },
     )
     .toBeGreaterThan(7000);
-  expect(requests).toHaveLength(1);
+  expect(requests).toHaveLength(2);
   expect(JSON.stringify(apiRequests)).not.toMatch(
     /19\.076|72\.8777|39\.140183/,
   );
@@ -157,6 +159,8 @@ test("denied location permission provides a usable manual-search fallback", asyn
     .getByRole("button", { name: "Find imaging options", exact: true })
     .click();
   await page.locator("#location").fill("Ohio");
+  await page.getByRole("button",{name:"Find options",exact:true}).click();
+  await expect(page.locator("article.card").first()).toBeVisible();
   await page
     .getByRole("switch", { name: "Near to me", exact: true })
     .click();
@@ -164,6 +168,8 @@ test("denied location permission provides a usable manual-search fallback", asyn
     page.getByText("Location permission was denied.", { exact: false }),
   ).toBeVisible();
   await page.locator("#location").fill("Ohio");
+  await page.getByRole("button",{name:"Find options",exact:true}).click();
+  await expect(page.locator("article.card").first()).toBeVisible();
   await page.getByRole("button", { name: "Find options", exact: true }).click();
   await expect(page.locator("article.card").first()).toBeVisible();
   await expect(

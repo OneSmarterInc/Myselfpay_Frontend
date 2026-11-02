@@ -1299,17 +1299,17 @@ export default function App() {
           <button id="directory" hidden={!account}>
             Directory
           </button>
-          <button id="profile" disabled={busy || boot}
-            aria-label={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
-            title={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
-            className={account?.tenant === "guest" ? "guest-signout" : undefined}>
-            {account?.tenant === "guest" ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5H5v14h4M14 8l4 4-4 4M9 12h12" /></svg> : account ? "Sign out" : "Sign in as guest"}
-          </button>
           <button
             id="accountLogin"
             hidden={!!account && account.tenant !== "guest"}
           >
             Log in
+          </button>
+          <button id="profile" disabled={busy || boot}
+            aria-label={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
+            title={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
+            className={account?.tenant === "guest" ? "guest-signout" : undefined}>
+            {account?.tenant === "guest" ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5M21 12H9" /></svg> : account ? "Sign out" : "Sign in as guest"}
           </button>
         </nav>
       </header>
