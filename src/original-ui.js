@@ -47,9 +47,14 @@ function coverageSummary(showPublished=false){
 function initialSearch(){const q=state.location.trim().toLowerCase();const leads=q&&!/^\d/.test(q)?DIRECTORY.filter(d=>d.area.toLowerCase().includes(q)||d.states.toLowerCase()===q):[];return `<div class="panel"><h2>${state.location?'Browse imaging centers in your state':'Where would you like to search?'}</h2><p>${state.mod&&state.body.trim()?'Your exam details are ready. Enter a city or state to find options.':'Select your state to browse imaging centers. All other filters are optional.'}</p><p class="small" id="catalogStatus" role="status">${esc(catalogStatus())}</p><div class="actions"><button id="sampleSearch">Try sample: knee MRI in Cincinnati</button><button id="browseDirectory">Browse all directory entries</button></div><p class="small">The sample is a demonstration search, not a recommendation for a medical test.</p><p class="small">Search by city or ZIP for approximate straight-line distances to imported facility locations.</p>${leads.length?'<h3>Directory locations in your search area</h3><p class="small">Entries may cover multiple locations. Service availability and exact addresses require confirmation.</p>'+leads.map(d=>`<div class="lead"><strong>${esc(d.name)}</strong><p>${esc(d.area)}</p><a href="${esc(d.source)}" target="_blank" rel="noopener noreferrer">Check provider locations</a></div>`).join(''):''}</div>`}
 function groupedCards(found){
  const listings=[...found,...(state.programs||[]),...(state.programEntries||[]).map(e=>directoryOffer(e,state)),...(state.nearbyUnpriced||[]).map(e=>directoryOffer(e,state))];
- const complete=o=>!!(websiteOf(o.entry)&&addressOf(o.entry)&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(o.entry.email||o.entry.appointment_email||o.entry.booking_email||'').trim())&&o.entry.booking_id&&((o.directory_only&&o.published_prices?.some(p=>['MRI','CT'].includes(p.service)))||(!o.directory_only&&o.amount!=null&&!['quote','conflict'].includes(o.type))));
+ const detailRank=o=>{
+  const priced=o.directory_only?o.published_prices?.some(p=>['MRI','CT'].includes(p.service)):Number.isFinite(o.amount)&&!['quote','conflict'].includes(o.type);
+  if(!priced)return 0;
+  const email=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(o.entry.email||o.entry.appointment_email||o.entry.booking_email||'').trim());
+  return 100+Number(!!addressOf(o.entry))*20+Number(!!websiteOf(o.entry))*10+Number(!!o.entry.booking_id)*5+Number(email);
+ };
  const miles=o=>Number.isFinite(o.distance_miles)?o.distance_miles:Infinity;
- listings.sort((a,b)=>(state.nearToMe?0:Number(complete(b))-Number(complete(a)))||((!state.sort||state.sort==='distance')?(miles(a)<miles(b)?-1:miles(a)>miles(b)?1:0):0));
+ listings.sort((a,b)=>(state.nearToMe?0:detailRank(b)-detailRank(a))||((!state.sort||state.sort==='distance')?(miles(a)<miles(b)?-1:miles(a)>miles(b)?1:0):0));
  const page=paginateGroups([listings],state.resultsPage||0);
  if(!page.total)return '';
  const [cards]=page.items;

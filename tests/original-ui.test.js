@@ -182,3 +182,13 @@ it("sorts GPS cards by actual miles, displays decimals and keeps missing distanc
   expect(html).toContain("about 9,200.1 miles away");
   expect(html).toContain("Distance unavailable");
 });
+
+it("puts priced cards with directions before nearby quote cards even without public email", () => {
+ const make=(name,amount,coverage,distance)=>({...offer,id:name,type:amount==null?"quote":"fixed",amount,distance_miles:distance,entry:{...entry,name,booking_id:name,coverage}});
+ const context={state:{...state,searched:true,nearToMe:false},DIRECTORY:[],offers:[],catalogReady:true,
+ results:[make("Nearby quote",null,"",0),make("Price only",250,"",3),make("Price and directions",350,"123 Main Street",80)]};
+ const names=()=>[...originalUI(context).search().matchAll(/<h3>([^<]+)<\/h3>/g)].map(m=>m[1]);
+ expect(names()).toEqual(["Price and directions","Price only","Nearby quote"]);
+ context.state.nearToMe=true;
+ expect(names()).toEqual(["Nearby quote","Price only","Price and directions"]);
+});
