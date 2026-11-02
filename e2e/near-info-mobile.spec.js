@@ -1,6 +1,8 @@
 import {test,expect} from "@playwright/test";
 for (const width of [320,390,760]) {
- test(`nearest info fits mobile width ${width} and toggles on tap`,async ({page})=>{
+ test(`nearest info fits mobile width ${width} and toggles on tap`,async ({page,context})=>{
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({latitude:39.14,longitude:-84.5});
   await page.setViewportSize({width,height:740});
   await page.goto("/");
   await page.getByRole("button",{name:"Find imaging options",exact:true}).click();

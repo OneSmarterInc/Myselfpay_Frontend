@@ -210,6 +210,7 @@ export default function App() {
       setState((old) => ({
         ...old,
         spatialLoading: false,
+        nearToMe: [2,3].includes(error.code) ? old.nearToMe : false,
         spatialStatus: error.message,
       }));
     };
@@ -253,6 +254,8 @@ export default function App() {
     setState((old) => ({
       ...old,
       spatialActive: false,
+      nearToMe: false,
+      nearInfoOpen: false,
       spatialStatus: "",
       spatialLoading: false,
       ...(old.location === "Near my location"
@@ -691,14 +694,11 @@ export default function App() {
       setState(old => ({ ...old, nearInfoOpen: false }));
     if (event.target.closest("#nearToMe")) {
       event.preventDefault();
-      setState((old) => ({ ...old, nearToMe: !old.nearToMe, nearInfoOpen: false, sort: "distance", resultsPage: 0 }));
-      return;
-    }
-    const locationAction = event.target.closest("[data-spatial-action]");
-    if (locationAction) {
-      event.preventDefault();
-      if (locationAction.dataset.spatialAction === "stop") stopSpatial();
-      else {
+      if (state.nearToMe) {
+        setSpatialEnabled(false);
+        spatialManager.clear();
+        setState(old => ({ ...old, nearToMe: false, nearInfoOpen: false, sort: "distance", resultsPage: 0 }));
+      } else {
         const location =
           state.location.trim() && state.location !== "Near my location"
             ? state.location
@@ -713,12 +713,9 @@ export default function App() {
           ...old,
           location,
           scope: "state",
-          mod: "",
-          body: "",
-          contrast: "unknown",
-          budget: 0,
-          type: "all",
           sort: "distance",
+          nearToMe: true,
+          nearInfoOpen: false,
           noExamPrice: false,
           unlocatedOfferCount: 0,
           mode: "classic",
@@ -1302,8 +1299,11 @@ export default function App() {
           <button id="directory" hidden={!account}>
             Directory
           </button>
-          <button id="profile" disabled={busy || boot}>
-            {account ? "Sign out" : "Sign in as guest"}
+          <button id="profile" disabled={busy || boot}
+            aria-label={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
+            title={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
+            className={account?.tenant === "guest" ? "guest-signout" : undefined}>
+            {account?.tenant === "guest" ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5H5v14h4M14 8l4 4-4 4M9 12h12" /></svg> : account ? "Sign out" : "Sign in as guest"}
           </button>
           <button
             id="accountLogin"

@@ -28,13 +28,16 @@ for (const scenario of [
       .getByRole("button", { name: "Find imaging options", exact: true })
       .click();
     await expect(page.locator("#location")).toHaveValue("");
+    await expect(page.getByRole("button",{name:"Use my location",exact:true})).toHaveCount(0);
+    await expect(page.getByText("Signed in: guest / Guest",{exact:true})).toHaveCount(0);
+    await expect(page.getByRole("button",{name:"Sign out of guest session"})).toBeVisible();
     const loaded = page.waitForResponse(
       (response) =>
         response.url().endsWith("/api/search") &&
         response.request().method() === "POST",
     );
     await page
-      .getByRole("button", { name: "Use my location", exact: true })
+      .getByRole("switch", { name: "Near to me", exact: true })
       .click();
     const response = await loaded;
     expect(response.status()).toBe(200);
@@ -61,9 +64,6 @@ for (const scenario of [
     const firstCard = await page.locator("article.card").first().boundingBox();
     if (page.viewportSize().width > 760) expect(firstCard.y - nav.y - nav.height).toBeLessThan(220);
     const toggle = page.getByRole("switch", { name: /Near to me/ });
-    await expect(toggle).toHaveAttribute("aria-checked", "false");
-    await expect(page.getByRole("button", { name: "About nearest results" })).toHaveCount(0);
-    await toggle.click();
     await expect(toggle).toHaveAttribute("aria-checked", "true");
     const info = page.getByRole("button", { name: "About nearest results" });
     await info.hover();
@@ -103,7 +103,7 @@ for (const scenario of [
       .getByRole("button", { name: "Find imaging options", exact: true })
       .click();
     await page
-      .getByRole("button", { name: "Use my location", exact: true })
+      .getByRole("switch", { name: "Near to me", exact: true })
       .click();
     await expect(page.locator("article.card").first()).toBeVisible();
     const oldCards = await page.locator("article.card h3").allTextContents();
@@ -138,7 +138,7 @@ for (const scenario of [
     await expect(page.locator("#location")).toHaveValue(scenario.selected);
     await expect(page.locator("article.card").first()).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Use my location", exact: true }),
+      page.getByRole("switch", { name: "Near to me", exact: true }),
     ).toBeVisible();
     const gps = page.waitForResponse(
       (response) =>
@@ -146,7 +146,7 @@ for (const scenario of [
         response.request().postDataJSON()?.location === scenario.selected,
     );
     await page
-      .getByRole("button", { name: "Use my location", exact: true })
+      .getByRole("switch", { name: "Near to me", exact: true })
       .click();
     expect((await (await gps).json()).resolved_location.state).toBe(
       scenario.expected,

@@ -28,7 +28,7 @@ test("current-location search loads the whole selected state and recalculates ov
       response.request().method() === "POST",
   );
   await page
-    .getByRole("button", { name: "Use my location", exact: true })
+    .getByRole("switch", { name: "Near to me", exact: true })
     .click();
   const data = await (await loaded).json();
   expect(data.resolved_location.state).toBe("OH");
@@ -52,11 +52,11 @@ test("current-location search loads the whole selected state and recalculates ov
   await page.getByRole("button", { name: "Find options", exact: true }).click();
   expect(requests).toHaveLength(1);
   await page.bringToFront();
-  const resume = page.getByRole("button", {
-    name: "Use my location",
+  const resume = page.getByRole("switch", {
+    name: "Near to me",
     exact: true,
   });
-  if (await resume.isVisible()) await resume.click();
+  if ((await resume.getAttribute("aria-checked")) !== "true") await resume.click();
   await context.setGeolocation({ latitude: 19.076, longitude: 72.8777 });
   await expect
     .poll(
@@ -93,9 +93,9 @@ test("current-location search loads the whole selected state and recalculates ov
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(
     "19.076",
   );
-  await page.getByRole("button", { name: "Stop location updates" }).click();
+  await page.getByRole("switch", { name: "Near to me", exact:true }).click();
   await expect(
-    page.getByRole("button", { name: "Use my location", exact: true }),
+    page.getByRole("switch", { name: "Near to me", exact: true }),
   ).toBeVisible();
 });
 
@@ -158,7 +158,7 @@ test("denied location permission provides a usable manual-search fallback", asyn
     .click();
   await page.locator("#location").fill("Ohio");
   await page
-    .getByRole("button", { name: "Use my location", exact: true })
+    .getByRole("switch", { name: "Near to me", exact: true })
     .click();
   await expect(
     page.getByText("Location permission was denied.", { exact: false }),

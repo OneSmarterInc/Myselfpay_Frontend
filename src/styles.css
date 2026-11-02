@@ -138,3 +138,5 @@ button.near-info-icon:hover{background:#ffe3a3;border-color:#784b00}
  .near-info.is-open [role="tooltip"]{display:block}
  .near-info{min-width:44px;min-height:44px;align-items:center;justify-content:center}
 }
+
+button.guest-signout{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;padding:10px;flex:none}
