@@ -1,5 +1,7 @@
 # Location search
 
+Current behavior: [Statewide distance from your current location](CURRENT_LOCATION_STATEWIDE.md). The location button now uses the selected US state and calculates miles locally from anywhere in the world; the neighborhood-only loading flow below is retained as historical API documentation.
+
 The existing search page now supports optional ZIP+4 registration and opt-in browser location. Backend setup and the full privacy/API/deployment contract are documented in [the backend architecture guide](https://github.com/OneSmarterInc/MyselfPay_Backend/blob/main/docs/SPATIAL_ARCHITECTURE.md).
 
 Run `npm ci`, `npm test`, `npm run build` and `npm run dev` from this frontend checkout. Keep `VITE_API_BASE_URL=/api`; do not hardcode an AWS hostname in client code. The local Vite proxy still uses `DEV_API_TARGET` when configured.

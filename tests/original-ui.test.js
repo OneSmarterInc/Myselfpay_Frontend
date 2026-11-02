@@ -86,17 +86,92 @@ describe("original SelfPay presentation contracts", () => {
 });
 
 it("prioritizes complete cards across categories before paginating, then sorts by miles", () => {
-  const completeEntry = { ...entry, name: "Complete", coverage: "123 Main Street", booking_id: "clinic" };
-  const nearby = { ...offer, id: "near", entry: { ...entry, name: "Nearby" }, distance_miles: 1 };
-  const complete = { ...offer, id: "complete", entry: completeEntry, distance_miles: 80 };
-  const farther = { ...offer, id: "far", entry: { ...entry, name: "Farther" }, distance_miles: 20 };
+  const completeEntry = {
+    ...entry,
+    name: "Complete",
+    coverage: "123 Main Street",
+    booking_id: "clinic",
+  };
+  const nearby = {
+    ...offer,
+    id: "near",
+    entry: { ...entry, name: "Nearby" },
+    distance_miles: 1,
+  };
+  const complete = {
+    ...offer,
+    id: "complete",
+    entry: completeEntry,
+    distance_miles: 80,
+  };
+  const farther = {
+    ...offer,
+    id: "far",
+    entry: { ...entry, name: "Farther" },
+    distance_miles: 20,
+  };
   const unknown = { ...entry, name: "Unknown distance" };
-  const context = { state: { ...state, searched: true, programs: [complete], nearbyUnpriced: [unknown] }, results: [farther, nearby], DIRECTORY: [], offers: [], catalogReady: true };
+  const context = {
+    state: {
+      ...state,
+      searched: true,
+      programs: [complete],
+      nearbyUnpriced: [unknown],
+    },
+    results: [farther, nearby],
+    DIRECTORY: [],
+    offers: [],
+    catalogReady: true,
+  };
   const html = originalUI(context).search();
-  const names = [...html.matchAll(/<h3>([^<]+)<\/h3>/g)].map(m => m[1]);
+  const names = [...html.matchAll(/<h3>([^<]+)<\/h3>/g)].map((m) => m[1]);
   expect(names).toEqual(["Complete", "Nearby", "Farther", "Unknown distance"]);
-  context.results = Array.from({length: 11}, (_, i) => ({ ...nearby, id: "near" + i }));
+  context.results = Array.from({ length: 11 }, (_, i) => ({
+    ...nearby,
+    id: "near" + i,
+  }));
   const page = originalUI(context).search();
   expect(page).toContain("of 13 listings");
-  expect(page.indexOf("<h3>Complete</h3>")).toBeLessThan(page.indexOf("<h3>Nearby</h3>"));
+  expect(page.indexOf("<h3>Complete</h3>")).toBeLessThan(
+    page.indexOf("<h3>Nearby</h3>"),
+  );
+});
+
+it("sorts GPS cards by actual miles, displays decimals and keeps missing distances last", () => {
+  const named = (name, miles) => ({
+    ...offer,
+    id: name,
+    distance_miles: miles,
+    entry: {
+      ...entry,
+      name,
+      booking_id: name,
+      coverage: name === "Far complete" ? "123 Main Street" : "",
+    },
+  });
+  const context = {
+    state: {
+      ...state,
+      searched: true,
+      location: "Ohio",
+      spatialActive: true,
+      sort: "distance",
+    },
+    account: { tenant: "guest" },
+    DIRECTORY: [],
+    offers: [],
+    results: [
+      named("Far complete", 9200.123),
+      named("Near", 9.44),
+      named("Unknown", null),
+    ],
+    catalogReady: true,
+  };
+  const html = originalUI(context).search();
+  expect(
+    [...html.matchAll(/<h3>([^<]+)<\/h3>/g)].map((match) => match[1]),
+  ).toEqual(["Near", "Far complete", "Unknown"]);
+  expect(html).toContain("about 9.4 miles away");
+  expect(html).toContain("about 9,200.1 miles away");
+  expect(html).toContain("Distance unavailable");
 });

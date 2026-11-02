@@ -1,62 +1,98 @@
 import { test, expect } from "@playwright/test";
-import { latLngToCell, cellToLatLng, gridDisk } from "h3-js";
 
-test("browser GPS reaches authenticated indexed data using only H3 7 and reuses same-cell bundles", async ({
+test("current-location search loads the whole selected state and recalculates overseas miles locally", async ({
   page,
   context,
 }) => {
   await context.grantPermissions(["geolocation"]);
   await context.setGeolocation({ latitude: 39.140183, longitude: -84.505829 });
-  const requests = [];
-  const apiRequests = [];
+  const requests = [],
+    apiRequests = [];
   page.on("request", (request) => {
     if (request.url().includes("/api/"))
       apiRequests.push(request.url() + (request.postData() || ""));
-    if (request.url().includes("/api/v1/spatial-bundle/"))
-      requests.push({ url: request.url(), body: request.postData() });
+    if (request.url().endsWith("/api/search"))
+      requests.push(request.postDataJSON());
   });
   await page.goto("/");
   await page
     .getByRole("button", { name: "Find imaging options", exact: true })
     .click();
-  await page.getByRole("button", { name: "Ask MySelfPay", exact: true }).click();
+  await page.locator("#location").fill("Ohio");
+  await page
+    .getByRole("button", { name: "Ask MySelfPay", exact: true })
+    .click();
+  const loaded = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/search") &&
+      response.request().method() === "POST",
+  );
   await page
     .getByRole("button", { name: "Use my location", exact: true })
     .click();
+  const data = await (await loaded).json();
+  expect(data.resolved_location.state).toBe("OH");
   await expect(
-    page.getByRole("button", { name: "Stop location updates" }),
+    page.getByText("Showing centers across OH.", { exact: false }),
   ).toBeVisible();
-  await expect(
-    page.getByText("Nearby results updated.", { exact: false }),
-  ).toBeVisible({ timeout: 20000 });
   await expect(page.locator("article.card").first()).toBeVisible();
   expect(requests).toHaveLength(1);
-  expect(requests[0].url).toMatch(/\/api\/v1\/spatial-bundle\/[0-9a-f]{15}$/);
-  expect(requests[0].body).toBeNull();
+  expect(requests[0]).toMatchObject({
+    location: "Ohio",
+    scope: "state",
+    mod: "",
+    budget: 0,
+    type: "all",
+  });
   expect(apiRequests.some((url) => /\/api\/catalog$/.test(url))).toBe(false);
-  expect(JSON.stringify(apiRequests)).not.toContain("39.140183");
-  expect(JSON.stringify(apiRequests)).not.toContain(
-    latLngToCell(39.140183, -84.505829, 11),
+  expect(apiRequests.some((url) => url.includes("/spatial-bundle/"))).toBe(
+    false,
   );
-  await context.setGeolocation({ latitude: 39.140184, longitude: -84.505829 });
   await page.locator("#body").fill("reference only");
   await page.getByRole("button", { name: "Find options", exact: true }).click();
   expect(requests).toHaveLength(1);
-  expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(
-    "39.140",
-  );
   await page.bringToFront();
   const resume = page.getByRole("button", {
     name: "Use my location",
     exact: true,
   });
   if (await resume.isVisible()) await resume.click();
-  const next = gridDisk(latLngToCell(39.140183, -84.505829, 7), 1).find(
-    (cell) => cell !== latLngToCell(39.140183, -84.505829, 7),
+  await context.setGeolocation({ latitude: 19.076, longitude: 72.8777 });
+  await expect
+    .poll(
+      async () => {
+        const text = await page
+          .locator("article.card")
+          .first()
+          .locator(".small")
+          .filter({ hasText: /miles away/ })
+          .first()
+          .textContent();
+        return Number(
+          text.match(/about ([\d,.]+) miles/)?.[1].replaceAll(",", ""),
+        );
+      },
+      { timeout: 15000 },
+    )
+    .toBeGreaterThan(7000);
+  expect(requests).toHaveLength(1);
+  expect(JSON.stringify(apiRequests)).not.toMatch(
+    /19\.076|72\.8777|39\.140183/,
   );
-  const [latitude, longitude] = cellToLatLng(next);
-  await context.setGeolocation({ latitude, longitude });
-  await expect.poll(() => requests.length, { timeout: 15000 }).toBe(2);
+  const next = page.getByRole("button", { name: "Next", exact: true });
+  if (await next.isVisible()) {
+    await next.click();
+    await expect(
+      page.getByRole("navigation", { name: "Imaging center results pages" }),
+    ).toContainText("Page 2");
+    await context.setGeolocation({ latitude: 19.077, longitude: 72.878 });
+    await expect(
+      page.getByRole("navigation", { name: "Imaging center results pages" }),
+    ).toContainText("Page 2");
+  }
+  expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(
+    "19.076",
+  );
   await page.getByRole("button", { name: "Stop location updates" }).click();
   await expect(
     page.getByRole("button", { name: "Use my location", exact: true }),
@@ -120,6 +156,7 @@ test("denied location permission provides a usable manual-search fallback", asyn
   await page
     .getByRole("button", { name: "Find imaging options", exact: true })
     .click();
+  await page.locator("#location").fill("Ohio");
   await page
     .getByRole("button", { name: "Use my location", exact: true })
     .click();
@@ -129,4 +166,7 @@ test("denied location permission provides a usable manual-search fallback", asyn
   await page.locator("#location").fill("Ohio");
   await page.getByRole("button", { name: "Find options", exact: true }).click();
   await expect(page.locator("article.card").first()).toBeVisible();
+  await expect(
+    page.getByText("Location permission was denied.", { exact: false }),
+  ).not.toBeVisible();
 });

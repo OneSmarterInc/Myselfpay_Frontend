@@ -43,25 +43,27 @@ export function sortNearby(
     .map((record) => {
       let gridSteps = null;
       try {
-        gridSteps = distance(micro, record.h3_res11);
+        if (record.h3_res11) gridSteps = distance(micro, record.h3_res11);
       } catch {}
       const location = record.location;
-      const miles = haversineMiles(
-        [latitude, longitude],
-        [location.latitude, location.longitude],
-      );
+      const miles = location
+        ? haversineMiles(
+            [latitude, longitude],
+            [location.latitude, location.longitude],
+          )
+        : null;
       return {
         ...record,
         grid_steps: gridSteps,
         distance_miles: miles,
         distance_method:
           gridSteps === null ? "haversine-fallback" : "haversine",
-        distance_precision: location.precision,
+        distance_precision: location?.precision || null,
       };
     })
     .sort(
       (a, b) =>
-        a.distance_miles - b.distance_miles ||
+        (a.distance_miles ?? Infinity) - (b.distance_miles ?? Infinity) ||
         (a.grid_steps ?? Infinity) - (b.grid_steps ?? Infinity) ||
         a.id.localeCompare(b.id),
     );
@@ -144,7 +146,7 @@ export class SpatialDataManager {
     if (cached && this.now() - cached.time < this.ttl) return cached.bundle;
     if (this.pending.has(cell)) return this.pending.get(cell);
     const generation = this.generation;
-    const promise = this.request(`/v1/spatial-bundle/${cell}`)
+    const promise = this.request(`/v1/spatial-bundle/${cell}/`)
       .then((value) => {
         const bundle = validateBundle(value, cell);
         if (generation === this.generation) {
@@ -210,7 +212,7 @@ export function watchLocation(
         onError(
           Object.assign(new Error(locationError(error)), { code: error.code }),
         ),
-      { enableHighAccuracy: false, maximumAge: 30000, timeout: 15000 },
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 },
     );
   } catch {
     onError(
@@ -237,6 +239,7 @@ export function spatialOffers(records, search) {
       booking_id: record.entry_key,
       distance_miles: record.distance_miles,
       distance_precision: record.distance_precision,
+      nearest_location: record.location || null,
     };
     const text = String(entry[search.mod?.toLowerCase()] || "");
     if (

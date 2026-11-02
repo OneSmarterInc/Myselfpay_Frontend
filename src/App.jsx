@@ -3,7 +3,8 @@ import parse, { attributesToProps, domToReact } from "html-react-parser";
 import { api, establishSession, setCsrf } from "./api.js";
 import { originalUI } from "./original-ui.js";
 import { directoryOffer } from "./directory-offer.js";
-import { SpatialDataManager, spatialOffers, watchLocation } from "./spatial.js";
+import { spatialOffers, watchLocation } from "./spatial.js";
+import { StatewideLocationManager } from "./statewide-location.js";
 import { predefinedQuestion } from "./chat-questions.js";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
 
@@ -170,7 +171,7 @@ export default function App() {
     [boot, setBoot] = useState(true);
   const [spatialEnabled, setSpatialEnabled] = useState(false);
   const [spatialSnapshot, setSpatialSnapshot] = useState(null);
-  const [spatialManager] = useState(() => new SpatialDataManager(api));
+  const [spatialManager] = useState(() => new StatewideLocationManager(api));
   const displayResults = useMemo(
     () =>
       spatialSnapshot ? spatialOffers(spatialSnapshot.records, state) : results,
@@ -188,6 +189,12 @@ export default function App() {
     spatialManager.clear();
     setSpatialEnabled(false);
     setSpatialSnapshot(null);
+    setState((old) => ({
+      ...old,
+      spatialActive: false,
+      spatialLoading: false,
+      spatialStatus: "",
+    }));
   }, [account?.id, spatialManager]);
   useEffect(() => {
     if (!spatialEnabled || !account || view !== "search") return;
@@ -214,9 +221,9 @@ export default function App() {
             bundle.truncated || bundle.offers_truncated
               ? "This area contains more records than one bundle can display. Results are limited; use ZIP or state search for the wider directory."
               : bundle.records.length
-                ? "Nearby results updated. Distances are approximate straight-line miles."
-                : "No indexed centers in this nearby area. Try ZIP or state search for a wider area.",
-          resultsPage: 0,
+                ? `Showing centers across ${bundle.state}. Distances are approximate straight-line miles from your current location.`
+                : `No centers are available for ${bundle.state} in the current directory.`,
+          resultsPage: bundle.initial ? 0 : old.resultsPage,
         }));
       } catch (error) {
         fail(error);
@@ -481,7 +488,7 @@ export default function App() {
       }));
       return;
     }
-    if (spatialEnabled || spatialSnapshot) stopSpatial();
+    if (spatialEnabled || spatialSnapshot || state.spatialActive) stopSpatial();
     const next = { ...state, ...override };
     if (!next.location.trim()) {
       setToast("Enter your ZIP, city or state to continue.");
@@ -494,7 +501,7 @@ export default function App() {
     });
   }
   async function talk(message) {
-    if (spatialEnabled || spatialSnapshot) stopSpatial();
+    if (spatialEnabled || spatialSnapshot || state.spatialActive) stopSpatial();
     const question = predefinedQuestion(message);
     if (!question) {
       setToast(
@@ -570,7 +577,10 @@ export default function App() {
         "radius",
       ].includes(id)
     ) {
-      if (id === "location" && (spatialEnabled || spatialSnapshot))
+      if (
+        id === "location" &&
+        (spatialEnabled || spatialSnapshot || state.spatialActive)
+      )
         stopSpatial();
       let changes = { [id]: element.value };
       if (id === "budget") {
@@ -650,12 +660,32 @@ export default function App() {
       event.preventDefault();
       if (locationAction.dataset.spatialAction === "stop") stopSpatial();
       else {
+        const location =
+          state.location.trim() && state.location !== "Near my location"
+            ? state.location
+            : account?.zip_code?.slice(0, 5) || "";
+        try {
+          spatialManager.setLocation(location);
+        } catch (error) {
+          setToast(error.message);
+          document.getElementById("location")?.focus();
+          return;
+        }
         navigate("search");
         sequence.current++;
         setResults([]);
         setState((old) => ({
           ...old,
-          location: "Near my location",
+          location,
+          scope: "state",
+          mod: "",
+          body: "",
+          contrast: "unknown",
+          budget: 0,
+          type: "all",
+          sort: "distance",
+          noExamPrice: false,
+          unlocatedOfferCount: 0,
           mode: "classic",
           programs: [],
           programEntries: [],
