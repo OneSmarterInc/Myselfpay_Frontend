@@ -13,6 +13,7 @@ const initialState = () => ({
   body: "",
   contrast: "unknown",
   location: "",
+  locationExplicit: false,
   budget: 0,
   type: "all",
   mode: "classic",
@@ -590,6 +591,7 @@ export default function App() {
       )
         stopSpatial();
       let changes = { [id]: element.value };
+      if (id === "location") changes.locationExplicit = !!element.value.trim();
       if (id === "budget") {
         if (!/^[0-9]{0,6}$/.test(element.value)) return;
         changes.budget = Number(element.value) || 0;
@@ -671,7 +673,9 @@ export default function App() {
           state.location.trim() && state.location !== "Near my location"
             ? state.location
             : account?.zip_code?.slice(0, 5) || "";
-        spatialManager.setAutomaticLocation(location);
+        if (state.locationExplicit && location)
+          spatialManager.setLocation(location);
+        else spatialManager.setAutomaticLocation(location);
         navigate("search");
         sequence.current++;
         setResults([]);
@@ -825,10 +829,15 @@ export default function App() {
       setState((old) => ({
         ...old,
         location: target.dataset.locationChoice,
-        dirty: old.searched,
+        locationExplicit: true,
+        dirty: false,
       }));
       setLocationsOpen(false);
-      return;
+      return search({
+        location: target.dataset.locationChoice,
+        scope: "state",
+        selected: [],
+      });
     }
     if (target.dataset.city) {
       event.preventDefault();

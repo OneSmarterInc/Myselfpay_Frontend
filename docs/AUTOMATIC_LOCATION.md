@@ -1,6 +1,8 @@
 # Automatic current-location search
 
-Press **Use my location** without filling the state field. The browser asks for location permission, resolves the US state locally, and loads its full directory with nearest-first distances. A higher-accuracy browser fix is requested; location and facility-coordinate accuracy still limit the displayed straight-line estimates.
+An explicitly selected state, city or ZIP always takes priority, including when using GPS from another state or country. Choosing an item in the location picker immediately loads that state and exits the previous automatic/National search. Empty selected-state results remain empty instead of silently switching to National.
+
+Press **Use my location** without filling the state field to use automatic detection. The browser asks for location permission, resolves the US state locally, and loads its full directory with nearest-first distances. A higher-accuracy browser fix is requested; location and facility-coordinate accuracy still limit the displayed straight-line estimates.
 
 Outside the US, an existing state selection or saved account ZIP is used when available. With no US preference, the existing National search is used automatically and US centers are sorted by distance from the device, including overseas locations. Invalid saved ZIPs and empty state results also fall back to the US directory instead of requiring state input. Normal manual search remains unchanged.
 

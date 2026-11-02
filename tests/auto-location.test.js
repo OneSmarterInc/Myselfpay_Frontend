@@ -158,3 +158,15 @@ describe("automatic private location search", () => {
     expect(forbidden).toHaveBeenCalledTimes(1);
   });
 });
+
+it("never broadens an explicitly selected empty state to National", async () => {
+  const request = vi.fn(async () => ({ ...data("CA"), nearby_unpriced: [] }));
+  const manager = new StatewideLocationManager(request);
+  manager.setLocation("California");
+  const result = await manager.update(39.14, -84.5);
+  expect(result.state).toBe("CA");
+  expect(result.count).toBe(0);
+  expect(result.scope).toBe("state");
+  expect(request).toHaveBeenCalledTimes(1);
+  expect(request.mock.calls[0][1].location).toBe("California");
+});

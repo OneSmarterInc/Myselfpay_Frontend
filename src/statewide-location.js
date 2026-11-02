@@ -141,7 +141,7 @@ export class StatewideLocationManager {
     const location = String(value || "")
       .trim()
       .replace(/^([0-9]{5})-[0-9]{4}$/, "$1");
-    if (!location || /^(?:national|near my location)$/i.test(location))
+    if (!location || /^near my location$/i.test(location))
       throw new Error(
         "Select a US state, city or ZIP before using your location. Distances can be calculated from anywhere.",
       );

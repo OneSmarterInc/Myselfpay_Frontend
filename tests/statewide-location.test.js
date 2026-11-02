@@ -84,7 +84,8 @@ describe("statewide current-location search", () => {
   it("requires an explicit directory location and accepts ZIP+4 as its base ZIP", async () => {
     const manager = new StatewideLocationManager(vi.fn(async () => response()));
     expect(() => manager.setLocation("")).toThrow(/Select a US state/);
-    expect(() => manager.setLocation("National")).toThrow(/Select a US state/);
+    manager.setLocation("National");
+    expect(manager.location).toBe("National");
     manager.setLocation("45202-1234");
     expect(manager.location).toBe("45202");
     expect(() =>

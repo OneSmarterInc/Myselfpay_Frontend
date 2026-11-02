@@ -63,3 +63,64 @@ for (const scenario of [
     ).not.toContain(String(scenario.latitude));
   });
 }
+
+for (const scenario of [
+  { latitude: 19.076, longitude: 72.8777, selected: "Ohio", expected: "OH" },
+  { latitude: 39.14, longitude: -84.5, selected: "California", expected: "CA" },
+]) {
+  test(`explicit ${scenario.selected} selection replaces automatic results and stays selected with GPS`, async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["geolocation"]);
+    await context.setGeolocation({
+      latitude: scenario.latitude,
+      longitude: scenario.longitude,
+    });
+    await page.goto("/");
+    await page
+      .getByRole("button", { name: "Find imaging options", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Use my location", exact: true })
+      .click();
+    await expect(page.locator("article.card").first()).toBeVisible();
+    await page.locator("#locationToggle").click();
+    const selected = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/search") &&
+        response.request().postDataJSON()?.location === scenario.selected,
+    );
+    await page
+      .locator("#cityChoices")
+      .getByRole("button", { name: scenario.selected, exact: true })
+      .click();
+    const data = await (await selected).json();
+    expect(data.resolved_location.state).toBe(scenario.expected);
+    await expect(page.locator("#location")).toHaveValue(scenario.selected);
+    await expect(page.locator("article.card").first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Use my location", exact: true }),
+    ).toBeVisible();
+    const gps = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/search") &&
+        response.request().postDataJSON()?.location === scenario.selected,
+    );
+    await page
+      .getByRole("button", { name: "Use my location", exact: true })
+      .click();
+    expect((await (await gps).json()).resolved_location.state).toBe(
+      scenario.expected,
+    );
+    await expect(
+      page.getByText(`Showing centers across ${scenario.expected}.`, {
+        exact: false,
+      }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Find options", exact: true })
+      .click();
+    await expect(page.locator("#location")).toHaveValue(scenario.selected);
+  });
+}
