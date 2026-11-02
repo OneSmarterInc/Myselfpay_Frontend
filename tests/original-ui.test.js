@@ -192,3 +192,13 @@ it("puts priced cards with directions before nearby quote cards even without pub
  context.state.nearToMe=true;
  expect(names()).toEqual(["Nearby quote","Price only","Price and directions"]);
 });
+
+it("pins only the Gitesh email test center by default and keeps nearest mode by miles",()=>{
+ const testCenter={...entry,name:"Gitesh Imaging Center",booking_id:"portal-gitesh-email-test-center",is_test_center:true,source:"",distance_miles:80};
+ const nearby={...offer,id:"nearby",type:"fixed",amount:250,distance_miles:1,entry:{...entry,name:"Real center",coverage:"123 Main Street",booking_id:"real"}};
+ const context={state:{...state,searched:true,nearToMe:false,nearbyUnpriced:[testCenter]},results:[nearby],DIRECTORY:[],offers:[],catalogReady:true};
+ const names=()=>[...originalUI(context).search().matchAll(/<h3>([^<]+)<\/h3>/g)].map(m=>m[1]);
+ expect(names()).toEqual(["Gitesh Imaging Center","Real center"]);
+ context.state.nearToMe=true;
+ expect(names()).toEqual(["Real center","Gitesh Imaging Center"]);
+});

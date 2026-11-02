@@ -48,6 +48,7 @@ function initialSearch(){const q=state.location.trim().toLowerCase();const leads
 function groupedCards(found){
  const listings=[...found,...(state.programs||[]),...(state.programEntries||[]).map(e=>directoryOffer(e,state)),...(state.nearbyUnpriced||[]).map(e=>directoryOffer(e,state))];
  const detailRank=o=>{
+  if(o.entry.is_test_center&&o.entry.booking_id==='portal-gitesh-email-test-center')return 1000;
   const priced=o.directory_only?o.published_prices?.some(p=>['MRI','CT'].includes(p.service)):Number.isFinite(o.amount)&&!['quote','conflict'].includes(o.type);
   if(!priced)return 0;
   const email=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(o.entry.email||o.entry.appointment_email||o.entry.booking_email||'').trim());
