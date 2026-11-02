@@ -1,4 +1,5 @@
 import { locationCells, sortNearby } from "./spatial.js";
+import { stateForCoordinates, searchLocationHint } from "./auto-location.js";
 
 const validLocation = (location) =>
   location &&
@@ -27,14 +28,22 @@ function offerLocations(offer) {
 }
 
 export function statewideRecords(data) {
+  const national =
+    String(data?.search?.location || "")
+      .trim()
+      .toLowerCase() === "national";
   if (
     !data ||
-    !data.resolved_location ||
-    !/^[A-Z]{2}$/.test(data.resolved_location.state || "") ||
+    (!national &&
+      (!data.resolved_location ||
+        !/^[A-Z]{2}$/.test(data.resolved_location.state || ""))) ||
     data.location_suggestions?.length
   )
-    throw new Error(
-      "Choose a US state, qualified city or ZIP first. Your current location can be anywhere in the world.",
+    throw Object.assign(
+      new Error(
+        "Choose a US state, qualified city or ZIP first. Your current location can be anywhere in the world.",
+      ),
+      { code: "directory_location_required" },
     );
   const groups = ["offers", "programs", "program_entries", "nearby_unpriced"];
   if (groups.some((key) => !Array.isArray(data[key])))
@@ -56,13 +65,14 @@ export function statewideRecords(data) {
   for (const entry of [...data.program_entries, ...data.nearby_unpriced])
     add(entry);
   const records = [];
-  const state = data.resolved_location.state;
+  const state = national ? "National" : data.resolved_location.state;
   for (const [key, value] of entries) {
     const locations =
       value.entry.location_type === "program"
         ? []
         : (value.entry.locations || []).filter(
-            (location) => validLocation(location) && location.state === state,
+            (location) =>
+              validLocation(location) && (national || location.state === state),
           );
     const unique = locations.filter(
       (location, index) =>
@@ -93,7 +103,7 @@ export function statewideRecords(data) {
   return {
     state,
     version: data.version,
-    scope: "state",
+    scope: national ? "national" : "state",
     records,
     count: entries.size,
     truncated: false,
@@ -104,17 +114,27 @@ export function statewideRecords(data) {
 export class StatewideLocationManager {
   constructor(
     request,
-    { now = () => Date.now(), ttl = 300000, maxStates = 8 } = {},
+    {
+      now = () => Date.now(),
+      ttl = 300000,
+      maxStates = 8,
+      resolveState = stateForCoordinates,
+      normalizeHint = searchLocationHint,
+    } = {},
   ) {
     this.request = request;
     this.now = now;
     this.ttl = ttl;
     this.maxStates = maxStates;
+    this.resolveState = resolveState;
+    this.normalizeHint = normalizeHint;
     this.cache = new Map();
     this.pending = new Map();
     this.location = "";
+    this.activeLocation = "";
     this.generation = 0;
     this.updateId = 0;
+    this.unavailableLocations = new Set();
   }
 
   setLocation(value) {
@@ -125,18 +145,35 @@ export class StatewideLocationManager {
       throw new Error(
         "Select a US state, city or ZIP before using your location. Distances can be calculated from anywhere.",
       );
-    if (location !== this.location) {
+    if (location !== this.location || this.automatic) {
       this.generation++;
       this.active = null;
+      this.activeLocation = "";
       this.location = location;
     }
+    this.automatic = false;
+  }
+
+  setAutomaticLocation(value = "") {
+    this.generation++;
+    this.updateId++;
+    this.automatic = true;
+    this.unavailableLocations.clear();
+    this.fallbackLocation = String(value || "").trim();
+    this.active = null;
+    this.activeLocation = "";
+    this.location = "";
   }
 
   clear() {
     this.generation++;
     this.updateId++;
     this.active = null;
+    this.activeLocation = "";
+    this.automatic = false;
     this.location = "";
+    this.fallbackLocation = "";
+    this.unavailableLocations.clear();
     this.cache.clear();
     this.pending.clear();
   }
@@ -178,17 +215,55 @@ export class StatewideLocationManager {
 
   async update(latitude, longitude) {
     const cells = locationCells(latitude, longitude);
-    if (!this.location)
-      throw new Error("Select a US state, city or ZIP first.");
     const generation = this.generation,
       update = ++this.updateId;
-    const initial = !this.active;
-    const data = this.active || (await this.load(this.location));
+    let location = this.location;
+    let detected = null;
+    if (this.automatic) {
+      try {
+        detected = await this.resolveState(latitude, longitude);
+        location =
+          detected || (await this.normalizeHint(this.fallbackLocation));
+      } catch {
+        location = "National";
+      }
+    }
+    if (this.automatic && this.unavailableLocations.has(location))
+      location = "National";
+    if (!location) throw new Error("Select a US state, city or ZIP first.");
+    if (generation !== this.generation || update !== this.updateId) return null;
+    const initial = !this.active || this.activeLocation !== location;
+    let data;
+    try {
+      data = !initial ? this.active : await this.load(location);
+    } catch (error) {
+      if (
+        !this.automatic ||
+        error.code !== "directory_location_required" ||
+        location === "National"
+      )
+        throw error;
+      if (generation !== this.generation || update !== this.updateId)
+        return null;
+      this.unavailableLocations.add(location);
+      location = "National";
+      data = await this.load(location);
+    }
+    if (this.automatic && !data.count && location !== "National") {
+      if (generation !== this.generation || update !== this.updateId)
+        return null;
+      this.unavailableLocations.add(location);
+      location = "National";
+      data = await this.load(location);
+    }
     if (generation !== this.generation || update !== this.updateId) return null;
     this.active = data;
+    this.activeLocation = location;
+    this.location = location;
     return {
       ...data,
       initial,
+      queryLocation: location,
       records: sortNearby(data.records, latitude, longitude, cells.micro),
     };
   }

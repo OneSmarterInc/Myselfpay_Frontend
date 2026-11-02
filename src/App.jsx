@@ -217,11 +217,12 @@ export default function App() {
         setState((old) => ({
           ...old,
           spatialLoading: false,
+          location: bundle.queryLocation,
           spatialStatus:
             bundle.truncated || bundle.offers_truncated
               ? "This area contains more records than one bundle can display. Results are limited; use ZIP or state search for the wider directory."
               : bundle.records.length
-                ? `Showing centers across ${bundle.state}. Distances are approximate straight-line miles from your current location.`
+                ? `Showing centers across ${bundle.state === "National" ? "the US directory" : bundle.state}. Distances are approximate straight-line miles from your current location.`
                 : `No centers are available for ${bundle.state} in the current directory.`,
           resultsPage: bundle.initial ? 0 : old.resultsPage,
         }));
@@ -476,6 +477,12 @@ export default function App() {
     }));
   }
   async function search(override = {}) {
+    if (spatialEnabled && !spatialSnapshot && !override.location) {
+      setToast(
+        "Waiting for your browser location. Results will appear automatically.",
+      );
+      return;
+    }
     if (
       spatialSnapshot &&
       (!override.location || override.location === "Near my location")
@@ -664,13 +671,7 @@ export default function App() {
           state.location.trim() && state.location !== "Near my location"
             ? state.location
             : account?.zip_code?.slice(0, 5) || "";
-        try {
-          spatialManager.setLocation(location);
-        } catch (error) {
-          setToast(error.message);
-          document.getElementById("location")?.focus();
-          return;
-        }
+        spatialManager.setAutomaticLocation(location);
         navigate("search");
         sequence.current++;
         setResults([]);

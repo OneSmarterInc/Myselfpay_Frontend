@@ -38,7 +38,7 @@ test("current-location search loads the whole selected state and recalculates ov
   await expect(page.locator("article.card").first()).toBeVisible();
   expect(requests).toHaveLength(1);
   expect(requests[0]).toMatchObject({
-    location: "Ohio",
+    location: "OH",
     scope: "state",
     mod: "",
     budget: 0,

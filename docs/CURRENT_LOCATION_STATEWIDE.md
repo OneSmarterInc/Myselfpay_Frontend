@@ -1,5 +1,7 @@
 # Statewide results from the current location
 
+The state-entry prerequisite has been removed. See [Automatic current-location search](AUTOMATIC_LOCATION.md) for current behavior: US states are detected locally, and overseas searches automatically use a US preference or nationwide fallback. The selected-state flow described below is retained for manual preferences.
+
 The location button now browses every available listing in the selected US state, not only the small H3 neighborhood around the device. Select a US state, qualified city or ZIP first. A saved account ZIP is used when the search field is blank. This selection determines the directory coverage; it does not replace the device as the distance origin. GPS can be anywhere in the world, including outside the US.
 
 The frontend reuses the existing authenticated `/api/search` state search with optional exam/price filters cleared for the initial load. Only the user-selected state/city/ZIP is submitted. Device coordinates and the device H3 cells are never included in this request. Facility coordinates and reviewed offers returned for that state are processed locally. No geocoder, external maps call or backend change is needed.

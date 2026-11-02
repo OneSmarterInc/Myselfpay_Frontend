@@ -1,6 +1,6 @@
 # Location search
 
-Current behavior: [Statewide distance from your current location](CURRENT_LOCATION_STATEWIDE.md). The location button now uses the selected US state and calculates miles locally from anywhere in the world; the neighborhood-only loading flow below is retained as historical API documentation.
+Current behavior: [Automatic current-location search without state input](AUTOMATIC_LOCATION.md). The location button now uses the selected US state and calculates miles locally from anywhere in the world; the neighborhood-only loading flow below is retained as historical API documentation.
 
 The existing search page now supports optional ZIP+4 registration and opt-in browser location. Backend setup and the full privacy/API/deployment contract are documented in [the backend architecture guide](https://github.com/OneSmarterInc/MyselfPay_Backend/blob/main/docs/SPATIAL_ARCHITECTURE.md).
 
