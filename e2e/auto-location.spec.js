@@ -68,7 +68,7 @@ for (const scenario of [
   { latitude: 19.076, longitude: 72.8777, selected: "Ohio", expected: "OH" },
   { latitude: 39.14, longitude: -84.5, selected: "California", expected: "CA" },
 ]) {
-  test(`explicit ${scenario.selected} selection replaces automatic results and stays selected with GPS`, async ({
+  test(`explicit ${scenario.selected} selection waits for Find options and stays selected with GPS`, async ({
     page,
     context,
   }) => {
@@ -85,6 +85,15 @@ for (const scenario of [
       .getByRole("button", { name: "Use my location", exact: true })
       .click();
     await expect(page.locator("article.card").first()).toBeVisible();
+    const oldCards = await page.locator("article.card h3").allTextContents();
+    const stateRequests = [];
+    page.on("request", (request) => {
+      if (
+        request.url().endsWith("/api/search") &&
+        request.postDataJSON()?.location === scenario.selected
+      )
+        stateRequests.push(request);
+    });
     await page.locator("#locationToggle").click();
     const selected = page.waitForResponse(
       (response) =>
@@ -94,6 +103,14 @@ for (const scenario of [
     await page
       .locator("#cityChoices")
       .getByRole("button", { name: scenario.selected, exact: true })
+      .click();
+    await expect(page.locator("#searchNotice")).toContainText("Search changed");
+    expect(stateRequests).toHaveLength(0);
+    expect(await page.locator("article.card h3").allTextContents()).toEqual(
+      oldCards,
+    );
+    await page
+      .getByRole("button", { name: "Find options", exact: true })
       .click();
     const data = await (await selected).json();
     expect(data.resolved_location.state).toBe(scenario.expected);

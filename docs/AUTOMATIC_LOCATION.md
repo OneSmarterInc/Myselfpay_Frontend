@@ -1,6 +1,6 @@
 # Automatic current-location search
 
-An explicitly selected state, city or ZIP always takes priority, including when using GPS from another state or country. Choosing an item in the location picker immediately loads that state and exits the previous automatic/National search. Empty selected-state results remain empty instead of silently switching to National.
+An explicitly selected state, city or ZIP always takes priority, including when using GPS from another state or country. Choosing or typing a location updates the filter and exits automatic GPS updates. Existing cards remain visible; press **Find options** to load the selected state. Selecting a state alone sends no search request. Empty selected-state results remain empty instead of silently switching to National.
 
 Press **Use my location** without filling the state field to use automatic detection. The browser asks for location permission, resolves the US state locally, and loads its full directory with nearest-first distances. A higher-accuracy browser fix is requested; location and facility-coordinate accuracy still limit the displayed straight-line estimates.
 

@@ -486,6 +486,8 @@ export default function App() {
     }
     if (
       spatialSnapshot &&
+      state.location.trim().toLowerCase() ===
+        (spatialSnapshot.queryLocation || "").trim().toLowerCase() &&
       (!override.location || override.location === "Near my location")
     ) {
       setState((old) => ({
@@ -588,8 +590,12 @@ export default function App() {
       if (
         id === "location" &&
         (spatialEnabled || spatialSnapshot || state.spatialActive)
-      )
-        stopSpatial();
+      ) {
+        if (spatialSnapshot) {
+          setSpatialEnabled(false);
+          spatialManager.clear();
+        } else stopSpatial();
+      }
       let changes = { [id]: element.value };
       if (id === "location") changes.locationExplicit = !!element.value.trim();
       if (id === "budget") {
@@ -606,7 +612,12 @@ export default function App() {
       setState((old) => ({
         ...old,
         ...changes,
-        dirty: spatialSnapshot ? false : old.searched || false,
+        dirty:
+          id === "location"
+            ? old.searched || false
+            : spatialSnapshot
+              ? false
+              : old.searched || false,
       }));
       if (id === "location") {
         setLocationsOpen(true);
@@ -826,18 +837,19 @@ export default function App() {
     }
     if (target.dataset.locationChoice) {
       event.preventDefault();
+      if (spatialSnapshot) {
+        setSpatialEnabled(false);
+        spatialManager.clear();
+      } else if (spatialEnabled || state.spatialActive) stopSpatial();
       setState((old) => ({
         ...old,
         location: target.dataset.locationChoice,
         locationExplicit: true,
-        dirty: false,
+        scope: "state",
+        dirty: old.searched,
       }));
       setLocationsOpen(false);
-      return search({
-        location: target.dataset.locationChoice,
-        scope: "state",
-        selected: [],
-      });
+      return;
     }
     if (target.dataset.city) {
       event.preventDefault();
