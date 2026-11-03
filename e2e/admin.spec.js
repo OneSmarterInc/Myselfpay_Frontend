@@ -4,11 +4,13 @@ test("admin authenticates superuser, loads assets, and saves hidden Twilio setti
  await page.goto("/admin");
  await expect(page.locator("#id_username")).toBeVisible();
  expect((await page.request.get("/admin-assets/admin/css/base.css")).status()).toBe(200);
+ await page.screenshot({path:"../tmp/admin-login-custom.png",fullPage:true});
  await page.locator("#id_username").fill(process.env.E2E_ADMIN_USERNAME);
  await page.locator("#id_password").fill(process.env.E2E_ADMIN_PASSWORD);
- await page.getByRole("button",{name:"Log in",exact:true}).click();
+ await page.getByRole("button",{name:"Sign in to MySelfPay",exact:true}).click();
  await expect(page.getByRole("heading",{name:"Dashboard",exact:true})).toBeVisible();
  await expect(page.getByRole("heading",{name:"Registered users",exact:true})).toBeVisible();
+ await page.screenshot({path:"../tmp/admin-dashboard-custom.png",fullPage:true});
  await page.goto("/admin/api/portalaccount/");
  await expect(page.getByRole("link",{name:"portal-admin-test@example.com",exact:true})).toBeVisible();
  await page.goto("/admin/api/twilioconfiguration/add/");
@@ -23,5 +25,8 @@ test("admin authenticates superuser, loads assets, and saves hidden Twilio setti
  await page.setViewportSize({width:390,height:844});
  await page.goto("/admin/");
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ const headerBox=await page.locator("#header").boundingBox();
+ const headingBox=await page.getByRole("heading",{name:"Dashboard",exact:true}).boundingBox();
+ expect(headingBox.y).toBeGreaterThan(headerBox.y+headerBox.height);
  await page.screenshot({path:"../tmp/admin-mobile.png",fullPage:true});
 });
