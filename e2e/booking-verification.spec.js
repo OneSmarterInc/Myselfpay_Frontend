@@ -37,11 +37,11 @@ test("email is required and mobile OTP is optional before booking",async({page})
  await page.locator("#patientPhoneVerify").click();
  await expect(page.locator("#patientPhoneStatus")).toContainText("Mobile number verified successfully");
  await page.getByRole("button",{name:"Continue to booking"}).click();
- await expect(page.locator("#bookingZone")).toBeVisible();
+ await expect(page.locator(".time-choice-panel")).toBeVisible();
  await expect(page.locator(".booking-notice")).toHaveCount(0);
  expect(await page.locator("#bookingExam").evaluate(el=>el.required)).toBe(false);
  expect(await page.locator("#bookingContrast").evaluate(el=>el.required)).toBe(false);
- await page.locator("#bookingZone").selectOption("America/New_York");
+ await expect(page.locator("#bookingZone")).toHaveCount(0);
  await page.locator("#bookingDate").fill("2026-11-10");
  await page.locator(".time-choice-row").first().getByRole("button",{name:"Morning",exact:true}).click();
  await page.getByRole("button",{name:"Continue",exact:true}).click();
@@ -91,10 +91,10 @@ test("saved verified email skips OTP on another booking",async({page})=>{
  await page.locator("#location").fill("Ohio");
  await page.getByRole("button",{name:"Find options",exact:true}).click();
  await page.locator("article.card [data-appointment]").first().click();
- await expect(page.locator("#bookingZone")).toBeVisible();
+ await expect(page.locator(".time-choice-panel")).toBeVisible();
  await expect(page.locator("#patientCodeSend")).toHaveCount(0);
  await page.setViewportSize({width:390,height:844});
- await page.locator("#bookingZone").selectOption("America/New_York");
+ await expect(page.locator("#bookingZone")).toHaveCount(0);
  await page.locator("#bookingDate").fill("2026-11-10");
  const rows=page.locator(".time-choice-row");
  await expect(rows).toHaveCount(5);

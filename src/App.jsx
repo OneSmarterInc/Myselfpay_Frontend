@@ -7,6 +7,7 @@ import { spatialOffers, watchLocation } from "./spatial.js";
 import { currentLocationLabel } from "./auto-location.js";
 import { StatewideLocationManager } from "./statewide-location.js";
 import { predefinedQuestion } from "./chat-questions.js";
+import UserDashboard from "./UserDashboard.jsx";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
 
 const initialState = () => ({
@@ -1292,6 +1293,7 @@ export default function App() {
           </span>
         </a>
         <nav>
+          {account && account.tenant !== "guest" && <a className="button" href="#dashboard" aria-current={view === "dashboard" ? "page" : undefined}>Dashboard</a>}
           <a href="/for-imaging-centers">For imaging centers</a>
           <button id="history" hidden>
             Saved conversations
@@ -1314,7 +1316,7 @@ export default function App() {
         </nav>
       </header>
       <main className={"shell" + (view === "search" && state.searched ? " results-shell" : "")} id="app">
-        {linkedBooking ? (
+        {view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (
           <OriginalHTML html={markup} onInput={input} replace={replace} />

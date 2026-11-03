@@ -1,0 +1,24 @@
+import {test,expect} from "@playwright/test";
+test("signed-in dashboard shows profile, request status and request links",async({page})=>{
+ await page.goto("/#signup");
+ const email=`dashboard-${Date.now()}@example.com`;
+ await page.locator("#accountName").fill("Dashboard Test User");
+ await page.locator("#accountEmail").fill(email);
+ await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
+ await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
+ await page.locator("#accountSubmit").click();
+ await page.getByRole("link",{name:"Dashboard",exact:true}).click();
+ await expect(page.getByRole("heading",{name:"Welcome, Dashboard Test User"})).toBeVisible();
+ await expect(page.getByRole("heading",{name:"No requests yet"})).toBeVisible();
+ await page.getByRole("button",{name:"My profile",exact:true}).click();
+ await expect(page.locator(".dashboard-profile")).toContainText(email);
+ await page.route("**/api/dashboard?*",r=>r.fulfill({json:{profile:{name:"Dashboard Test User",email,phone:"",zip_code:"",created:1793700000},verified_email:email,stats:{requested:1,scheduled:1},total:2,page:1,pages:1,requests:[{id:"MSP-SYNTHETIC",tracking_token:"synthetic-only-token",clinic_name:"Synthetic Imaging Center",location:"Dayton",status:"requested",price_text:"Confirm price",service:"MRI",exam:"Knee",created:1793700000,slots:[{date:"2026-11-10",period:"morning"}]}]}}));
+ await page.getByRole("button",{name:"Open requests",exact:true}).click();
+ await expect(page.getByText("Awaiting center confirmation",{exact:true})).toBeVisible();
+ await expect(page.getByRole("link",{name:"Open request",exact:true})).toHaveAttribute("href","#request/MSP-SYNTHETIC/synthetic-only-token");
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.locator(".user-dashboard").screenshot({path:"../tmp/user-dashboard-mobile.png"});
+ await page.getByRole("button",{name:"My profile",exact:true}).click();
+ await expect(page.locator(".dashboard-profile")).toContainText("Verified booking email");
+});

@@ -55,7 +55,7 @@ export default function OriginalBooking({
             return;
           }
           setOptions(value);
-          setDraft((old) => ({ ...old, price_text: value.price_text,
+          setDraft((old) => ({ ...old, price_text: value.price_text, timezone: value.timezone || "America/New_York",
             ...(value.verified_email ? {email:value.verified_email, saved_verified_email:value.verified_email} : {}) }));
           if (value.verified_email) setStep(1);
         }
@@ -196,6 +196,8 @@ export default function OriginalBooking({
       });
       return;
     }
+    if (id === "bookingTimeBack") { event.preventDefault(); onClose(); return; }
+    if (id === "verificationBack") { event.preventDefault(); onClose(); return; }
     if (id === "bookingBack") {
       event.preventDefault();
       setStep(1);
@@ -271,6 +273,7 @@ export default function OriginalBooking({
   }
   if (options && step === 0) return (
     <div ref={root} onClick={click} onSubmit={submit} className="booking-verification-gate">
+      <button type="button" id="verificationBack" className="booking-back">← Back to results</button>
       <h2 id="dialogTitle">Verify your contact details</h2>
       <p>Verify your email to continue to your appointment request. Mobile verification is optional.</p>
       <form id="bookingVerification">
