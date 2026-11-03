@@ -18,6 +18,15 @@ test("signed-in dashboard shows profile, request status and request links",async
  await expect(page.getByRole("link",{name:"Open request",exact:true})).toHaveAttribute("href","#request/MSP-SYNTHETIC/synthetic-only-token");
  await page.setViewportSize({width:390,height:844});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await expect(page.locator(".request-slot-chip")).toHaveCount(1);
+ await page.locator(".dashboard-request-details summary").click();
+ await expect(page.locator(".dashboard-request-details dl")).toBeVisible();
+ for(const width of [320,390,768,1280]){
+   await page.setViewportSize({width,height:900});
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+   await page.locator(".user-dashboard").screenshot({path:`../tmp/dashboard-${width}.png`});
+ }
+ await page.setViewportSize({width:390,height:844});
  await page.locator(".user-dashboard").screenshot({path:"../tmp/user-dashboard-mobile.png"});
  await page.getByRole("button",{name:"My profile",exact:true}).click();
  await expect(page.locator(".dashboard-profile")).toContainText("Verified booking email");

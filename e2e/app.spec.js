@@ -161,7 +161,7 @@ test("original signup and login forms retain verified DRF sessions", async ({
   await page.goto("/#signup");
   await page.locator("#accountName").fill("Synthetic UI Test");
   await page.locator("#accountEmail").fill(email);
-  if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202-1234");
+  if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
   await page.locator("#accountPassword").fill(password);
   await page.locator("#accountConfirm").fill(password);
   await page.locator("#accountSubmit").click();
@@ -171,7 +171,7 @@ test("original signup and login forms retain verified DRF sessions", async ({
   await page.locator("#profile").click();
   await page.locator("#accountLogin").click();
   await page.locator("#accountEmail").fill(email);
-  if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202-1234");
+  if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
   await page.locator("#accountPassword").fill(password);
   await page.locator("#accountSubmit").click();
   await expect(

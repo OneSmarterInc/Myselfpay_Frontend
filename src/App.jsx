@@ -579,7 +579,7 @@ export default function App() {
       return;
     }
     if (id?.startsWith("account")) {
-      setAuth((old) => ({ ...old, [id]: element.value }));
+      setAuth((old) => ({ ...old, [id]: id === "accountZip" ? element.value.replace(/\D/g, "").slice(0, 5) : element.value }));
       return;
     }
     if (id === "sort") {

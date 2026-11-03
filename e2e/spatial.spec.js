@@ -101,7 +101,7 @@ test("current-location search loads the whole selected state and recalculates ov
   ).toBeVisible();
 });
 
-test("ZIP+4 registration persists and automatically searches its base ZIP after login", async ({
+test("five-digit ZIP registration persists and automatically searches after login", async ({
   page,
 }) => {
   const email = `zip-ui-${Date.now()}@example.com`,
@@ -109,13 +109,13 @@ test("ZIP+4 registration persists and automatically searches its base ZIP after 
   await page.goto("/#signup");
   await page.locator("#accountName").fill("Synthetic ZIP User");
   await page.locator("#accountEmail").fill(email);
-  await page.locator("#accountZip").fill("45202");
+  await page.locator("#accountZip").fill("4520");
   expect(
     await page
       .locator("#accountZip")
       .evaluate((input) => input.checkValidity()),
   ).toBe(false);
-  await page.locator("#accountZip").fill("45202-1234");
+  await page.locator("#accountZip").fill("45202");
   await page.locator("#accountPassword").fill(password);
   await page.locator("#accountConfirm").fill(password);
   const search = () =>
@@ -129,7 +129,7 @@ test("ZIP+4 registration persists and automatically searches its base ZIP after 
   expect((await registered).postDataJSON().sort).toBe("distance");
   await expect(page.locator("article.card").first()).toBeVisible();
   const profile = await page.request.get("/api/me");
-  expect((await profile.json()).member.zip_code).toBe("45202-1234");
+  expect((await profile.json()).member.zip_code).toBe("45202");
   await page.locator("#profile").click();
   await page.locator("#accountLogin").click();
   await page.locator("#accountEmail").fill(email);
