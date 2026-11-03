@@ -124,6 +124,12 @@ function RequestCard({ item }) {
         </dl>
       </details>
       <div className="request-card-footer">
+        {item.status === "scheduled" && item.secure_chat_url && (
+          <a className="flow-outline" href={item.secure_chat_url} target="_blank" rel="noopener noreferrer">Open secure chat</a>
+        )}
+        {item.status === "scheduled" && item.secure_chat_status === "pending" && (
+          <span role="status">Your secure chat is being prepared. Refresh shortly.</span>
+        )}
         {phone.length >= 8 && (
           <a className="flow-outline" href={`tel:${phone}`}>
             Call center
