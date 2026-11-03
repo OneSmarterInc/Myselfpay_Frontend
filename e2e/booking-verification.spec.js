@@ -26,8 +26,11 @@ test("both contact OTPs are required before booking fields are shown",async({pag
  await page.locator("#patientCodeVerify").click();
  await expect(page.locator("#patientEmailStatus")).toContainText("Email verified successfully");
  await expect(page.getByRole("button",{name:"Continue to booking"})).toBeDisabled();
- await page.locator("#bookingPhone").fill("+15550102222");
+ await page.locator("#bookingPhoneCountry").selectOption("IN");
+ await page.locator("#bookingPhone").fill("9000000000");
+ const sentPhone=page.waitForRequest(r=>r.url().endsWith("/api/booking/phone-code"));
  await page.locator("#patientPhoneSend").click();
+ expect((await sentPhone).postDataJSON().phone).toBe("+919000000000");
  await page.locator("#patientPhoneCode").fill("654321");
  await page.locator("#patientPhoneVerify").click();
  await expect(page.locator("#patientPhoneStatus")).toContainText("Mobile number verified successfully");
@@ -45,7 +48,7 @@ test("both contact OTPs are required before booking fields are shown",async({pag
  await expect(page.locator(".booking-verified-contacts")).toContainText("patient@example.test");
  await page.locator("#editBookingContacts").click();
  await expect(page.locator("#bookingEmail")).toBeVisible();
- await page.locator("#bookingPhone").fill("+15550103333");
+ await page.locator("#bookingPhoneCountry").selectOption("US");
  await expect(page.locator("#patientPhoneStatus")).not.toContainText("Mobile number verified successfully");
  await expect(page.getByRole("button",{name:"Continue to booking"})).toBeDisabled();
 });

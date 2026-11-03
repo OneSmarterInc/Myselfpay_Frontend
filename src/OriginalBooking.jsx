@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
+import { CALLING_CODES, phoneInput } from "./phone-country.js";
 import { OriginalHTML } from "./App.jsx";
 import { deliveryMessage, productionBookingCopy } from "./booking-messages.js";
 const call = (action, data) => api("/booking/" + action, data);
@@ -20,7 +21,9 @@ export default function OriginalBooking({
     [date, setDate] = useState(""),
     [code, setCode] = useState(""),
     [phoneCode, setPhoneCode] = useState(""),
-    [phoneStatus, setPhoneStatus] = useState("");
+    [phoneStatus, setPhoneStatus] = useState(""),
+    [phoneCountry, setPhoneCountry] = useState("US"),
+    [nationalPhone, setNationalPhone] = useState("");
   const [draft, setDraft] = useState(() => ({
     clinic_id: entry.booking_id,
     offer_id: offer?.id || "",
@@ -84,6 +87,16 @@ export default function OriginalBooking({
       return;
     }
     if (id === "patientPhoneCode") { setPhoneCode(value); return; }
+    if (id === "bookingPhoneCountry" || id === "bookingPhone") {
+      const parsed=phoneInput(id === "bookingPhoneCountry" ? value : phoneCountry,
+                              id === "bookingPhoneCountry" ? nationalPhone : value);
+      setPhoneCountry(parsed.country);
+      setNationalPhone(parsed.national);
+      setDraft(old=>({...old,phone:parsed.phone,phone_verification_id:undefined,phone_verification_token:undefined}));
+      setPhoneCode("");
+      setPhoneStatus("Verify this mobile number to continue.");
+      return;
+    }
     const keys = {
       bookingZone: "timezone",
       bookingService: "service",
@@ -267,9 +280,11 @@ export default function OriginalBooking({
         <p id="patientEmailStatus" role="status" aria-live="polite" className={draft.verification_token ? "email-verification-status verified" : "email-verification-status"}>{draft.verification_token ? "Email verified successfully." : status}</p>
         <fieldset className="booking-time-picker">
           <legend>Mobile verification</legend>
-          <label htmlFor="bookingPhone">Mobile number with country code</label>
-          <input id="bookingPhone" type="tel" autoComplete="tel" maxLength={30} placeholder="e.g. +1 555 123 4567" value={draft.phone} onChange={change} disabled={busy} required />
-          <p className="small muted">Include your country code, such as +1 for the US or +91 for India. We’ll send an SMS verification code.</p>
+          <div className="booking-phone-fields">
+            <div><label htmlFor="bookingPhoneCountry">Country code</label><select id="bookingPhoneCountry" value={phoneCountry} onChange={change} disabled={busy} aria-label="Country calling code">{CALLING_CODES.map(country=><option key={country.country} value={country.country}>{country.name} (+{country.dial})</option>)}</select></div>
+            <div><label htmlFor="bookingPhone">Mobile number</label><input id="bookingPhone" type="tel" autoComplete="tel-national" inputMode="tel" maxLength={30} placeholder="Enter mobile number" value={nationalPhone} onChange={change} disabled={busy} required /></div>
+          </div>
+          <p className="small muted">Select your country code and enter your mobile number without the country code. We’ll send an SMS verification code.</p>
           <button type="button" id="patientPhoneSend" disabled={busy || !!draft.phone_verification_token}>Send mobile OTP</button>
           {!draft.phone_verification_token && draft.phone_verification_id && <><label htmlFor="patientPhoneCode">Six-digit SMS OTP</label><input id="patientPhoneCode" inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" value={phoneCode} onChange={change} disabled={busy} /><button type="button" id="patientPhoneVerify" disabled={busy || !draft.phone_verification_id || phoneCode.length !== 6}>Verify mobile</button></>}
         </fieldset>

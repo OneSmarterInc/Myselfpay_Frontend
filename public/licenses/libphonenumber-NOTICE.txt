@@ -1,0 +1,5 @@
+Country calling-code data derived from Google libphonenumber.
+Copyright (C) 2009 The Libphonenumber Authors.
+Licensed under Apache License 2.0.
+Source: https://github.com/google/libphonenumber/blob/master/resources/PhoneNumberMetadata.xml
+Modifications: extracted country identifiers and calling codes only.

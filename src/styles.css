@@ -144,3 +144,5 @@ button.guest-signout{display:inline-flex;align-items:center;justify-content:cent
 .email-verification-status:empty{display:none}.email-verification-status{margin:10px 0;line-height:1.6}.email-verification-status.verified{color:#185b36;background:#e9f5ee;border:1px solid #b8d9c5;border-radius:8px;padding:12px 14px;font-weight:600}
 
 .booking-verification-gate form{display:grid;gap:10px}.booking-verification-gate fieldset{display:grid;gap:10px;margin:0}.booking-verification-gate fieldset label{font-weight:600}.booking-verification-gate fieldset button{justify-self:start}.booking-verification-gate .email-verification-status{margin:0 0 10px}.booking-verified-contacts{background:#f3f7f4;border:1px solid #dce8df;border-radius:8px;padding:14px;margin:16px 0}.booking-verified-contacts p{margin:0 0 10px;overflow-wrap:anywhere}
+
+.booking-phone-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:12px}.booking-phone-fields>div{display:grid;gap:8px;min-width:0}.booking-phone-fields select{width:100%;min-width:0;text-overflow:ellipsis}@media(max-width:480px){.booking-phone-fields{grid-template-columns:minmax(0,1fr)}}
