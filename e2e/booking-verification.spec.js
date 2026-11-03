@@ -1,8 +1,10 @@
 import {test,expect} from "@playwright/test";
-test("booking has optional exam and contrast, no yellow notices, and verification success below box",async({page})=>{
- await page.route("**/api/booking/options",r=>r.fulfill({json:{name:"Synthetic Imaging",location:"Ohio",price_text:"Confirm total",delivery:"enabled",is_test_center:true,today:{"America/New_York":"2026-11-02"}}}));
- await page.route("**/api/booking/email-code",r=>r.fulfill({json:{verification_id:"synthetic",delivery:"sent"}}));
- await page.route("**/api/booking/email-verify",r=>r.fulfill({json:{verification_token:"synthetic-proof"}}));
+test("both contact OTPs are required before booking fields are shown",async({page})=>{
+ await page.route("**/api/booking/options",r=>r.fulfill({json:{name:"Synthetic Imaging",location:"Ohio",price_text:"Confirm total",delivery:"enabled",is_test_center:true,today:{"America/New_York":"2026-11-03"}}}));
+ await page.route("**/api/booking/email-code",r=>r.fulfill({json:{verification_id:"synthetic-email",delivery:"sent"}}));
+ await page.route("**/api/booking/email-verify",r=>r.fulfill({json:{verification_token:"synthetic-email-proof"}}));
+ await page.route("**/api/booking/phone-code",r=>r.fulfill({json:{verification_id:"synthetic-phone"}}));
+ await page.route("**/api/booking/phone-verify",r=>r.fulfill({json:{verification_token:"synthetic-phone-proof"}}));
  await page.goto("/#signup");
  await page.locator("#accountName").fill("Synthetic Booking User");
  await page.locator("#accountEmail").fill(`booking-${Date.now()}@example.com`);
@@ -12,6 +14,24 @@ test("booking has optional exam and contrast, no yellow notices, and verificatio
  await page.locator("#location").fill("Ohio");
  await page.getByRole("button",{name:"Find options",exact:true}).click();
  await page.locator("article.card [data-appointment]").first().click();
+ await expect(page.getByRole("heading",{name:"Verify your contact details"})).toBeVisible();
+ await expect(page.locator("#bookingZone")).toHaveCount(0);
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.locator(".booking-verification-gate").screenshot({path:"../tmp/booking-contact-verification-mobile.png"});
+ await expect(page.getByRole("button",{name:"Continue to booking"})).toBeDisabled();
+ await page.locator("#bookingEmail").fill("patient@example.test");
+ await page.locator("#patientCodeSend").click();
+ await page.locator("#patientEmailCode").fill("123456");
+ await page.locator("#patientCodeVerify").click();
+ await expect(page.locator("#patientEmailStatus")).toContainText("Email verified successfully");
+ await expect(page.getByRole("button",{name:"Continue to booking"})).toBeDisabled();
+ await page.locator("#bookingPhone").fill("+15550102222");
+ await page.locator("#patientPhoneSend").click();
+ await page.locator("#patientPhoneCode").fill("654321");
+ await page.locator("#patientPhoneVerify").click();
+ await expect(page.locator("#patientPhoneStatus")).toContainText("Mobile number verified successfully");
+ await page.getByRole("button",{name:"Continue to booking"}).click();
  await expect(page.locator("#bookingZone")).toBeVisible();
  await expect(page.locator(".booking-notice")).toHaveCount(0);
  expect(await page.locator("#bookingExam").evaluate(el=>el.required)).toBe(false);
@@ -20,16 +40,14 @@ test("booking has optional exam and contrast, no yellow notices, and verificatio
  await page.locator("#bookingDate").fill("2026-11-10");
  await page.locator("[data-add-slot=morning]").click();
  await page.getByRole("button",{name:"Continue",exact:true}).click();
+ await expect(page.locator("#bookingName")).toBeVisible();
+ await expect(page.locator("#bookingEmail")).toHaveCount(0);
+ await expect(page.locator(".booking-verified-contacts")).toContainText("patient@example.test");
+ await page.locator("#editBookingContacts").click();
  await expect(page.locator("#bookingEmail")).toBeVisible();
- await expect(page.locator(".booking-notice")).toHaveCount(0);
- await page.locator("#bookingEmail").fill("patient@example.test");
- await page.locator("#patientCodeSend").click();
- await page.locator("#patientEmailCode").fill("123456");
- await page.locator("#patientCodeVerify").click();
- await expect(page.locator("#patientEmailStatus")).toContainText("Email verified successfully");
- expect(await page.locator("#patientEmailStatus").evaluate(el=>!el.closest("fieldset") && el.previousElementSibling.tagName==="FIELDSET")).toBe(true);
- await page.locator("#bookingEmail").fill("changed@example.test");
- await expect(page.locator("#patientEmailStatus")).not.toContainText("Email verified successfully");
+ await page.locator("#bookingPhone").fill("+15550103333");
+ await expect(page.locator("#patientPhoneStatus")).not.toContainText("Mobile number verified successfully");
+ await expect(page.getByRole("button",{name:"Continue to booking"})).toBeDisabled();
 });
 
 test("receipt replaces yellow notices with center contact message",async({page})=>{

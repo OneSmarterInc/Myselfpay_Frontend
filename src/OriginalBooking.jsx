@@ -13,12 +13,14 @@ export default function OriginalBooking({
   notify,
 }) {
   const [options, setOptions] = useState(null),
-    [step, setStep] = useState(1),
+    [step, setStep] = useState(0),
     [error, setError] = useState(""),
     [status, setStatus] = useState(""),
     [busy, setBusy] = useState(false),
     [date, setDate] = useState(""),
-    [code, setCode] = useState("");
+    [code, setCode] = useState(""),
+    [phoneCode, setPhoneCode] = useState(""),
+    [phoneStatus, setPhoneStatus] = useState("");
   const [draft, setDraft] = useState(() => ({
     clinic_id: entry.booking_id,
     offer_id: offer?.id || "",
@@ -81,6 +83,7 @@ export default function OriginalBooking({
       setCode(value);
       return;
     }
+    if (id === "patientPhoneCode") { setPhoneCode(value); return; }
     const keys = {
       bookingZone: "timezone",
       bookingService: "service",
@@ -99,6 +102,7 @@ export default function OriginalBooking({
       ...(field === "email"
         ? { verification_id: undefined, verification_token: undefined }
         : {}),
+      ...(field === "phone" ? { phone_verification_id: undefined, phone_verification_token: undefined } : {}),
       ...(["service", "exam", "contrast"].includes(field)
         ? {
             offer_id: "",
@@ -107,7 +111,8 @@ export default function OriginalBooking({
           }
         : {}),
     }));
-    if (field === "email") setStatus("Verify this email before submitting.");
+    if (field === "email") { setStatus("Verify this email to continue."); setCode(""); }
+    if (field === "phone") { setPhoneStatus("Verify this mobile number to continue."); setPhoneCode(""); }
   }
   function click(event) {
     const button = event.target.closest("button");
@@ -148,6 +153,31 @@ export default function OriginalBooking({
           (_, index) => index !== Number(button.dataset.removeSlot),
         ),
       }));
+      return;
+    }
+    if (id === "editBookingContacts") { event.preventDefault(); setStep(0); setError(""); return; }
+    if (id === "patientPhoneSend") {
+      event.preventDefault();
+      if (!root.current.querySelector("#bookingPhone").reportValidity()) return;
+      void run(async () => {
+        setPhoneStatus("Sending SMS code…");
+        try {
+          const value = await call("phone-code", { phone: draft.phone });
+          setDraft(old => ({ ...old, phone_verification_id: value.verification_id, phone_verification_token: undefined }));
+          setPhoneStatus("SMS code sent. It expires in 10 minutes.");
+        } catch (e) { setPhoneStatus(""); throw e; }
+      });
+      return;
+    }
+    if (id === "patientPhoneVerify") {
+      event.preventDefault();
+      if (!draft.phone_verification_id) return setPhoneStatus("Request an SMS code first.");
+      void run(async () => {
+        const value = await call("phone-verify", { verification_id: draft.phone_verification_id, code: phoneCode });
+        setDraft(old => ({ ...old, phone_verification_token: value.verification_token }));
+        setPhoneCode("");
+        setPhoneStatus("Mobile number verified successfully.");
+      });
       return;
     }
     if (id === "bookingBack") {
@@ -193,6 +223,11 @@ export default function OriginalBooking({
   function submit(event) {
     event.preventDefault();
     event.stopPropagation();
+    if (!draft.verification_token || !draft.phone_verification_token) {
+      if (step !== 0) setStep(0);
+      return setError("Verify both your email and mobile number to continue.");
+    }
+    if (step === 0) { setError(""); setStep(1); return; }
     if (step === 1) {
       if (!draft.slots.length)
         return setError("Select at least one preferred time.");
@@ -201,12 +236,49 @@ export default function OriginalBooking({
       return;
     }
     void run(async () => {
-      const result = await call("create", draft);
+      let result;
+      try { result = await call("create", draft); }
+      catch (e) {
+        if (e.status === 403 && /verif/i.test(e.message)) {
+          setDraft(old => ({ ...old, verification_token: undefined, phone_verification_token: undefined }));
+          setStatus("Verification expired. Please verify your email again.");
+          setPhoneStatus("Please verify your mobile number again.");
+          setStep(0);
+        }
+        throw e;
+      }
       onClose();
       notify(deliveryMessage(result.delivery));
       location.hash = `request/${result.id}/${result.tracking_token}`;
     });
   }
+  if (options && step === 0) return (
+    <div ref={root} onClick={click} onSubmit={submit} className="booking-verification-gate">
+      <h2 id="dialogTitle">Verify your contact details</h2>
+      <p>Verify your email and mobile number to continue to your appointment request.</p>
+      <form id="bookingVerification">
+        <fieldset className="booking-time-picker">
+          <legend>Email verification</legend>
+          <label htmlFor="bookingEmail">Email address</label>
+          <input id="bookingEmail" type="email" autoComplete="email" maxLength={254} value={draft.email} onChange={change} disabled={busy} required />
+          <button type="button" id="patientCodeSend" disabled={busy || !!draft.verification_token}>Send email OTP</button>
+          {!draft.verification_token && draft.verification_id && <><label htmlFor="patientEmailCode">Six-digit email OTP</label><input id="patientEmailCode" inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" value={code} onChange={change} disabled={busy} /><button type="button" id="patientCodeVerify" disabled={busy || !draft.verification_id || code.length !== 6}>Verify email</button></>}
+        </fieldset>
+        <p id="patientEmailStatus" role="status" aria-live="polite" className={draft.verification_token ? "email-verification-status verified" : "email-verification-status"}>{draft.verification_token ? "Email verified successfully." : status}</p>
+        <fieldset className="booking-time-picker">
+          <legend>Mobile verification</legend>
+          <label htmlFor="bookingPhone">Mobile number with country code</label>
+          <input id="bookingPhone" type="tel" autoComplete="tel" maxLength={30} placeholder="e.g. +1 555 123 4567" value={draft.phone} onChange={change} disabled={busy} required />
+          <p className="small muted">Include your country code, such as +1 for the US or +91 for India. We’ll send an SMS verification code.</p>
+          <button type="button" id="patientPhoneSend" disabled={busy || !!draft.phone_verification_token}>Send mobile OTP</button>
+          {!draft.phone_verification_token && draft.phone_verification_id && <><label htmlFor="patientPhoneCode">Six-digit SMS OTP</label><input id="patientPhoneCode" inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" value={phoneCode} onChange={change} disabled={busy} /><button type="button" id="patientPhoneVerify" disabled={busy || !draft.phone_verification_id || phoneCode.length !== 6}>Verify mobile</button></>}
+        </fieldset>
+        <p id="patientPhoneStatus" role="status" aria-live="polite" className={draft.phone_verification_token ? "email-verification-status verified" : "email-verification-status"}>{draft.phone_verification_token ? "Mobile number verified successfully." : phoneStatus}</p>
+        <p id="bookingError" role="alert">{error}</p>
+        <button className="primary" type="submit" disabled={busy || !draft.verification_token || !draft.phone_verification_token}>Continue to booking</button>
+      </form>
+    </div>
+  );
   let html = options
     ? step === 1
       ? ui.bookingSlots(draft, options)
