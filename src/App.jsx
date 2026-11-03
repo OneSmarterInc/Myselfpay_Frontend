@@ -119,7 +119,7 @@ export function OriginalHTML({ html, onInput, replace, disabled = false }) {
   return parse(html, options);
 }
 
-function Dialog({ children, onClose }) {
+function Dialog({ children, onClose, booking = false }) {
   const ref = useRef(null);
   useEffect(() => {
     ref.current?.showModal();
@@ -128,6 +128,7 @@ function Dialog({ children, onClose }) {
   return (
     <dialog
       id="modal"
+      className={booking ? "booking-flow-dialog" : undefined}
       ref={ref}
       aria-labelledby="dialogTitle"
       onCancel={(event) => {
@@ -135,7 +136,7 @@ function Dialog({ children, onClose }) {
         onClose();
       }}
     >
-      <div className="modal-header row between">
+      <div className="modal-header row between" hidden={booking}>
         <span className="eyebrow">MYSELFPAY</span>
         <button id="closeModal" aria-label="Close dialog" onClick={onClose}>
           Close
@@ -1270,7 +1271,7 @@ export default function App() {
   dialogHTML = dialogHTML.replace("<h2>", '<h2 id="dialogTitle">');
   const linkedBooking = /^(booking|request|clinic)\//.test(view);
   return (
-    <div onClick={click} onSubmit={submit} ref={form}>
+    <div onClick={click} onSubmit={submit} ref={form} className={linkedBooking ? "booking-link-layout" : undefined}>
       <header>
         <a
           className="brand"
@@ -1334,10 +1335,11 @@ export default function App() {
         </span>
       </footer>
       {dialog && (
-        <Dialog onClose={close}>
+        <Dialog onClose={close} booking={dialog.type === "booking"}>
           {dialog.type === "booking" ? (
             <OriginalBooking
               entry={dialog.entry}
+              account={account}
               offer={dialog.offer}
               search={state}
               ui={ui}

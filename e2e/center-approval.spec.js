@@ -11,10 +11,16 @@ test("center email OTP is required before approving an appointment request",asyn
  await page.locator("#clinicCodeSend").click();
  await expect(page.locator("#clinicCodeStatus")).toContainText("emailed to the center");
  await expect(page.locator(".otp-input-group input")).toHaveCount(6);
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:"../tmp/center-otp-reference-mobile.png"});
  await page.locator("#clinicCode").fill("123456");
  await page.locator("#clinicVerifyButton").click();
  await expect(page.getByRole("link",{name:"patient@example.test",exact:true})).toBeVisible();
+ await page.screenshot({path:"../tmp/center-review-reference-mobile.png"});
  await page.getByRole("button",{name:"Approve request",exact:true}).click();
  await expect(page.locator("#clinicOutcome")).toContainText("Approved by center");
- await expect(page.getByRole("button",{name:"Approve request",exact:true})).toBeDisabled();
+ await expect(page.getByRole("button",{name:"Approve request",exact:true})).toHaveCount(0);
+ await expect(page.getByRole("heading",{name:"Request approved",exact:true})).toBeVisible();
+ await page.screenshot({path:"../tmp/center-approved-reference-mobile.png"});
+ await expect(page.getByRole("link",{name:"patient@example.test",exact:true})).toHaveCount(0);
 });

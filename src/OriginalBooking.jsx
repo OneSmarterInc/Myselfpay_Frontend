@@ -1,26 +1,34 @@
-import { useEffect, useRef, useState } from "react";
-import { OTPInput, TimeSlotPicker } from "./BookingControls.jsx";
+import { useEffect, useState } from "react";
 import { api } from "./api.js";
+import { OTPInput, TimeSlotPicker } from "./BookingControls.jsx";
 import { CALLING_CODES, phoneInput } from "./phone-country.js";
 import { OriginalHTML } from "./App.jsx";
-import { deliveryMessage, productionBookingCopy } from "./booking-messages.js";
+import { deliveryMessage } from "./booking-messages.js";
 const call = (action, data) => api("/booking/" + action, data);
+const zoneNames = {
+  "America/New_York": "Eastern",
+  "America/Chicago": "Central",
+  "America/Denver": "Mountain",
+  "America/Phoenix": "Arizona",
+  "America/Los_Angeles": "Pacific",
+  "America/Anchorage": "Alaska",
+  "Pacific/Honolulu": "Hawaii",
+};
 
 export default function OriginalBooking({
   entry,
   offer,
   search,
-  ui,
+  account,
   onClose,
   notify,
 }) {
   const [options, setOptions] = useState(null),
     [step, setStep] = useState(0),
     [error, setError] = useState(""),
-    [status, setStatus] = useState(""),
     [busy, setBusy] = useState(false),
-    [date, setDate] = useState(""),
     [code, setCode] = useState(""),
+    [status, setStatus] = useState(""),
     [phoneCode, setPhoneCode] = useState(""),
     [phoneStatus, setPhoneStatus] = useState(""),
     [phoneCountry, setPhoneCountry] = useState("US"),
@@ -28,37 +36,47 @@ export default function OriginalBooking({
   const [draft, setDraft] = useState(() => ({
     clinic_id: entry.booking_id,
     offer_id: offer?.id || "",
-    price_text: "",
     clinic_name: entry.name,
     location: entry.area,
+    price_text: "",
     slots: [],
-    timezone: "",
+    timezone: "America/New_York",
     service: search.mod || "Please contact me",
     exam: search.body || "",
     contrast: search.contrast || "unknown",
     first_name: "",
     phone: "",
-    email: "",
+    email: account?.email || "",
     consent: false,
     idempotency_key: crypto.randomUUID(),
   }));
-  const root = useRef(null);
+  const verified =
+    !!draft.email &&
+    (draft.saved_verified_email === draft.email || !!draft.verification_token);
   useEffect(() => {
     let active = true;
     call("options", { clinic_id: entry.booking_id, offer_id: offer?.id || "" })
       .then((value) => {
-        if (active) {
-          if (value.delivery === "unavailable") {
-            setError(
-              "Online booking is not enabled for this center. Please contact the facility directly.",
-            );
-            return;
-          }
-          setOptions(value);
-          setDraft((old) => ({ ...old, price_text: value.price_text, timezone: value.timezone || "America/New_York",
-            ...(value.verified_email ? {email:value.verified_email, saved_verified_email:value.verified_email} : {}) }));
-          if (value.verified_email) setStep(1);
+        if (!active) return;
+        if (value.delivery === "unavailable") {
+          setError(
+            "Online booking is not enabled for this center. Please contact the facility directly.",
+          );
+          return;
         }
+        setOptions(value);
+        setDraft((old) => ({
+          ...old,
+          price_text: value.price_text,
+          timezone: value.timezone || "America/New_York",
+          ...(value.verified_email
+            ? {
+                email: value.verified_email,
+                saved_verified_email: value.verified_email,
+              }
+            : {}),
+        }));
+        if (value.verified_email) setStep(1);
       })
       .catch((e) => {
         if (active) setError(e.message);
@@ -67,335 +85,487 @@ export default function OriginalBooking({
       active = false;
     };
   }, [entry.booking_id, offer?.id]);
-  async function run(fn) {
+  const change = (field, value) =>
+    setDraft((old) => ({ ...old, [field]: value }));
+  async function run(action) {
     setBusy(true);
     setError("");
     try {
-      await fn();
+      await action();
     } catch (e) {
-      setStatus("");
       setError(e.message);
     } finally {
       setBusy(false);
     }
   }
-  function change(event) {
-    const { id, value, checked } = event.target;
-    if (id === "bookingDate") {
-      setDate(value);
-      return;
-    }
-    if (id === "patientEmailCode") {
-      setCode(value);
-      return;
-    }
-    if (id === "patientPhoneCode") { setPhoneCode(value); return; }
-    if (id === "bookingPhoneCountry" || id === "bookingPhone") {
-      const parsed=phoneInput(id === "bookingPhoneCountry" ? value : phoneCountry,
-                              id === "bookingPhoneCountry" ? nationalPhone : value);
-      setPhoneCountry(parsed.country);
-      setNationalPhone(parsed.national);
-      setDraft(old=>({...old,phone:parsed.phone,phone_verification_id:undefined,phone_verification_token:undefined}));
-      setPhoneCode("");
-      setPhoneStatus("Mobile verification is optional.");
-      return;
-    }
-    const keys = {
-      bookingZone: "timezone",
-      bookingService: "service",
-      bookingExam: "exam",
-      bookingContrast: "contrast",
-      bookingName: "first_name",
-      bookingPhone: "phone",
-      bookingEmail: "email",
-      bookingConsent: "consent",
-    };
-    const field = keys[id];
-    if (!field) return;
+  function phoneChange(country, input) {
+    const parsed = phoneInput(country, input);
+    setPhoneCountry(parsed.country);
+    setNationalPhone(parsed.national);
     setDraft((old) => ({
       ...old,
-      [field]: field === "consent" ? checked : value,
-      ...(field === "email"
-        ? { verification_id: undefined, verification_token: undefined }
-        : {}),
-      ...(field === "phone" ? { phone_verification_id: undefined, phone_verification_token: undefined } : {}),
-      ...(["service", "exam", "contrast"].includes(field)
-        ? {
-            offer_id: "",
-            price_text:
-              "Clinic will confirm the exact total for the selected exam.",
-          }
-        : {}),
+      phone: parsed.phone,
+      phone_verification_id: undefined,
+      phone_verification_token: undefined,
     }));
-    if (field === "email") { setStatus("Verify this email to continue."); setCode(""); }
-    if (field === "phone") { setPhoneStatus("Mobile verification is optional."); setPhoneCode(""); }
+    setPhoneCode("");
+    setPhoneStatus("");
   }
-  function click(event) {
-    const button = event.target.closest("button");
-    if (!button) return;
-    const id = button.id;
-    if (button.dataset.addSlot) {
-      event.preventDefault();
-      if (
-        !draft.timezone ||
-        !date ||
-        !root.current.querySelector("#bookingDate").checkValidity()
-      )
-        return setError(
-          "Choose the clinic’s time zone and a date within the next 90 days.",
-        );
-      if (draft.slots.length === 3)
-        return setError(
-          "Choose at most 3 times. Remove a time to select another.",
-        );
-      if (
-        draft.slots.some(
-          (x) => x.date === date && x.period === button.dataset.addSlot,
-        )
-      )
-        return setError("That time is already selected.");
-      setError("");
+  function sendEmail() {
+    void run(async () => {
+      const result = await call("email-code", { email: draft.email });
       setDraft((old) => ({
         ...old,
-        slots: [...old.slots, { date, period: button.dataset.addSlot }],
+        verification_id: result.verification_id,
+        verification_token: undefined,
       }));
-      return;
-    }
-    if (button.dataset.removeSlot !== undefined) {
-      event.preventDefault();
+      setCode("");
+      setStatus("Code sent. Check your inbox and spam folder.");
+    });
+  }
+  function verifyEmail() {
+    void run(async () => {
+      const result = await call("email-verify", {
+        verification_id: draft.verification_id,
+        code,
+      });
       setDraft((old) => ({
         ...old,
-        slots: old.slots.filter(
-          (_, index) => index !== Number(button.dataset.removeSlot),
-        ),
+        verification_token: result.verification_token,
+        saved_verified_email: old.email,
       }));
-      return;
-    }
-    if (id === "editBookingContacts") { event.preventDefault(); setStep(0); setError(""); return; }
-    if (id === "patientPhoneSend") {
-      event.preventDefault();
-      if (!root.current.querySelector("#bookingPhone").reportValidity()) return;
-      void run(async () => {
-        setPhoneStatus("Sending SMS code…");
-        try {
-          const value = await call("phone-code", { phone: draft.phone });
-          setDraft(old => ({ ...old, phone_verification_id: value.verification_id, phone_verification_token: undefined }));
-          setPhoneStatus("SMS code sent. It expires in 10 minutes.");
-        } catch (e) { setPhoneStatus(""); throw e; }
-      });
-      return;
-    }
-    if (id === "patientPhoneVerify") {
-      event.preventDefault();
-      if (!draft.phone_verification_id) return setPhoneStatus("Request an SMS code first.");
-      void run(async () => {
-        const value = await call("phone-verify", { verification_id: draft.phone_verification_id, code: phoneCode });
-        setDraft(old => ({ ...old, phone_verification_token: value.verification_token }));
-        setPhoneCode("");
-        setPhoneStatus("Mobile number verified successfully.");
-      });
-      return;
-    }
-    if (id === "bookingTimeBack") { event.preventDefault(); onClose(); return; }
-    if (id === "verificationBack") { event.preventDefault(); onClose(); return; }
-    if (id === "bookingBack") {
-      event.preventDefault();
-      setStep(1);
-      setError("");
-      return;
-    }
-    if (id === "patientCodeSend") {
-      event.preventDefault();
-      if (!root.current.querySelector("#bookingEmail").reportValidity()) return;
-      void run(async () => {
-        setStatus("Sending verification code…");
-        const value = await call("email-code", { email: draft.email });
-        setDraft((old) => ({
-          ...old,
-          verification_id: value.verification_id,
-          verification_token: undefined,
-        }));
-        setStatus(
-          "Code sent. Check your inbox and spam folder. It expires in 10 minutes.",
-        );
-      });
-      return;
-    }
-    if (id === "patientCodeVerify") {
-      event.preventDefault();
-      if (!draft.verification_id) return setStatus("Request a code first.");
-      void run(async () => {
-        const value = await call("email-verify", {
-          verification_id: draft.verification_id,
-          code,
-        });
-        setDraft((old) => ({
-          ...old,
-          verification_token: value.verification_token,
-          saved_verified_email: draft.email,
-        }));
-        setCode("");
-        setStatus("Email verified successfully. You can now send your appointment request.");
-      });
-    }
+      setStatus("Email verified successfully.");
+      setCode("");
+    });
   }
   function submit(event) {
     event.preventDefault();
     event.stopPropagation();
-    if (!draft.verification_token && draft.saved_verified_email !== draft.email) {
-      if (step !== 0) setStep(0);
-      return setError("Verify your email to continue.");
+    if (step === 0) {
+      if (verified) {
+        setError("");
+        setStep(1);
+      } else if (draft.verification_id) verifyEmail();
+      else sendEmail();
+      return;
     }
-    if (step === 0) { setError(""); setStep(1); return; }
-    if (step === 1) {
-      if (!draft.slots.length)
-        return setError("Select at least one preferred time.");
-      setError("");
-      setStep(2);
+    if (!verified) {
+      setStep(0);
+      setError("Verify your email to continue.");
+      return;
+    }
+    if (!draft.slots.length) {
+      setError("Select at least one preferred time.");
       return;
     }
     void run(async () => {
-      let result;
-      try { result = await call("create", { ...draft, ...(!draft.phone_verification_token ? { phone_verification_id: undefined, phone_verification_token: undefined } : {}) }); }
-      catch (e) {
+      try {
+        const result = await call("create", {
+          ...draft,
+          ...(!draft.phone_verification_token
+            ? {
+                phone_verification_id: undefined,
+                phone_verification_token: undefined,
+              }
+            : {}),
+        });
+        onClose();
+        notify(deliveryMessage(result.delivery));
+        location.hash = `request/${result.id}/${result.tracking_token}`;
+      } catch (e) {
         if (e.status === 403 && /verif/i.test(e.message)) {
-          setDraft(old => ({ ...old, verification_token: undefined, phone_verification_token: undefined }));
-          setStatus("Verification expired. Please verify your email again.");
-          setPhoneStatus("Please verify your mobile number again.");
-          setStep(0);
+          if (/mobile|phone/i.test(e.message))
+            setDraft((old) => ({
+              ...old,
+              phone_verification_id: undefined,
+              phone_verification_token: undefined,
+            }));
+          else {
+            setDraft((old) => ({
+              ...old,
+              saved_verified_email: undefined,
+              verification_token: undefined,
+              verification_id: undefined,
+            }));
+            setStep(0);
+          }
         }
         throw e;
       }
-      onClose();
-      notify(deliveryMessage(result.delivery));
-      location.hash = `request/${result.id}/${result.tracking_token}`;
     });
   }
-  if (options && step === 0) return (
-    <div ref={root} onClick={click} onSubmit={submit} className="booking-verification-gate">
-      <button type="button" id="verificationBack" className="booking-back">← Back to results</button>
-      <h2 id="dialogTitle">Verify your contact details</h2>
-      <p>Verify your email to continue to your appointment request. Mobile verification is optional.</p>
-      <form id="bookingVerification">
-        <fieldset className="booking-time-picker">
-          <legend>Email verification</legend>
-          <label htmlFor="bookingEmail">Email address</label>
-          <input id="bookingEmail" type="email" autoComplete="email" maxLength={254} value={draft.email} onChange={change} disabled={busy} required />
-          <button type="button" id="patientCodeSend" disabled={busy || !!draft.verification_token || (!!draft.email && draft.saved_verified_email === draft.email)}>Send email OTP</button>
-          {!draft.verification_token && draft.saved_verified_email !== draft.email && draft.verification_id && <><label htmlFor="patientEmailCode">Six-digit email OTP</label><OTPInput id="patientEmailCode" label="Email OTP" value={code} onChange={setCode} disabled={busy} /><button type="button" id="patientCodeVerify" disabled={busy || !draft.verification_id || !/^\d{6}$/.test(code)}>Verify email</button></>}
-        </fieldset>
-        <p id="patientEmailStatus" role="status" aria-live="polite" className={(draft.verification_token || (!!draft.email && draft.saved_verified_email === draft.email)) ? "email-verification-status verified" : "email-verification-status"}>{(draft.verification_token || (!!draft.email && draft.saved_verified_email === draft.email)) ? "Email verified successfully." : status}</p>
-        <fieldset className="booking-time-picker">
-          <legend>Mobile verification (optional)</legend>
-          <div className="booking-phone-fields">
-            <div><label htmlFor="bookingPhoneCountry">Country code</label><select id="bookingPhoneCountry" value={phoneCountry} onChange={change} disabled={busy} aria-label="Country calling code">{CALLING_CODES.map(country=><option key={country.country} value={country.country}>{country.name} (+{country.dial})</option>)}</select></div>
-            <div><label htmlFor="bookingPhone">Mobile number</label><input id="bookingPhone" type="tel" autoComplete="tel-national" inputMode="tel" maxLength={30} placeholder="Enter mobile number" value={nationalPhone} onChange={change} disabled={busy} /></div>
-          </div>
-          <p className="small muted">Select your country code and enter your mobile number without the country code. We’ll send an SMS verification code.</p>
-          <button type="button" id="patientPhoneSend" disabled={busy || !draft.phone || !!draft.phone_verification_token}>Send mobile OTP</button>
-          {!draft.phone_verification_token && draft.phone_verification_id && <><label htmlFor="patientPhoneCode">Six-digit SMS OTP</label><OTPInput id="patientPhoneCode" label="SMS OTP" value={phoneCode} onChange={setPhoneCode} disabled={busy} /><button type="button" id="patientPhoneVerify" disabled={busy || !draft.phone_verification_id || !/^\d{6}$/.test(phoneCode)}>Verify mobile</button></>}
-        </fieldset>
-        <p id="patientPhoneStatus" role="status" aria-live="polite" className={draft.phone_verification_token ? "email-verification-status verified" : "email-verification-status"}>{draft.phone_verification_token ? "Mobile number verified successfully." : phoneStatus}</p>
-        <p id="bookingError" role="alert">{error}</p>
-        <button className="primary" type="submit" disabled={busy || (!draft.verification_token && (!draft.email || draft.saved_verified_email !== draft.email))}>Continue to booking</button>
-      </form>
-    </div>
-  );
-  let html = options
-    ? step === 1
-      ? ui.bookingSlots(draft, options)
-      : ui.bookingContact(draft, options)
-    : '<h2>Book appointment</h2><p role="status">Loading request details…</p>';
-  html = html.replace("<h2>", '<h2 id="dialogTitle">');
-  html = productionBookingCopy(html, options?.delivery === "enabled");
-  html = html.replace(/<p class="booking-notice">[\s\S]*?<\/p>/g, "");
-  if (!options && error) html = '<h2 id="dialogTitle">Request unavailable</h2>';
-  const replace = (node) => {
-    const id = node.attribs.id;
-    if (id === "bookingTimePicker") return <TimeSlotPicker draft={draft} options={options} disabled={busy} onError={setError} onSlots={slots => setDraft(old => ({...old, slots}))} />;
-    if (id === "bookingError")
-      return (
-        <p id="bookingError" role="alert">
-          {error}
-        </p>
-      );
-    if (id === "patientEmailStatus")
-      return (
-        <p id="patientEmailStatus" role="status" aria-live="polite" aria-atomic="true"
-          className={(draft.verification_token || (!!draft.email && draft.saved_verified_email === draft.email)) ? "email-verification-status verified" : "email-verification-status"}>
-          {(draft.verification_token || (!!draft.email && draft.saved_verified_email === draft.email)) ? "Email verified successfully. You can now send your appointment request." : status || error}
-        </p>
-      );
-    if (id === "bookingSelected")
-      return (
-        <div id="bookingSelected">
-          <p role="status">{draft.slots.length} of 3 times selected</p>
-          {draft.slots.map((slot, index) => (
-            <div className="booking-slot" key={slot.date + slot.period}>
-              <span>
-                {new Date(slot.date + "T12:00:00").toLocaleDateString(
-                  undefined,
-                  { weekday: "short", month: "short", day: "numeric" },
-                )}{" "}
-                ·{" "}
-                {slot.period === "morning"
-                  ? "Morning (8 am–12 pm)"
-                  : "Afternoon (12–5 pm)"}
-              </span>
-              <button type="button" data-remove-slot={index}>
-                Remove
-              </button>
-            </div>
-          ))}
-        </div>
-      );
-    if (id === "bookingDate") {
-      let max;
-      if (draft.timezone) {
-        const value = new Date(options.today[draft.timezone] + "T12:00:00Z");
-        value.setUTCDate(value.getUTCDate() + 90);
-        max = value.toISOString().slice(0, 10);
-      }
-      return (
-        <input
-          type="date"
-          id="bookingDate"
-          value={date}
-          min={options.today[draft.timezone]}
-          max={max}
-          onChange={change}
-        />
-      );
-    }
-    if (id === "patientEmailCode")
-      return (
-        <input
-          id={id}
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={6}
-          pattern="[0-9]{6}"
-          value={code}
-          onChange={change}
-        />
-      );
-    return undefined;
+  const back = () => {
+    if (step === 0 && draft.verification_id && !verified) {
+      setDraft((old) => ({ ...old, verification_id: undefined }));
+      setCode("");
+      setStatus("");
+      setError("");
+    } else onClose();
   };
   return (
-    <div ref={root} onClick={click} onSubmit={submit}>
-      <OriginalHTML
-        html={html}
-        onInput={change}
-        replace={replace}
-        disabled={busy}
-      />
-      {!options && error && <p role="alert">{error}</p>}
+    <div className="pdf-booking-flow">
+      <div className="flow-topbar">
+        <button
+          type="button"
+          className="flow-back"
+          id="bookingTimeBack"
+          aria-label="Back to results"
+          onClick={back}
+        >
+          ‹
+        </button>
+        <h2 id="dialogTitle">
+          {step === 0 && !verified && draft.verification_id
+            ? "Verify your email"
+            : "Request a time"}
+        </h2>
+        <button
+          type="button"
+          className="flow-close"
+          aria-label="Close dialog"
+          onClick={onClose}
+        >
+          ×
+        </button>
+      </div>
+      {!options ? (
+        <div className="flow-content">
+          <section className="flow-card">
+            <h3>
+              {error ? "Request unavailable" : "Loading request details…"}
+            </h3>
+            {error && <p role="alert">{error}</p>}
+          </section>
+        </div>
+      ) : (
+        <form
+          className="flow-form"
+          id={step === 0 ? "bookingVerification" : "bookingSlots"}
+          onSubmit={submit}
+        >
+          <div className="flow-content">
+            {step === 0 ? (
+              <>
+                <section className="flow-card booking-verification-gate">
+                  <h3>
+                    {verified
+                      ? "Your email is verified"
+                      : draft.verification_id
+                        ? "Enter your code"
+                        : "What’s your email address?"}
+                  </h3>
+                  {verified ? (
+                    <p>Use this email for your appointment request.</p>
+                  ) : draft.verification_id ? (
+                    <p>
+                      We emailed a 6-digit code to{" "}
+                      <strong>{draft.email}</strong>. It works once, for 10
+                      minutes.
+                    </p>
+                  ) : (
+                    <p>
+                      We’ll email you a code. The center can contact you at this
+                      address about your request.
+                    </p>
+                  )}
+                  {!draft.verification_id || verified ? (
+                    <label className="flow-label" htmlFor="bookingEmail">
+                      Email address
+                      <input
+                        id="bookingEmail"
+                        type="email"
+                        autoComplete="email"
+                        maxLength={254}
+                        required
+                        value={draft.email}
+                        disabled={busy}
+                        onChange={(e) => {
+                          setDraft((old) => ({
+                            ...old,
+                            email: e.target.value,
+                            verification_id: undefined,
+                            verification_token: undefined,
+                          }));
+                          setStatus("");
+                        }}
+                      />
+                    </label>
+                  ) : (
+                    <OTPInput
+                      id="patientEmailCode"
+                      label="Email OTP"
+                      value={code}
+                      onChange={setCode}
+                      disabled={busy}
+                    />
+                  )}
+                  <p
+                    id="patientEmailStatus"
+                    className={verified ? "flow-verified" : "flow-help"}
+                    role="status"
+                  >
+                    {status || (verified ? "Email verified successfully." : "")}
+                  </p>
+                  {!verified && draft.verification_id && (
+                    <button
+                      type="button"
+                      id="patientCodeSend"
+                      className="flow-text-button"
+                      disabled={busy}
+                      onClick={sendEmail}
+                    >
+                      Didn’t get it? Resend code
+                    </button>
+                  )}
+                  {!verified && !draft.verification_id && (
+                    <p className="flow-help">
+                      Your verified email is saved to your account for future
+                      requests.
+                    </p>
+                  )}
+                </section>
+                <details className="flow-card flow-mobile-optional">
+                  <summary>Add a mobile number (optional)</summary>
+                  <p>
+                    The center may call this number. SMS verification is
+                    optional.
+                  </p>
+                  <div className="booking-phone-fields">
+                    <label className="flow-label">
+                      Country code
+                      <select
+                        id="bookingPhoneCountry"
+                        value={phoneCountry}
+                        disabled={busy}
+                        onChange={(e) =>
+                          phoneChange(e.target.value, nationalPhone)
+                        }
+                      >
+                        {CALLING_CODES.map((c) => (
+                          <option key={c.country} value={c.country}>
+                            {c.name} (+{c.dial})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flow-label">
+                      Mobile number
+                      <input
+                        id="bookingPhone"
+                        type="tel"
+                        autoComplete="tel-national"
+                        inputMode="tel"
+                        value={nationalPhone}
+                        disabled={busy}
+                        onChange={(e) =>
+                          phoneChange(phoneCountry, e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    id="patientPhoneSend"
+                    disabled={
+                      busy || !draft.phone || !!draft.phone_verification_token
+                    }
+                    onClick={() =>
+                      void run(async () => {
+                        const result = await call("phone-code", {
+                          phone: draft.phone,
+                        });
+                        setDraft((old) => ({
+                          ...old,
+                          phone_verification_id: result.verification_id,
+                          phone_verification_token: undefined,
+                        }));
+                        setPhoneStatus(
+                          "SMS code sent. It expires in 10 minutes.",
+                        );
+                      })
+                    }
+                  >
+                    Send mobile OTP
+                  </button>
+                  {draft.phone_verification_id &&
+                    !draft.phone_verification_token && (
+                      <>
+                        <OTPInput
+                          id="patientPhoneCode"
+                          label="SMS OTP"
+                          value={phoneCode}
+                          onChange={setPhoneCode}
+                          disabled={busy}
+                        />
+                        <button
+                          type="button"
+                          id="patientPhoneVerify"
+                          disabled={busy || !/^\d{6}$/.test(phoneCode)}
+                          onClick={() =>
+                            void run(async () => {
+                              const result = await call("phone-verify", {
+                                verification_id: draft.phone_verification_id,
+                                code: phoneCode,
+                              });
+                              setDraft((old) => ({
+                                ...old,
+                                phone_verification_token:
+                                  result.verification_token,
+                              }));
+                              setPhoneStatus(
+                                "Mobile number verified successfully.",
+                              );
+                            })
+                          }
+                        >
+                          Verify mobile
+                        </button>
+                      </>
+                    )}
+                  <p
+                    id="patientPhoneStatus"
+                    role="status"
+                    className="flow-help"
+                  >
+                    {phoneStatus}
+                  </p>
+                </details>
+              </>
+            ) : (
+              <>
+                <section className="flow-card flow-clinic">
+                  <h3>{draft.clinic_name}</h3>
+                  <p>
+                    {[
+                      draft.service !== "Please contact me"
+                        ? draft.service
+                        : "",
+                      draft.exam,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    {draft.service !== "Please contact me" || draft.exam
+                      ? " · "
+                      : ""}
+                    {draft.price_text}
+                  </p>
+                </section>
+                <TimeSlotPicker
+                  draft={draft}
+                  options={options}
+                  disabled={busy}
+                  onError={setError}
+                  onSlots={(slots) => change("slots", slots)}
+                />
+                <p className="flow-help flow-time-note">
+                  {zoneNames[draft.timezone]} time · Preferred times; the center
+                  confirms availability.
+                </p>
+                <section className="flow-card flow-contact">
+                  <label className="flow-label">
+                    First name
+                    <input
+                      id="bookingName"
+                      autoComplete="given-name"
+                      maxLength={80}
+                      value={draft.first_name}
+                      required
+                      disabled={busy}
+                      onChange={(e) => change("first_name", e.target.value)}
+                    />
+                  </label>
+                  <label className="flow-consent">
+                    <input
+                      id="bookingConsent"
+                      type="checkbox"
+                      checked={draft.consent}
+                      required
+                      disabled={busy}
+                      onChange={(e) => change("consent", e.target.checked)}
+                    />
+                    <span>
+                      {draft.clinic_name} may contact me
+                      {draft.phone ? ` at ${draft.phone}` : " by email"} about
+                      this appointment request.
+                    </span>
+                  </label>
+                  <div className="flow-contact-email booking-verified-contacts">
+                    <span>
+                      Verified email
+                      <br />
+                      <strong>{draft.email}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      id="editBookingContacts"
+                      onClick={() => {
+                        setStep(0);
+                        setError("");
+                      }}
+                    >
+                      Change
+                    </button>
+                  </div>
+                </section>
+              </>
+            )}
+            <p id="bookingError" className="flow-error" role="alert">
+              {error}
+            </p>
+          </div>
+          <div className="flow-bottom-action">
+            {step === 0 ? (
+              <button
+                className="primary"
+                type="submit"
+                id={
+                  verified
+                    ? "continueBooking"
+                    : draft.verification_id
+                      ? "patientCodeVerify"
+                      : "patientCodeSend"
+                }
+                disabled={
+                  busy ||
+                  (!verified &&
+                    !!draft.verification_id &&
+                    !/^\d{6}$/.test(code))
+                }
+              >
+                {busy
+                  ? "Please wait…"
+                  : verified
+                    ? "Continue to booking"
+                    : draft.verification_id
+                      ? "Verify email"
+                      : "Send email OTP"}
+              </button>
+            ) : (
+              <button
+                type="submit"
+                id="bookingSubmit"
+                className="flow-primary"
+                disabled={busy}
+              >
+                {busy ? "Sending request…" : "Send request"}
+              </button>
+            )}
+          </div>
+        </form>
+      )}
     </div>
   );
 }
 
 export function OriginalBookingLink({ route, ui }) {
   const [kind, id, token] = route.split("/");
+  const [resendAt, setResendAt] = useState(0);
+  const [resendLeft, setResendLeft] = useState(0);
+  useEffect(() => {
+    const tick = () => setResendLeft(Math.max(0, Math.ceil((resendAt - Date.now()) / 1000)));
+    tick(); const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [resendAt]);
   const [value, setValue] = useState(null),
     [session, setSession] = useState(""),
     [code, setCode] = useState(""),
@@ -466,6 +636,7 @@ export function OriginalBookingLink({ route, ui }) {
       event.preventDefault();
       void run(async () => {
         const result = await call("code", { id, token });
+        setResendAt(Date.now() + (result.resend_after || 0) * 1000);
         setMessage(
           result.delivery === "sent"
             ? "A verification code was emailed to the center. It expires in 10 minutes."
@@ -524,20 +695,26 @@ export function OriginalBookingLink({ route, ui }) {
           {String(remaining % 60).padStart(2, "0")}
         </p>
       );
+    if (name === "clinicCodeSend") return <button type="button" id={name} className="flow-text-button" disabled={busy || resendLeft > 0}>{resendLeft > 0 ? `Didn’t get it? Resend in 0:${String(resendLeft).padStart(2, "0")}` : message ? "Didn’t get it? Resend code" : "Send verification code"}</button>;
     if (name === "clinicCode")
-      return <OTPInput id="clinicCode" label="Center email OTP" value={code} onChange={setCode} disabled={busy} />;
-    if (name === "legacyClinicCode")
       return (
-        <input
-          id={name}
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="[0-9]{6}"
-          maxLength={6}
-          required
+        <OTPInput
+          id="clinicCode"
+          label="Center email OTP"
           value={code}
-          onChange={(event) => setCode(event.target.value)}
+          onChange={setCode}
+          disabled={busy}
         />
+      );
+    if (name === "clinicVerifyButton")
+      return (
+        <button
+          id={name}
+          className="flow-dark"
+          disabled={busy || !/^\d{6}$/.test(code)}
+        >
+          Open request
+        </button>
       );
     return undefined;
   };
@@ -549,44 +726,20 @@ export function OriginalBookingLink({ route, ui }) {
       : value
         ? ui.receipt(value, token)
         : '<section class="panel booking-page"><h1>Appointment request</h1><p role="status">Loading request details…</p></section>';
-  if (kind === "clinic")
-    html = html
-      .replace(
-        "Email is disabled. On this local preview, a test code appears here instead of being emailed.",
-        "Request a verification code at the center’s registered email address to open patient contact details.",
-      )
-      .replace("Generate preview code", "Send verification code");
-  if (value) {
+  if (
+    value &&
+    kind !== "clinic" &&
+    value.status === "requested" &&
+    value.delivery !== "sent"
+  ) {
+    html = html.replace("Request sent", "Request saved");
     html = html.replace(
-      "No email sent to clinic (testing mode). This request does not reserve an appointment.",
+      "The center will contact you by email or phone about your appointment request.",
       ui.esc(deliveryMessage(value.delivery)),
     );
-    html = html.replace(
-      "Request sent",
-      value.delivery === "sent" ? "Request sent" : "Request saved",
-    );
-    html = html.replace(
-      "Awaiting clinic action (preview only)",
-      "Awaiting clinic confirmation",
-    );
-    if (value.is_test_center)
-      html = html.replace(
-        "</h1>",
-        '</h1><p class="booking-notice"><strong>TEST CENTER — synthetic booking workflow. No medical care is provided.</strong></p>',
-      );
-    if (kind === "clinic" && session && value.patient_email)
-      html = html.replace(
-        "<h2>Review and approve request</h2>",
-        `<p><strong>Email:</strong> <a href="mailto:${ui.esc(value.patient_email)}">${ui.esc(value.patient_email)}</a></p><h2>Review and approve request</h2>`,
-      );
   }
-  if (value && kind !== "clinic") {
-    html = html.replace(/<p class="booking-notice">[\s\S]*?<\/p>/g, "");
-    const followUp = value.delivery === "sent"
-      ? "The center will contact you by email or phone about your appointment request. Please wait for the center to confirm your appointment."
-      : deliveryMessage(value.delivery);
-    html = html.replace("</h1>", `</h1><p class="booking-follow-up" role="status">${ui.esc(followUp)}</p>`);
-  }
+  if (kind === "clinic" && error && /expired/i.test(error))
+    html = `<section class="reference-request-page"><section class="flow-card"><p class="eyebrow">REQUEST ${ui.esc(id)}</p><h1>This link has expired</h1><p>Contact MySelfPay for help with this appointment request.</p><a class="flow-dark" href="/contact">Contact MySelfPay</a><p id="clinicError" role="alert"></p></section></section>`;
   return (
     <div onClick={click} onSubmit={submit}>
       <OriginalHTML html={html} replace={replace} disabled={busy} />

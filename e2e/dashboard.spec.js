@@ -8,7 +8,7 @@ test("signed-in dashboard shows profile, request status and request links",async
  await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
  await page.locator("#accountSubmit").click();
  await page.getByRole("link",{name:"Dashboard",exact:true}).click();
- await expect(page.getByRole("heading",{name:"Welcome, Dashboard Test User"})).toBeVisible();
+ await expect(page.getByRole("heading",{name:"My requests",exact:true})).toBeVisible();
  await expect(page.getByRole("heading",{name:"No requests yet"})).toBeVisible();
  await page.getByRole("button",{name:"My profile",exact:true}).click();
  await expect(page.locator(".dashboard-profile")).toContainText(email);

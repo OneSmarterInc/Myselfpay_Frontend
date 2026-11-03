@@ -37,8 +37,8 @@ test("National lists directory centers with ten results per page", async ({
   await expect(page.locator(".comparison-table")).toContainText("Published price");
   await page.getByRole("button", { name: "Close dialog" }).click();
   await page.locator("article.card [data-detail]").first().click();
-  await expect(page.locator(".detailgrid h1")).toBeVisible();
-  await expect(page.locator(".detailgrid")).toContainText("Service details and prices");
+  await expect(page.locator(".facility-reference h1")).toBeVisible();
+  await expect(page.locator(".facility-reference")).toContainText("Service details and prices");
   await page.locator("#directory").click();
   await expect(page.locator("#dirRows details.lead")).toHaveCount(10);
   await page.locator("#dirRows summary").first().click();
@@ -146,7 +146,7 @@ test("original search, comparison and directory work with the DRF backend", asyn
   await page.locator("#dirSearch").fill("Ohio");
   await expect(page.locator("#dirCount")).toContainText(/matches|match/);
   await page.getByRole("button", { name: "Close dialog" }).click();
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.locator("#profile").click();
   await expect(
     page.getByRole("heading", { name: "Find self-pay MRI and CT near you." }),
   ).toBeVisible();
@@ -187,7 +187,7 @@ test("expired cookies clear signed-in UI and permit sign-out", async ({
   await page
     .getByRole("button", { name: "Find imaging options", exact: true })
     .click();
-  await expect(page.locator("#profile")).toHaveText("Sign out");
+  await expect(page.locator("#profile")).toHaveAttribute("aria-label", "Sign out of guest session");
   await context.clearCookies();
   await page.locator("#profile").click();
   await expect(page.locator("#profile")).toHaveText("Sign in as guest");
@@ -207,7 +207,7 @@ test("original information pages remain public", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("original appointment dialog retains its two-step layout", async ({
+test("reference appointment dialog requires an account and handles email delivery errors", async ({
   page,
 }) => {
   await page.goto("/");
@@ -218,9 +218,11 @@ test("original appointment dialog retains its two-step layout", async ({
     .getByRole("button", { name: "Try sample: knee MRI in Cincinnati" })
     .click();
   await page.locator("[data-detail]").first().click();
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:"../tmp/facility-reference-mobile.png"});
   await expect(
-    page.locator(".card-actions [data-appointment]").first(),
-  ).toHaveCSS("background-color", "rgb(121, 85, 72)");
+    page.locator(".facility-request-action [data-appointment]").first(),
+  ).toHaveCSS("background-color", "rgb(183, 25, 38)");
   await page.locator("[data-appointment]").first().click();
   await expect(
     page.getByRole("heading", {
@@ -254,16 +256,8 @@ test("original appointment dialog retains its two-step layout", async ({
   await expect(
     page.getByRole("heading", { name: "Request a time" }),
   ).toBeVisible();
-  await page.locator("#bookingZone").selectOption("America/New_York");
-  const date = new Date();
-  date.setDate(date.getDate() + 3);
-  await page.locator("#bookingDate").fill(date.toISOString().slice(0, 10));
-  await page.locator('[data-add-slot="morning"]').click();
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Confirm your request" }),
-  ).toBeVisible();
-  await expect(page.locator("#bookingSubmit")).toBeDisabled();
+  await expect(page.locator("#bookingEmail")).toBeVisible();
+  await expect(page.locator(".time-choice-panel")).toHaveCount(0);
   await page.route("**/api/booking/email-code", (route) =>
     route.fulfill({
       status: 503,
@@ -275,7 +269,7 @@ test("original appointment dialog retains its two-step layout", async ({
   );
   await page.locator("#bookingEmail").fill("synthetic@example.com");
   await page.locator("#patientCodeSend").click();
-  await expect(page.locator("#patientEmailStatus")).toContainText(
+  await expect(page.locator("#bookingError")).toContainText(
     "Email delivery is unavailable",
   );
   await expect(page.locator("#patientEmailStatus")).not.toContainText(
