@@ -2,6 +2,18 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/admin",
+      "destination": "https://myselfpaybackend.onesmarter.com/admin/"
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": "https://myselfpaybackend.onesmarter.com/admin/:path*"
+    },
+    {
+      "source": "/admin-assets/:path*",
+      "destination": "https://myselfpaybackend.onesmarter.com/admin-assets/:path*"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://myselfpaybackend.onesmarter.com/api/:path*"
     }
@@ -9,7 +21,39 @@
   "headers": [
     {
       "source": "/api/:path*",
-      "headers": [{ "key": "Cache-Control", "value": "private, no-store" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store"
+        }
+      ]
+    },
+    {
+      "source": "/admin",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store"
+        }
+      ]
+    },
+    {
+      "source": "/admin/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store"
+        }
+      ]
+    },
+    {
+      "source": "/admin-assets/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store"
+        }
+      ]
     }
   ]
 }

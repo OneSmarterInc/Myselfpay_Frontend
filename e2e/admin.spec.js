@@ -1,0 +1,27 @@
+import {test,expect} from "@playwright/test";
+test("admin authenticates superuser, loads assets, and saves hidden Twilio settings",async({page})=>{
+ test.skip(!process.env.E2E_ADMIN_PASSWORD,"Isolated admin fixture required");
+ await page.goto("/admin");
+ await expect(page.locator("#id_username")).toBeVisible();
+ expect((await page.request.get("/admin-assets/admin/css/base.css")).status()).toBe(200);
+ await page.locator("#id_username").fill(process.env.E2E_ADMIN_USERNAME);
+ await page.locator("#id_password").fill(process.env.E2E_ADMIN_PASSWORD);
+ await page.getByRole("button",{name:"Log in",exact:true}).click();
+ await expect(page.getByRole("heading",{name:"Dashboard",exact:true})).toBeVisible();
+ await expect(page.getByRole("heading",{name:"Registered users",exact:true})).toBeVisible();
+ await page.goto("/admin/api/portalaccount/");
+ await expect(page.getByRole("link",{name:"portal-admin-test@example.com",exact:true})).toBeVisible();
+ await page.goto("/admin/api/twilioconfiguration/add/");
+ await page.locator("#id_api_key_sid").fill("SK"+"1".repeat(32));
+ await page.locator("#id_api_key_secret").fill("synthetic-browser-secret");
+ await page.locator("#id_verify_service_sid").fill("VA"+"2".repeat(32));
+ await page.locator('input[name="_save"]').click();
+ await page.goto("/admin/api/twilioconfiguration/1/change/");
+ await expect(page.locator("#id_api_key_secret")).toHaveValue("");
+ await expect(page.getByText("Configured (hidden)",{exact:true})).toBeVisible();
+ expect(await page.content()).not.toContain("synthetic-browser-secret");
+ await page.setViewportSize({width:390,height:844});
+ await page.goto("/admin/");
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:"../tmp/admin-mobile.png",fullPage:true});
+});
