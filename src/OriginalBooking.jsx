@@ -286,7 +286,7 @@ export default function OriginalBooking({
           </div>
           <p className="small muted">Select your country code and enter your mobile number without the country code. We’ll send an SMS verification code.</p>
           <button type="button" id="patientPhoneSend" disabled={busy || !draft.phone || !!draft.phone_verification_token}>Send mobile OTP</button>
-          {!draft.phone_verification_token && draft.phone_verification_id && <><label htmlFor="patientPhoneCode">Six-digit SMS OTP</label><input id="patientPhoneCode" inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" value={phoneCode} onChange={change} disabled={busy} /><button type="button" id="patientPhoneVerify" disabled={busy || !draft.phone_verification_id || phoneCode.length !== 6}>Verify mobile</button></>}
+          {!draft.phone_verification_token && draft.phone_verification_id && <><label htmlFor="patientPhoneCode">Six-digit SMS OTP</label><input id="patientPhoneCode" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={phoneCode} onChange={change} disabled={busy} /><button type="button" id="patientPhoneVerify" disabled={busy || !draft.phone_verification_id || phoneCode.length !== 6}>Verify mobile</button></>}
         </fieldset>
         <p id="patientPhoneStatus" role="status" aria-live="polite" className={draft.phone_verification_token ? "email-verification-status verified" : "email-verification-status"}>{draft.phone_verification_token ? "Mobile number verified successfully." : phoneStatus}</p>
         <p id="bookingError" role="alert">{error}</p>
