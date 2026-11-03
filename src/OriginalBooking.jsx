@@ -525,6 +525,8 @@ export function OriginalBookingLink({ route, ui }) {
         </p>
       );
     if (name === "clinicCode")
+      return <OTPInput id="clinicCode" label="Center email OTP" value={code} onChange={setCode} disabled={busy} />;
+    if (name === "legacyClinicCode")
       return (
         <input
           id={name}
@@ -574,8 +576,8 @@ export function OriginalBookingLink({ route, ui }) {
       );
     if (kind === "clinic" && session && value.patient_email)
       html = html.replace(
-        "<h2>After the call</h2>",
-        `<p><strong>Email:</strong> <a href="mailto:${ui.esc(value.patient_email)}">${ui.esc(value.patient_email)}</a></p><h2>After the call</h2>`,
+        "<h2>Review and approve request</h2>",
+        `<p><strong>Email:</strong> <a href="mailto:${ui.esc(value.patient_email)}">${ui.esc(value.patient_email)}</a></p><h2>Review and approve request</h2>`,
       );
   }
   if (value && kind !== "clinic") {

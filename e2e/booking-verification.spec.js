@@ -39,8 +39,9 @@ test("email is required and mobile OTP is optional before booking",async({page})
  await page.getByRole("button",{name:"Continue to booking"}).click();
  await expect(page.locator(".time-choice-panel")).toBeVisible();
  await expect(page.locator(".booking-notice")).toHaveCount(0);
- expect(await page.locator("#bookingExam").evaluate(el=>el.required)).toBe(false);
- expect(await page.locator("#bookingContrast").evaluate(el=>el.required)).toBe(false);
+ await expect(page.locator("#bookingExam")).toHaveCount(0);
+ await expect(page.locator("#bookingContrast")).toHaveCount(0);
+ await expect(page.locator("#bookingService")).toHaveCount(0);
  await expect(page.locator("#bookingZone")).toHaveCount(0);
  await page.locator("#bookingDate").fill("2026-11-10");
  await page.locator(".time-choice-row").first().getByRole("button",{name:"Morning",exact:true}).click();

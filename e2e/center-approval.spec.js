@@ -1,0 +1,20 @@
+import {test,expect} from "@playwright/test";
+test("center email OTP is required before approving an appointment request",async({page})=>{
+ const details={id:"MSP-CENTER",first_name:"Synthetic Patient",phone:"",patient_email:"patient@example.test",clinic_name:"Synthetic Imaging",location:"Dayton",service:"MRI",exam:"Knee",contrast:"unknown",price_text:"Confirm price",timezone:"America/New_York",status:"requested",slots:[{date:"2026-11-10",period:"morning"}],expires_at:Date.now()/1000+900};
+ await page.route("**/api/booking/code",r=>r.fulfill({json:{delivery:"sent"}}));
+ await page.route("**/api/booking/verify",r=>{expect(r.request().postDataJSON().code).toBe("123456");return r.fulfill({json:{session:"synthetic-center-session"}});});
+ await page.route("**/api/booking/details",r=>r.fulfill({json:details}));
+ await page.route("**/api/booking/status",r=>{const data=r.request().postDataJSON();expect(data.session).toBe("synthetic-center-session");expect(data.status).toBe("scheduled");return r.fulfill({json:{...details,status:"scheduled"}});});
+ await page.goto("/#clinic/MSP-CENTER/synthetic-link-token");
+ await expect(page.getByRole("button",{name:"Approve request",exact:true})).toHaveCount(0);
+ await expect(page.getByText("patient@example.test",{exact:true})).toHaveCount(0);
+ await page.locator("#clinicCodeSend").click();
+ await expect(page.locator("#clinicCodeStatus")).toContainText("emailed to the center");
+ await expect(page.locator(".otp-input-group input")).toHaveCount(6);
+ await page.locator("#clinicCode").fill("123456");
+ await page.locator("#clinicVerifyButton").click();
+ await expect(page.getByRole("link",{name:"patient@example.test",exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"Approve request",exact:true}).click();
+ await expect(page.locator("#clinicOutcome")).toContainText("Approved by center");
+ await expect(page.getByRole("button",{name:"Approve request",exact:true})).toBeDisabled();
+});
