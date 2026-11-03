@@ -22,6 +22,8 @@ test("email is required and mobile OTP is optional before booking",async({page})
  await expect(page.getByRole("button",{name:"Continue to booking"})).toBeDisabled();
  await page.locator("#bookingEmail").fill("patient@example.test");
  await page.locator("#patientCodeSend").click();
+ await expect(page.locator('.otp-input-group').first().locator('input')).toHaveCount(6);
+ await page.locator(".otp-input-group").first().screenshot({path:"../tmp/booking-otp-mobile.png"});
  await page.locator("#patientEmailCode").fill("123456");
  await page.locator("#patientCodeVerify").click();
  await expect(page.locator("#patientEmailStatus")).toContainText("Email verified successfully");
@@ -41,7 +43,7 @@ test("email is required and mobile OTP is optional before booking",async({page})
  expect(await page.locator("#bookingContrast").evaluate(el=>el.required)).toBe(false);
  await page.locator("#bookingZone").selectOption("America/New_York");
  await page.locator("#bookingDate").fill("2026-11-10");
- await page.locator("[data-add-slot=morning]").click();
+ await page.locator(".time-choice-row").first().getByRole("button",{name:"Morning",exact:true}).click();
  await page.getByRole("button",{name:"Continue",exact:true}).click();
  await expect(page.locator("#bookingName")).toBeVisible();
  await expect(page.locator("#bookingEmail")).toHaveCount(0);
@@ -76,4 +78,40 @@ test("receipt replaces yellow notices with center contact message",async({page})
  await expect(page.locator(".booking-notice")).toHaveCount(0);
  await expect(page.locator(".booking-follow-up")).toContainText("The center will contact you by email or phone");
  await expect(page.getByRole("button",{name:"Copy request link"})).toBeVisible();
+});
+
+test("saved verified email skips OTP on another booking",async({page})=>{
+ await page.route("**/api/booking/options",r=>r.fulfill({json:{name:"Synthetic Imaging",location:"Ohio",price_text:"MRI: $350",delivery:"enabled",verified_email:"saved@example.com",today:{"America/New_York":"2026-11-03"}}}));
+ await page.goto("/#signup");
+ await page.locator("#accountName").fill("Saved Email User");
+ await page.locator("#accountEmail").fill(`saved-${Date.now()}@example.com`);
+ await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
+ await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
+ await page.locator("#accountSubmit").click();
+ await page.locator("#location").fill("Ohio");
+ await page.getByRole("button",{name:"Find options",exact:true}).click();
+ await page.locator("article.card [data-appointment]").first().click();
+ await expect(page.locator("#bookingZone")).toBeVisible();
+ await expect(page.locator("#patientCodeSend")).toHaveCount(0);
+ await page.setViewportSize({width:390,height:844});
+ await page.locator("#bookingZone").selectOption("America/New_York");
+ await page.locator("#bookingDate").fill("2026-11-10");
+ const rows=page.locator(".time-choice-row");
+ await expect(rows).toHaveCount(5);
+ await rows.nth(0).getByRole("button",{name:"Morning",exact:true}).click();
+ await rows.nth(1).getByRole("button",{name:"Afternoon",exact:true}).click();
+ await rows.nth(2).getByRole("button",{name:"Morning",exact:true}).click();
+ await expect(page.locator(".time-choice-row button[aria-pressed=true]")).toHaveCount(3);
+ await rows.nth(3).getByRole("button",{name:"Morning",exact:true}).click();
+ await expect(page.locator("#bookingError")).toContainText("up to 3");
+ await rows.nth(0).getByRole("button",{name:"Morning",exact:true}).click();
+ await expect(page.locator(".time-choice-row button[aria-pressed=true]")).toHaveCount(2);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.locator(".time-choice-panel").screenshot({path:"../tmp/booking-time-picker-mobile.png"});
+ await page.getByRole("button",{name:"Continue",exact:true}).click();
+ await page.locator("#editBookingContacts").click();
+ await expect(page.locator("#bookingEmail")).toHaveValue("saved@example.com");
+ await expect(page.getByRole("button",{name:"Continue to booking"})).toBeEnabled();
+ await page.locator("#bookingEmail").fill("different@example.com");
+ await expect(page.getByRole("button",{name:"Continue to booking"})).toBeDisabled();
 });

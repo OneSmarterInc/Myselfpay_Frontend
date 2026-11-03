@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { OTPInput, TimeSlotPicker } from "./BookingControls.jsx";
 import { api } from "./api.js";
 import { CALLING_CODES, phoneInput } from "./phone-country.js";
 import { OriginalHTML } from "./App.jsx";
@@ -54,7 +55,9 @@ export default function OriginalBooking({
             return;
           }
           setOptions(value);
-          setDraft((old) => ({ ...old, price_text: value.price_text }));
+          setDraft((old) => ({ ...old, price_text: value.price_text,
+            ...(value.verified_email ? {email:value.verified_email, saved_verified_email:value.verified_email} : {}) }));
+          if (value.verified_email) setStep(1);
         }
       })
       .catch((e) => {
@@ -94,7 +97,7 @@ export default function OriginalBooking({
       setNationalPhone(parsed.national);
       setDraft(old=>({...old,phone:parsed.phone,phone_verification_id:undefined,phone_verification_token:undefined}));
       setPhoneCode("");
-      setPhoneStatus("Verify this mobile number to continue.");
+      setPhoneStatus("Mobile verification is optional.");
       return;
     }
     const keys = {
@@ -125,7 +128,7 @@ export default function OriginalBooking({
         : {}),
     }));
     if (field === "email") { setStatus("Verify this email to continue."); setCode(""); }
-    if (field === "phone") { setPhoneStatus("Verify this mobile number to continue."); setPhoneCode(""); }
+    if (field === "phone") { setPhoneStatus("Mobile verification is optional."); setPhoneCode(""); }
   }
   function click(event) {
     const button = event.target.closest("button");
@@ -227,6 +230,7 @@ export default function OriginalBooking({
         setDraft((old) => ({
           ...old,
           verification_token: value.verification_token,
+          saved_verified_email: draft.email,
         }));
         setCode("");
         setStatus("Email verified successfully. You can now send your appointment request.");
@@ -236,7 +240,7 @@ export default function OriginalBooking({
   function submit(event) {
     event.preventDefault();
     event.stopPropagation();
-    if (!draft.verification_token) {
+    if (!draft.verification_token && draft.saved_verified_email !== draft.email) {
       if (step !== 0) setStep(0);
       return setError("Verify your email to continue.");
     }
@@ -274,10 +278,10 @@ export default function OriginalBooking({
           <legend>Email verification</legend>
           <label htmlFor="bookingEmail">Email address</label>
           <input id="bookingEmail" type="email" autoComplete="email" maxLength={254} value={draft.email} onChange={change} disabled={busy} required />
-          <button type="button" id="patientCodeSend" disabled={busy || !!draft.verification_token}>Send email OTP</button>
-          {!draft.verification_token && draft.verification_id && <><label htmlFor="patientEmailCode">Six-digit email OTP</label><input id="patientEmailCode" inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" value={code} onChange={change} disabled={busy} /><button type="button" id="patientCodeVerify" disabled={busy || !draft.verification_id || code.length !== 6}>Verify email</button></>}
+          <button type="button" id="patientCodeSend" disabled={busy || !!draft.verification_token || (!!draft.email && draft.saved_verified_email === draft.email)}>Send email OTP</button>
+          {!draft.verification_token && draft.saved_verified_email !== draft.email && draft.verification_id && <><label htmlFor="patientEmailCode">Six-digit email OTP</label><OTPInput id="patientEmailCode" label="Email OTP" value={code} onChange={setCode} disabled={busy} /><button type="button" id="patientCodeVerify" disabled={busy || !draft.verification_id || !/^\d{6}$/.test(code)}>Verify email</button></>}
         </fieldset>
-        <p id="patientEmailStatus" role="status" aria-live="polite" className={draft.verification_token ? "email-verification-status verified" : "email-verification-status"}>{draft.verification_token ? "Email verified successfully." : status}</p>
+        <p id="patientEmailStatus" role="status" aria-live="polite" className={(draft.verification_token || (!!draft.email && draft.saved_verified_email === draft.email)) ? "email-verification-status verified" : "email-verification-status"}>{(draft.verification_token || (!!draft.email && draft.saved_verified_email === draft.email)) ? "Email verified successfully." : status}</p>
         <fieldset className="booking-time-picker">
           <legend>Mobile verification (optional)</legend>
           <div className="booking-phone-fields">
@@ -286,11 +290,11 @@ export default function OriginalBooking({
           </div>
           <p className="small muted">Select your country code and enter your mobile number without the country code. We’ll send an SMS verification code.</p>
           <button type="button" id="patientPhoneSend" disabled={busy || !draft.phone || !!draft.phone_verification_token}>Send mobile OTP</button>
-          {!draft.phone_verification_token && draft.phone_verification_id && <><label htmlFor="patientPhoneCode">Six-digit SMS OTP</label><input id="patientPhoneCode" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={phoneCode} onChange={change} disabled={busy} /><button type="button" id="patientPhoneVerify" disabled={busy || !draft.phone_verification_id || phoneCode.length !== 6}>Verify mobile</button></>}
+          {!draft.phone_verification_token && draft.phone_verification_id && <><label htmlFor="patientPhoneCode">Six-digit SMS OTP</label><OTPInput id="patientPhoneCode" label="SMS OTP" value={phoneCode} onChange={setPhoneCode} disabled={busy} /><button type="button" id="patientPhoneVerify" disabled={busy || !draft.phone_verification_id || !/^\d{6}$/.test(phoneCode)}>Verify mobile</button></>}
         </fieldset>
         <p id="patientPhoneStatus" role="status" aria-live="polite" className={draft.phone_verification_token ? "email-verification-status verified" : "email-verification-status"}>{draft.phone_verification_token ? "Mobile number verified successfully." : phoneStatus}</p>
         <p id="bookingError" role="alert">{error}</p>
-        <button className="primary" type="submit" disabled={busy || !draft.verification_token}>Continue to booking</button>
+        <button className="primary" type="submit" disabled={busy || (!draft.verification_token && (!draft.email || draft.saved_verified_email !== draft.email))}>Continue to booking</button>
       </form>
     </div>
   );
@@ -305,6 +309,7 @@ export default function OriginalBooking({
   if (!options && error) html = '<h2 id="dialogTitle">Request unavailable</h2>';
   const replace = (node) => {
     const id = node.attribs.id;
+    if (id === "bookingTimePicker") return <TimeSlotPicker draft={draft} options={options} disabled={busy} onError={setError} onSlots={slots => setDraft(old => ({...old, slots}))} />;
     if (id === "bookingError")
       return (
         <p id="bookingError" role="alert">
@@ -314,8 +319,8 @@ export default function OriginalBooking({
     if (id === "patientEmailStatus")
       return (
         <p id="patientEmailStatus" role="status" aria-live="polite" aria-atomic="true"
-          className={draft.verification_token ? "email-verification-status verified" : "email-verification-status"}>
-          {draft.verification_token ? "Email verified successfully. You can now send your appointment request." : status || error}
+          className={(draft.verification_token || (!!draft.email && draft.saved_verified_email === draft.email)) ? "email-verification-status verified" : "email-verification-status"}>
+          {(draft.verification_token || (!!draft.email && draft.saved_verified_email === draft.email)) ? "Email verified successfully. You can now send your appointment request." : status || error}
         </p>
       );
     if (id === "bookingSelected")
