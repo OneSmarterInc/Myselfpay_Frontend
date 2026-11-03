@@ -7,8 +7,12 @@ import { spatialOffers, watchLocation } from "./spatial.js";
 import { currentLocationLabel } from "./auto-location.js";
 import { StatewideLocationManager } from "./statewide-location.js";
 import { predefinedQuestion } from "./chat-questions.js";
+import { NativeAppHeader, NativeWelcome, AppIcon } from "./NativeAppShell.jsx";
+import "./native-app.css";
 import UserDashboard from "./UserDashboard.jsx";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
+
+const nativeApp = /MySelfPayAndroid\//.test(globalThis.navigator?.userAgent || "");
 
 const initialState = () => ({
   mod: "",
@@ -151,6 +155,7 @@ function Dialog({ children, onClose, booking = false }) {
 
 export default function App() {
   const [pendingBooking, setPendingBooking] = useState(null);
+  const [nativeFiltersOpen,setNativeFiltersOpen] = useState(true);
   const [account, setAccount] = useState(null),
     [state, setState] = useState(() => ({
       ...initialState(),
@@ -309,6 +314,9 @@ export default function App() {
   const ui = originalUI({
     state: {
       ...state,
+      nativeApp,
+      nativeFiltersOpen,
+      nativeBusy: busy,
       spatialActive: !!spatialSnapshot || spatialEnabled || state.spatialActive,
       spatialEnabled,
       currentLocationLabel: spatialSnapshot?.currentLocationLabel || "",
@@ -454,6 +462,22 @@ export default function App() {
       setBusy(false);
     }
   }
+  function openNativeSearch(service) {
+    setNativeFiltersOpen(true);
+    if(typeof service === "string") setState(old=>({...old,mod:service}));
+    void enter();
+    window.scrollTo(0,0);
+  }
+  useEffect(()=>{
+    if(!nativeApp) return;
+    const closeOverlay=()=>{
+      if(nativeFiltersOpen&&state.searched&&(view==="search"||view==="agent")){setNativeFiltersOpen(false);return true;}
+      if(view==="agent"){setState(old=>({...old,mode:"classic"}));navigate("search");return true;}
+      return false;
+    };
+    window.myselfpayCloseOverlay=closeOverlay;
+    return()=>{if(window.myselfpayCloseOverlay===closeOverlay)delete window.myselfpayCloseOverlay;};
+  },[nativeFiltersOpen,state.searched,view]);
   async function enter(kind = "search") {
     await run(async () => {
       if (!account) {
@@ -479,6 +503,7 @@ export default function App() {
     });
   }
   function acceptResults(data) {
+    if(nativeApp) {setNativeFiltersOpen(!!(data.location_suggestions?.length || (data.resolved_location === null && data.search?.location?.toLowerCase() !== "national")));window.scrollTo(0,0);}
     setResults(data.offers || []);
     setState((old) => ({
       ...old,
@@ -700,6 +725,8 @@ export default function App() {
     }
   }
   function click(event) {
+    const nativeAction=event.target.closest("[data-native-action]");
+    if(nativeAction){event.preventDefault();const action=nativeAction.dataset.nativeAction;if(action==="filters")setNativeFiltersOpen(true);if(action==="close-filters")setNativeFiltersOpen(false);window.scrollTo(0,0);return;}
     if (event.target.closest(".near-info-icon")) {
       event.preventDefault();
       setState(old => ({ ...old, nearInfoOpen: !old.nearInfoOpen }));
@@ -1284,7 +1311,8 @@ export default function App() {
   dialogHTML = dialogHTML.replace("<h2>", '<h2 id="dialogTitle">');
   const linkedBooking = /^(booking|request|clinic)\//.test(view);
   return (
-    <div onClick={click} onSubmit={submit} ref={form} className={view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : undefined}>
+    <div onClick={click} onSubmit={submit} ref={form} className={(nativeApp ? "native-app " : "") + (view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : "")}>
+      {nativeApp ? <NativeAppHeader account={account} view={view} busy={busy||boot} onSearch={()=>openNativeSearch()} onHome={()=>navigate("home")} onDirectory={()=>setDialog({type:"directory"})} onSignOut={logout}/> : (
       <header>
         <a
           className="brand"
@@ -1329,14 +1357,17 @@ export default function App() {
           </button>
         </nav>
       </header>
+      )}
+
       <main className={"shell" + (view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
-        {view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
+        {nativeApp && view === "home" ? <NativeWelcome onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (
           <OriginalHTML html={markup} onInput={input} replace={replace} />
         )}
       </main>
-      <footer className="site-footer">
+      {nativeApp && account && (view==="search"||view==="agent") && state.mode!=="agent" && !dialog && <button type="button" className="native-chat-fab" aria-label="Ask MySelfPay" onClick={()=>{setState(old=>({...old,mode:"agent"}));navigate("agent");window.scrollTo(0,0);}}><AppIcon name="chat"/><span>Ask MySelfPay</span></button>}
+      <footer className="site-footer" hidden={nativeApp}>
         <span className="footer-brand">
           <img src="/logo.png" alt="" width="28" height="28" />
           MySelfPay by One Smarter, Inc. · Dayton, Ohio

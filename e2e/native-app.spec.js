@@ -1,0 +1,63 @@
+import {test,expect} from "@playwright/test";
+test.use({viewport:{width:390,height:844},isMobile:true,hasTouch:true,userAgent:"Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36 MySelfPayAndroid/1.0.9"});
+test("Android theme matches reference and core search actions work",async({page})=>{
+ await page.goto("/");
+ await expect(page.getByRole("heading",{name:"Imaging options. Clearer prices."})).toBeVisible();
+ await expect(page.locator(".site-footer")).toBeHidden();
+ for(const width of [320,390,800]){
+  await page.setViewportSize({width,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:`../tmp/native-home-${width}.png`});
+ }
+ await page.setViewportSize({width:390,height:844});
+ await page.locator(".native-service-tiles button").first().click();
+ await expect(page.locator("#mod")).toHaveValue("MRI");
+ await expect(page.getByRole("heading",{name:"Search & filters",exact:true})).toBeVisible();
+ await expect(page.locator("#radius")).toBeHidden();
+ await expect(page.getByRole("button",{name:"Ask MySelfPay",exact:true})).toBeVisible();
+ await page.screenshot({path:"../tmp/native-search-390.png"});
+ await page.locator("#location").fill("Ohio");
+ await page.getByRole("button",{name:"Find options",exact:true}).click();
+ await expect(page.locator(".native-center-card")).toHaveCount(10);
+ await expect(page.locator("#searchForm")).toBeHidden();
+ await page.screenshot({path:"../tmp/native-results-390.png"});
+ await page.locator("[data-select]").nth(0).check();
+ await page.locator("[data-select]").nth(1).check();
+ await page.locator("#compare").click();
+ await expect(page.locator(".comparison-table thead th")).toHaveCount(3);
+ await page.getByRole("button",{name:"Close dialog",exact:true}).click();
+ await page.locator("#clearCompare").click();
+ await page.locator("[data-detail]").first().click();
+ await expect(page.locator(".facility-reference h1")).toBeVisible();
+ await page.locator("[data-appointment]").first().click();
+ await expect(page.getByRole("heading",{name:"Log in to request a time",exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"Cancel",exact:true}).click();
+ await page.getByRole("button",{name:"Search imaging centers",exact:true}).click();
+ await expect(page.locator("#searchForm")).toBeVisible();
+ await page.getByRole("button",{name:"Ask MySelfPay",exact:true}).click();
+ await expect(page.getByRole("heading",{name:"Ask MySelfPay",exact:true})).toBeVisible();
+ await expect(page.locator(".site-footer")).toBeHidden();
+ await page.getByRole("button",{name:"Open navigation",exact:true}).click();
+ await expect(page.getByRole("dialog",{name:"App navigation"})).toBeVisible();
+ await page.screenshot({path:"../tmp/native-menu-390.png"});
+ await page.getByRole("link",{name:"Log in",exact:true}).click();
+ await expect(page.locator("#accountEmail")).toBeVisible();
+ await expect(page.locator(".site-footer")).toBeHidden();
+});
+
+test("Android menu exposes dashboard for registered members",async({page})=>{
+ await page.goto("/#signup");
+ await page.locator("#accountName").fill("Native Test User");
+ await page.locator("#accountEmail").fill(`native-${Date.now()}@example.com`);
+ await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
+ await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
+ await page.locator("#accountSubmit").click();
+ await expect(page.getByRole("heading",{name:"Search & filters",exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"Open navigation",exact:true}).click();
+ await page.getByRole("link",{name:"Dashboard",exact:true}).click();
+ await expect(page.getByRole("heading",{name:"My requests",exact:true})).toBeVisible();
+ await expect(page.locator(".site-footer")).toBeHidden();
+ await page.getByRole("button",{name:"Open navigation",exact:true}).click();
+ await page.getByRole("button",{name:"Sign out",exact:true}).click();
+ await expect(page.getByRole("heading",{name:"Imaging options. Clearer prices."})).toBeVisible();
+});
