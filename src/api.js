@@ -26,8 +26,8 @@ export class APIError extends Error {
     const messages = validationMessages(fields);
     super(
       messages.join(" ") ||
-        validationMessages(body.error).join(" ") ||
-        validationMessages(body.detail).join(" ") ||
+        body.error ||
+        body.detail ||
         "Request failed. Please retry.",
     );
     this.name = "APIError";
@@ -114,6 +114,7 @@ async function request(
       response.status === 401 &&
       !publicSessionPaths.includes(path) &&
       !path.startsWith("/booking/") &&
+      !path.startsWith("/center/") &&
       requestSessionVersion === sessionVersion
     ) {
       setCsrf("");

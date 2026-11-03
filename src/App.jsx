@@ -10,6 +10,7 @@ import { predefinedQuestion } from "./chat-questions.js";
 import { NativeAppHeader, NativeWelcome, AppIcon } from "./NativeAppShell.jsx";
 import "./native-app.css";
 import UserDashboard from "./UserDashboard.jsx";
+import CenterPortal, { CenterLogin } from "./CenterPortal.jsx";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
 
 const nativeApp = /MySelfPayAndroid\//.test(globalThis.navigator?.userAgent || "");
@@ -1335,6 +1336,7 @@ export default function App() {
           </span>
         </a>
         <nav>
+          <button type="button" onClick={()=>setDialog({type:"center-login"})}>Center login</button>
           <a href="/for-imaging-centers">For imaging centers</a>
           <button id="history" hidden>
             Saved conversations
@@ -1360,7 +1362,7 @@ export default function App() {
       )}
 
       <main className={"shell" + (view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
-        {nativeApp && view === "home" ? <NativeWelcome onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
+        {view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (
           <OriginalHTML html={markup} onInput={input} replace={replace} />
@@ -1380,7 +1382,7 @@ export default function App() {
       </footer>
       {dialog && (
         <Dialog onClose={close} booking={dialog.type === "booking"}>
-          {dialog.type === "booking" ? (
+          {dialog.type === "center-login" ? <CenterLogin onDone={()=>{setDialog(null);if(view==="center") location.reload();else navigate("center");}}/> : dialog.type === "booking" ? (
             <OriginalBooking
               entry={dialog.entry}
               account={account}
