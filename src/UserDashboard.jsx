@@ -207,18 +207,6 @@ export default function UserDashboard({ account }) {
           : "All requests";
   return (
     <section className="user-dashboard" aria-busy={loading}>
-      <div className="dashboard-heading dashboard-welcome">
-        <div>
-          <p className="eyebrow">MYSELFPAY ACCOUNT</p>
-          <h1>{tab === "profile" ? "My profile" : "My requests"}</h1>
-          <p className="muted">
-            Your profile and appointment requests, in one place.
-          </p>
-        </div>
-        <a className="dashboard-search" href="#search">
-          Find imaging centers <span aria-hidden="true">→</span>
-        </a>
-      </div>
       <div className="dashboard-layout">
         <aside className="dashboard-sidebar">
           <div className="dashboard-account-mini">
@@ -247,6 +235,19 @@ export default function UserDashboard({ account }) {
           </nav>
         </aside>
         <div className="dashboard-content">
+      <div className="dashboard-heading dashboard-welcome">
+        <div>
+          <p className="eyebrow">MYSELFPAY ACCOUNT</p>
+          <h1>{tab === "profile" ? "My profile" : "My requests"}</h1>
+          <p className="muted">
+            Your profile and appointment requests, in one place.
+          </p>
+        </div>
+        <a className="dashboard-search" href="#search">
+          Find imaging centers <span aria-hidden="true">→</span>
+        </a>
+      </div>
+
           {error && (
             <div className="dashboard-error" role="alert">
               {error}

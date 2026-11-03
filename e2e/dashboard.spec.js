@@ -7,6 +7,7 @@ test("signed-in dashboard shows profile, request status and request links",async
  await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
  await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
  await page.locator("#accountSubmit").click();
+ expect(await page.getByRole("link",{name:"Dashboard",exact:true}).evaluate(el=>el.nextElementSibling?.id)).toBe("profile");
  await page.getByRole("link",{name:"Dashboard",exact:true}).click();
  await expect(page.getByRole("heading",{name:"My requests",exact:true})).toBeVisible();
  await expect(page.getByRole("heading",{name:"No requests yet"})).toBeVisible();
@@ -23,8 +24,16 @@ test("signed-in dashboard shows profile, request status and request links",async
  await expect(page.locator(".dashboard-request-details dl")).toBeVisible();
  for(const width of [320,390,768,1280]){
    await page.setViewportSize({width,height:900});
+   await page.evaluate(()=>window.scrollTo(0,0));
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-   await page.locator(".user-dashboard").screenshot({path:`../tmp/dashboard-${width}.png`});
+   if(width>700){
+     await expect.poll(()=>page.evaluate(()=>Math.abs(document.querySelector('.dashboard-sidebar').getBoundingClientRect().bottom-innerHeight))).toBeLessThan(2);
+     const geometry=await page.evaluate(()=>{const side=document.querySelector('.dashboard-sidebar').getBoundingClientRect();const head=document.querySelector('header').getBoundingClientRect();return {left:side.left,top:side.top,bottom:side.bottom,headerBottom:head.bottom,height:innerHeight};});
+     expect(geometry.left).toBe(0);
+     expect(Math.abs(geometry.top-geometry.headerBottom)).toBeLessThan(2);
+     expect(Math.abs(geometry.bottom-geometry.height)).toBeLessThan(2);
+   }
+   await page.screenshot({path:`../tmp/dashboard-${width}.png`});
  }
  await page.setViewportSize({width:390,height:844});
  await page.locator(".user-dashboard").screenshot({path:"../tmp/user-dashboard-mobile.png"});

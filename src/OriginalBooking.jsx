@@ -217,7 +217,7 @@ export default function OriginalBooking({
         <h2 id="dialogTitle">
           {step === 0 && !verified && draft.verification_id
             ? "Verify your email"
-            : "Request a time"}
+            : "Request a Time"}
         </h2>
         <button
           type="button"

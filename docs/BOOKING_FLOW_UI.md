@@ -7,3 +7,6 @@ Booking is a full-height sheet on phones and a centered dialog on desktop. Email
 Facility details retain real price data, inclusion notes, source links, quote requests and maps. Request receipts show delivery-aware status and links to My requests. Center email verification gates contacts; terminal center screens hide those contacts, while account owners and authorized administrators retain their dashboard records. Existing request expiry and retention policies apply.
 
 The short notification email content and five-digit ZIP registration behavior are unchanged by this visual update.
+
+
+Dashboard navigation uses a full-height left viewport column on desktop, below the measured header height. The profile and section links stay in that column while request content scrolls beside it. Small screens use compact horizontal account navigation. Dashboard is immediately before Sign out in the main navbar. Booking actions consistently use Request a Time.

@@ -267,6 +267,19 @@ export default function App() {
   }
   const sequence = useRef(0),
     form = useRef(null);
+  useEffect(() => {
+    if (view !== "dashboard" || !account || account.tenant === "guest") return;
+    const root = form.current;
+    const header = root?.querySelector("header");
+    if (!header) return;
+    const measure = () => root.style.setProperty("--portal-header-height", `${Math.ceil(header.getBoundingClientRect().height)}px`);
+    measure();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    observer?.observe(header);
+    window.addEventListener("resize", measure);
+    return () => {observer?.disconnect();window.removeEventListener("resize", measure);root.style.removeProperty("--portal-header-height");};
+  }, [view, account?.id, account?.tenant]);
+
   const allOffers = useMemo(
     () => [
       ...new Map(
@@ -1254,7 +1267,7 @@ export default function App() {
   let dialogHTML = "";
   if (dialog?.type === "booking-login")
     dialogHTML =
-      '<h2>Log in to book an appointment</h2><p>You cannot book an appointment without a user account. Would you like to create an account and continue?</p><p>Your selected center will be kept so you can continue after signing in.</p><div class="actions"><button type="button" class="primary" data-booking-auth="signup">Create account and continue</button><button type="button" data-booking-auth="login">Log in</button><button type="button" data-booking-auth="cancel">Cancel</button></div>';
+      '<h2>Log in to request a time</h2><p>A user account is required to request a time. Would you like to create an account and continue?</p><p>Your selected center will be kept so you can continue after signing in.</p><div class="actions"><button type="button" class="primary" data-booking-auth="signup">Create account and continue</button><button type="button" data-booking-auth="login">Log in</button><button type="button" data-booking-auth="cancel">Cancel</button></div>';
   if (dialog?.type === "directory") dialogHTML = ui.directory();
   if (dialog?.type === "compare") dialogHTML = ui.compare();
   if (dialog?.type === "quote") dialogHTML = ui.request(dialog.offer);
@@ -1271,7 +1284,7 @@ export default function App() {
   dialogHTML = dialogHTML.replace("<h2>", '<h2 id="dialogTitle">');
   const linkedBooking = /^(booking|request|clinic)\//.test(view);
   return (
-    <div onClick={click} onSubmit={submit} ref={form} className={linkedBooking ? "booking-link-layout" : undefined}>
+    <div onClick={click} onSubmit={submit} ref={form} className={view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : undefined}>
       <header>
         <a
           className="brand"
@@ -1294,7 +1307,6 @@ export default function App() {
           </span>
         </a>
         <nav>
-          {account && account.tenant !== "guest" && <a className="button" href="#dashboard" aria-current={view === "dashboard" ? "page" : undefined}>Dashboard</a>}
           <a href="/for-imaging-centers">For imaging centers</a>
           <button id="history" hidden>
             Saved conversations
@@ -1308,6 +1320,7 @@ export default function App() {
           >
             Log in
           </button>
+          {account && account.tenant !== "guest" && <a className="button" href="#dashboard" aria-current={view === "dashboard" ? "page" : undefined}>Dashboard</a>}
           <button id="profile" disabled={busy || boot}
             aria-label={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
             title={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
@@ -1316,7 +1329,7 @@ export default function App() {
           </button>
         </nav>
       </header>
-      <main className={"shell" + (view === "search" && state.searched ? " results-shell" : "")} id="app">
+      <main className={"shell" + (view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
         {view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (

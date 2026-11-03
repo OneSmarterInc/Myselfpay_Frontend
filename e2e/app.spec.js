@@ -226,7 +226,7 @@ test("reference appointment dialog requires an account and handles email deliver
   await page.locator("[data-appointment]").first().click();
   await expect(
     page.getByRole("heading", {
-      name: "Log in to book an appointment",
+      name: "Log in to request a time",
       exact: true,
     }),
   ).toBeVisible();
@@ -254,7 +254,7 @@ test("reference appointment dialog requires an account and handles email deliver
   await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
   await page.locator("#accountSubmit").click();
   await expect(
-    page.getByRole("heading", { name: "Request a time" }),
+    page.getByRole("heading", { name: "Request a Time" }),
   ).toBeVisible();
   await expect(page.locator("#bookingEmail")).toBeVisible();
   await expect(page.locator(".time-choice-panel")).toHaveCount(0);
