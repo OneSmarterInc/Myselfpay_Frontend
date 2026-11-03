@@ -1,5 +1,5 @@
 import {test,expect} from "@playwright/test";
-test("both contact OTPs are required before booking fields are shown",async({page})=>{
+test("email is required and mobile OTP is optional before booking",async({page})=>{
  await page.route("**/api/booking/options",r=>r.fulfill({json:{name:"Synthetic Imaging",location:"Ohio",price_text:"Confirm total",delivery:"enabled",is_test_center:true,today:{"America/New_York":"2026-11-03"}}}));
  await page.route("**/api/booking/email-code",r=>r.fulfill({json:{verification_id:"synthetic-email",delivery:"sent"}}));
  await page.route("**/api/booking/email-verify",r=>r.fulfill({json:{verification_token:"synthetic-email-proof"}}));
@@ -25,7 +25,7 @@ test("both contact OTPs are required before booking fields are shown",async({pag
  await page.locator("#patientEmailCode").fill("123456");
  await page.locator("#patientCodeVerify").click();
  await expect(page.locator("#patientEmailStatus")).toContainText("Email verified successfully");
- await expect(page.getByRole("button",{name:"Continue to booking"})).toBeDisabled();
+ await expect(page.getByRole("button",{name:"Continue to booking"})).toBeEnabled();
  await page.locator("#bookingPhoneCountry").selectOption("IN");
  await page.locator("#bookingPhone").fill("9000000000");
  const sentPhone=page.waitForRequest(r=>r.url().endsWith("/api/booking/phone-code"));
@@ -50,7 +50,23 @@ test("both contact OTPs are required before booking fields are shown",async({pag
  await expect(page.locator("#bookingEmail")).toBeVisible();
  await page.locator("#bookingPhoneCountry").selectOption("US");
  await expect(page.locator("#patientPhoneStatus")).not.toContainText("Mobile number verified successfully");
- await expect(page.getByRole("button",{name:"Continue to booking"})).toBeDisabled();
+ await expect(page.getByRole("button",{name:"Continue to booking"})).toBeEnabled();
+ await page.locator("#bookingPhone").fill("");
+ await page.route("**/api/booking/create",async r=>{
+   const data=r.request().postDataJSON();
+   expect(data.verification_token).toBe("synthetic-email-proof");
+   expect(data.phone).toBe("");
+   expect(data.phone_verification_id).toBeUndefined();
+   expect(data.phone_verification_token).toBeUndefined();
+   await r.fulfill({json:{id:"MSP-EMAIL-ONLY",tracking_token:"synthetic-tracking"}});
+ });
+ await page.getByRole("button",{name:"Continue to booking"}).click();
+ await page.getByRole("button",{name:"Continue",exact:true}).click();
+ await page.locator("#bookingName").fill("Synthetic Patient");
+ await page.locator("#bookingConsent").check();
+ const created=page.waitForResponse(r=>r.url().endsWith("/api/booking/create"));
+ await page.locator("#bookingSubmit").click();
+ expect((await created).status()).toBe(200);
 });
 
 test("receipt replaces yellow notices with center contact message",async({page})=>{
