@@ -165,9 +165,7 @@ test("original signup and login forms retain verified DRF sessions", async ({
   await page.locator("#accountPassword").fill(password);
   await page.locator("#accountConfirm").fill(password);
   await page.locator("#accountSubmit").click();
-  await expect(
-    page.getByRole("heading", { name: "Find and compare imaging options" }),
-  ).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible({ timeout: 15000 });
   await page.locator("#profile").click();
   await page.locator("#accountLogin").click();
   await page.locator("#accountEmail").fill(email);

@@ -41,7 +41,10 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Browser to Django integration
         run: |
-          python .backend/manage.py runserver 127.0.0.1:8000 --noreload > /tmp/selfpay-backend.log 2>&1 &
+          # The browser suite creates many synthetic sessions from one runner IP.
+          # Raise only this test process's guest quota; production defaults and
+          # the backend rate-limit regression tests remain unchanged.
+          python -c "import sys, os; sys.path.insert(0, '.backend'); os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings'); import django; django.setup(); from api.throttles import GuestThrottle; GuestThrottle.limit=200; from django.core.management import execute_from_command_line; execute_from_command_line(['manage.py', 'runserver', '127.0.0.1:8000', '--noreload'])" > /tmp/selfpay-backend.log 2>&1 &
           for attempt in $(seq 1 30); do curl --fail http://127.0.0.1:8000/api/health && break; sleep 1; done
           npm run test:e2e
       - uses: actions/upload-artifact@v4
