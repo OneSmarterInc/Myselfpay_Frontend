@@ -841,6 +841,11 @@ export default function App() {
       });
       return;
     }
+    if (id === "welcomeCenter") {
+      event.preventDefault();
+      setDialog({ type: "center-login" });
+      return;
+    }
     if (
       id === "welcomeBegin" ||
       id === "welcomeAccount" ||
@@ -1336,7 +1341,6 @@ export default function App() {
           </span>
         </a>
         <nav>
-          <button type="button" onClick={()=>setDialog({type:"center-login"})}>Center login</button>
           <a href="/for-imaging-centers">For imaging centers</a>
           <button id="history" hidden>
             Saved conversations
