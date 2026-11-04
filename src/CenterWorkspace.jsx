@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { centerAPI as call } from "./center-api.js";
 import "./center-workspace.css";
+import RequestStatusTabs from "./RequestStatusTabs.jsx";
 
 function Icon({ name, ...props }) {
   const paths = {
@@ -142,10 +143,9 @@ const period = (slot) =>
   slot.period === "morning" ? "Morning · 8 am–12 pm" : "Afternoon · 12–5 pm";
 const titles = {
   overview: "Center dashboard",
-  open: "Open requests",
-  approved: "Approved requests",
-  all: "All requests",
-  closed: "Closed requests",
+  open: "Requests",
+  approved: "Requests",
+  all: "Requests",
   profile: "Center profiles",
 };
 function Badge({ status }) {
@@ -499,10 +499,7 @@ export default function CenterWorkspace({ onLogin }) {
   const all = data?.requests || [],
     centers = data?.centers || [],
     openCount = all.filter(isOpen).length,
-    approved = all.filter((item) => item.status === "scheduled").length,
-    closed = all.filter((item) =>
-      ["unable", "expired"].includes(item.status),
-    ).length;
+    approved = all.filter((item) => item.status === "scheduled").length;
   const rows = all
     .filter(
       (item) =>
@@ -510,9 +507,7 @@ export default function CenterWorkspace({ onLogin }) {
           ? isOpen(item)
           : tab === "approved"
             ? item.status === "scheduled"
-            : tab === "closed"
-              ? ["unable", "expired"].includes(item.status)
-              : true) &&
+            : true) &&
         (!query.trim() ||
           `${item.id} ${item.clinic_name}`
             .toLowerCase()
@@ -529,9 +524,7 @@ export default function CenterWorkspace({ onLogin }) {
     visible = rows.slice(currentPage * 10, currentPage * 10 + 10);
   const nav = [
     ["overview", "Overview", "overview", null],
-    ["open", "Open requests", "inbox", openCount],
-    ["approved", "Approved requests", "check", approved],
-    ["all", "All requests", "requests", all.length],
+    ["all", "Requests", "requests", all.length],
     ["profile", "Center profiles", "building", centers.length],
   ];
   const name = centers.length === 1 ? centers[0].name : "Center workspace",
@@ -567,7 +560,12 @@ export default function CenterWorkspace({ onLogin }) {
                 key={key}
                 aria-label={label}
                 disabled={busy}
-                aria-current={tab === key ? "page" : undefined}
+                aria-current={
+                  tab === key ||
+                  (key === "all" && ["open", "approved"].includes(tab))
+                    ? "page"
+                    : undefined
+                }
                 onClick={() => select(key)}
               >
                 <Icon name={icon} />
@@ -712,7 +710,6 @@ export default function CenterWorkspace({ onLogin }) {
                   "check",
                   "Accepted by your center",
                 ],
-                ["closed", "Closed", closed, "clock", "Declined or expired"],
               ].map(([key, label, count, icon, note]) => (
                 <button
                   type="button"
@@ -771,6 +768,12 @@ export default function CenterWorkspace({ onLogin }) {
                   </button>
                 )}
               </div>
+              <RequestStatusTabs
+                value={tab}
+                counts={{ all: all.length, open: openCount, approved }}
+                onChange={select}
+                disabled={busy}
+              />
               <div className="cw-toolbar">
                 <label className="cw-search">
                   <Icon name="search" />

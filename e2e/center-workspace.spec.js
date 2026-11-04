@@ -94,9 +94,19 @@ test("center workspace navigation, filters, pagination and responsive request de
     .click();
   await expect(
     page
-      .getByRole("heading", { name: "Approved requests", exact: true })
-      .first(),
-  ).toBeVisible();
+      .getByRole("group", { name: "Request status" })
+      .getByRole("button", { name: "Approved requests", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page
+      .getByRole("navigation", { name: "Center dashboard sections" })
+      .getByRole("button", { name: "Requests", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    page
+      .getByRole("navigation", { name: "Center dashboard sections" })
+      .getByRole("button", { name: "Open requests", exact: true }),
+  ).toHaveCount(0);
   await expect(table.getByRole("row")).toHaveCount(4);
   await page
     .getByRole("button", { name: "Center profiles", exact: true })
@@ -201,7 +211,9 @@ test.describe("Android center workspace", () => {
       .getByRole("button", { name: "Open requests", exact: true })
       .click();
     await expect(
-      page.getByRole("heading", { name: "Open requests", exact: true }).first(),
-    ).toBeVisible();
+      page
+        .getByRole("group", { name: "Request status" })
+        .getByRole("button", { name: "Open requests", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 });
