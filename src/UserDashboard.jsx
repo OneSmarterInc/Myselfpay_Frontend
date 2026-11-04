@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
+import RequestStatusTabs from "./RequestStatusTabs.jsx";
 
 const labels = {
   requested: "Awaiting center confirmation",
@@ -11,9 +12,7 @@ const labels = {
 const tabs = [
   ["overview", "Overview"],
   ["profile", "My profile"],
-  ["open", "Open requests"],
-  ["approved", "Approved requests"],
-  ["all", "All requests"],
+  ["all", "Requests"],
 ];
 const zones = {
   "America/New_York": "Eastern",
@@ -124,10 +123,10 @@ function RequestCard({ item }) {
         </dl>
       </details>
       <div className="request-card-footer">
-        {item.status === "scheduled" && item.secure_chat_url && (
+        {item.secure_chat_url && (
           <a className="flow-outline" href={item.secure_chat_url} target="_blank" rel="noopener noreferrer">Open secure chat</a>
         )}
-        {item.status === "scheduled" && item.secure_chat_status === "pending" && (
+        {item.secure_chat_status === "pending" && (
           <span role="status">Your secure chat is being prepared. Refresh shortly.</span>
         )}
         {phone.length >= 8 && (
@@ -203,14 +202,6 @@ export default function UserDashboard({ account }) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-  const heading =
-    tab === "open"
-      ? "Open requests"
-      : tab === "approved"
-        ? "Approved requests"
-        : tab === "overview"
-          ? "Recent requests"
-          : "All requests";
   return (
     <section className="user-dashboard" aria-busy={loading}>
       <div className="dashboard-layout">
@@ -230,29 +221,33 @@ export default function UserDashboard({ account }) {
                 type="button"
                 key={key}
                 aria-label={label}
-                aria-current={tab === key ? "page" : undefined}
+                aria-current={
+                  tab === key ||
+                  (key === "all" && ["open", "approved"].includes(tab))
+                    ? "page"
+                    : undefined
+                }
                 onClick={() => select(key)}
               >
                 {label}
-                {key === "open" && <span>{open}</span>}
-                {key === "approved" && <span>{stats.scheduled || 0}</span>}
+                {key === "all" && <span>{total}</span>}
               </button>
             ))}
           </nav>
         </aside>
         <div className="dashboard-content">
-      <div className="dashboard-heading dashboard-welcome">
-        <div>
-          <p className="eyebrow">MYSELFPAY ACCOUNT</p>
-          <h1>{tab === "profile" ? "My profile" : "My requests"}</h1>
-          <p className="muted">
-            Your profile and appointment requests, in one place.
-          </p>
-        </div>
-        <a className="dashboard-search" href="#search">
-          Find imaging centers <span aria-hidden="true">→</span>
-        </a>
-      </div>
+          <div className="dashboard-heading dashboard-welcome">
+            <div>
+              <p className="eyebrow">MYSELFPAY ACCOUNT</p>
+              <h1>{tab === "profile" ? "My profile" : "My requests"}</h1>
+              <p className="muted">
+                Your profile and appointment requests, in one place.
+              </p>
+            </div>
+            <a className="dashboard-search" href="#search">
+              Find imaging centers <span aria-hidden="true">→</span>
+            </a>
+          </div>
 
           {error && (
             <div className="dashboard-error" role="alert">
@@ -330,7 +325,9 @@ export default function UserDashboard({ account }) {
                 <section className="dashboard-requests">
                   <div className="dashboard-request-heading">
                     <div>
-                      <h2>{heading}</h2>
+                      <h2>
+                        {tab === "overview" ? "Recent requests" : "Requests"}
+                      </h2>
                       <p>
                         {value.total}{" "}
                         {value.total === 1 ? "request" : "requests"}
@@ -344,6 +341,16 @@ export default function UserDashboard({ account }) {
                       Refresh status
                     </button>
                   </div>
+                  <RequestStatusTabs
+                    value={tab}
+                    counts={{
+                      all: total,
+                      open,
+                      approved: stats.scheduled || 0,
+                    }}
+                    onChange={select}
+                    disabled={loading}
+                  />
                   {!value.requests.length && (
                     <div className="dashboard-empty">
                       <span className="dashboard-empty-icon" aria-hidden="true">

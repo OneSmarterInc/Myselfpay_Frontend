@@ -1,6 +1,8 @@
 export function deliveryMessage(delivery) {
   return (
     {
+      secure_mail_pending: "Your request is saved. Secure Mail is preparing a private conversation and will email you and the clinic.",
+      secure_mail_ready: "Your request is available in Secure Mail. The clinic can review and confirm it in the secure conversation.",
       sent: "Your booking request was emailed to the center. The clinic must confirm the appointment.",
       queued: "Your request is saved and its center notification is queued.",
       sending: "Your request is saved. Its center notification is being sent.",

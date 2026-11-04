@@ -42,7 +42,7 @@ describe("private browser spatial search", () => {
       macro: center,
       micro: latLngToCell(latitude, longitude, 11),
     });
-    expect(request.mock.calls).toEqual([[`/v1/spatial-bundle/${center}`]]);
+    expect(request.mock.calls).toEqual([[`/v1/spatial-bundle/${center}/`]]);
     expect(JSON.stringify(request.mock.calls)).not.toContain(String(latitude));
     expect(result.records[0].distance_miles).toBeGreaterThanOrEqual(0);
   });
