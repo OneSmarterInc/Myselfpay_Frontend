@@ -1,3 +1,4 @@
+import { beginLoading } from "./loading-state.js";
 const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 let csrf = "";
 let sessionVersion = 0;
@@ -24,10 +25,10 @@ export class APIError extends Error {
   constructor(body, response) {
     const fields = body.details || (body.error || body.detail ? {} : body);
     const messages = validationMessages(fields);
+    const generalMessages = validationMessages(body.error || body.detail);
     super(
       messages.join(" ") ||
-        body.error ||
-        body.detail ||
+        generalMessages.join(" ") ||
         "Request failed. Please retry.",
     );
     this.name = "APIError";
@@ -65,6 +66,7 @@ export async function api(
   method = data === undefined ? "GET" : "POST",
 ) {
   const controller = new AbortController();
+  const endLoading = beginLoading();
   const timer = setTimeout(() => controller.abort(), 45000);
   try {
     return await request(path, data, method, controller.signal);
@@ -76,6 +78,7 @@ export async function api(
     }
     throw error;
   } finally {
+    endLoading();
     clearTimeout(timer);
   }
 }

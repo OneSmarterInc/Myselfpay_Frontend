@@ -358,9 +358,6 @@ export default function CenterPortal({ onLogin }) {
                       </>
                     )}
                   </dl>
-                  {request.secure_chat_url && (
-                    <a className="flow-outline" href={request.secure_chat_url} target="_blank" rel="noopener noreferrer">Open secure chat</a>
-                  )}
                   {request.contact_hidden ? (
                     <p>Request closed. Patient contact details are hidden.</p>
                   ) : (
