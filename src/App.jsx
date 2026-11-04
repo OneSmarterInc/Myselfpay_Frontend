@@ -9,6 +9,8 @@ import { StatewideLocationManager } from "./statewide-location.js";
 import { predefinedQuestion } from "./chat-questions.js";
 import { NativeAppHeader, NativeWelcome, AppIcon } from "./NativeAppShell.jsx";
 import "./native-app.css";
+import NativeInfoPage, {isNativeInfo} from "./NativeInfoPage.jsx";
+import NativeLoading from "./NativeLoading.jsx";
 import UserDashboard from "./UserDashboard.jsx";
 import CenterPortal, { CenterLogin } from "./CenterPortal.jsx";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
@@ -1366,13 +1368,14 @@ export default function App() {
       )}
 
       <main className={"shell" + (view === "center" ? " center-shell" : view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
-        {view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
+        {nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (
           <OriginalHTML html={markup} onInput={input} replace={replace} />
         )}
       </main>
       {nativeApp && account && (view==="search"||view==="agent") && state.mode!=="agent" && !dialog && <button type="button" className="native-chat-fab" aria-label="Ask MySelfPay" onClick={()=>{setState(old=>({...old,mode:"agent"}));navigate("agent");window.scrollTo(0,0);}}><AppIcon name="chat"/><span>Ask MySelfPay</span></button>}
+      {nativeApp && <NativeLoading waiting={view === "search" && state.spatialLoading}/> }
       <footer className="site-footer" hidden={nativeApp}>
         <span className="footer-brand">
           <img src="/logo.png" alt="" width="28" height="28" />

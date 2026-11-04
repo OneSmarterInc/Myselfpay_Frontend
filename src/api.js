@@ -1,3 +1,4 @@
+import { beginLoading } from "./loading-state.js";
 const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 let csrf = "";
 let sessionVersion = 0;
@@ -65,6 +66,7 @@ export async function api(
   method = data === undefined ? "GET" : "POST",
 ) {
   const controller = new AbortController();
+  const endLoading = beginLoading();
   const timer = setTimeout(() => controller.abort(), 45000);
   try {
     return await request(path, data, method, controller.signal);
@@ -76,6 +78,7 @@ export async function api(
     }
     throw error;
   } finally {
+    endLoading();
     clearTimeout(timer);
   }
 }
