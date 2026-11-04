@@ -80,7 +80,8 @@ test("directory cards display stored prices and keep quote-only centers distinct
     .click();
   await expect(card.locator(".price")).not.toContainText("$79");
   await card.locator("[data-detail]").click();
-  await expect(page.locator(".detailgrid .price")).toContainText("MRI: $399");
+  await expect(page.locator(".facility-reference-hero .price")).toContainText("MRI: $399");
+  await page.getByText("More facility and price details", { exact: true }).click();
   await expect(page.locator(".directory-service-details")).toContainText(
     priced.mri,
   );

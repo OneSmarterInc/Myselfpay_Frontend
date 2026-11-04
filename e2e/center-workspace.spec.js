@@ -25,6 +25,8 @@ const requests = Array.from({ length: 14 }, (_, i) => ({
   slots: [{ date: "2026-12-10", period: i % 2 ? "afternoon" : "morning" }],
   price_text: "Clinic will confirm the total.",
   timezone: "America/New_York",
+  secure_chat_status: "ready",
+  secure_chat_url: "https://mail.example.test/recipient/inbox#thread/synthetic",
 }));
 async function mock(page, items = requests) {
   await page.route("**/api/center/dashboard", (r) =>
@@ -143,6 +145,8 @@ test("center workspace navigation, filters, pagination and responsive request de
   await expect(
     page.getByRole("heading", { name: "Preferred appointment times" }),
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open secure chat", exact: true }))
+    .toHaveAttribute("href", "https://mail.example.test/recipient/inbox#thread/synthetic");
   await expect(
     page.getByRole("link", { name: "patient@example.test" }),
   ).toBeVisible();

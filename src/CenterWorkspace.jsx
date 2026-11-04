@@ -272,6 +272,12 @@ function RequestDetail({ request, busy, onBack, onAction }) {
         </div>
         <Badge status={request.status} />
       </div>
+      {request.secure_chat_url && (
+        <a className="flow-outline" href={request.secure_chat_url} target="_blank" rel="noopener noreferrer">Open secure chat</a>
+      )}
+      {request.secure_chat_status === "pending" && (
+        <p role="status">Your secure chat is being prepared. Refresh shortly.</p>
+      )}
       <div className="cw-detail-grid">
         <section className="cw-detail-main">
           <div className="cw-panel-heading">

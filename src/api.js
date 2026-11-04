@@ -25,10 +25,10 @@ export class APIError extends Error {
   constructor(body, response) {
     const fields = body.details || (body.error || body.detail ? {} : body);
     const messages = validationMessages(fields);
+    const generalMessages = validationMessages(body.error || body.detail);
     super(
       messages.join(" ") ||
-        body.error ||
-        body.detail ||
+        generalMessages.join(" ") ||
         "Request failed. Please retry.",
     );
     this.name = "APIError";

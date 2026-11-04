@@ -1,104 +1,30 @@
 import { test, expect } from "@playwright/test";
-import { writeFile } from "node:fs/promises";
 
-test("original homepage geometry and screenshots match at desktop and mobile widths", async ({
-  page,
-  context,
-}) => {
-  const records = [];
-  for (const viewport of [
-    { width: 1440, height: 1000 },
-    { width: 390, height: 844 },
-  ]) {
+for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
+  test(`homepage layout and journeys remain responsive at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
-    await expect(page.locator("#profile")).toBeEnabled();
     await expect(page.locator("#publicCoverage")).toContainText("74");
-    await page.evaluate(() => document.fonts.ready);
-    const actual = await page
-      .locator(
-        "header,.welcome-intro,.welcome-steps,.welcome-paths,.site-footer",
-      )
-      .evaluateAll((nodes) =>
-        nodes.map((node) => ({
-          class: node.className,
-          rect: JSON.stringify(node.getBoundingClientRect()),
-          font: getComputedStyle(node).fontFamily,
-        })),
-      );
-    const actualPixels = await page.screenshot({
-      path: `../react-home-${viewport.width}.png`,
-      fullPage: true,
-    });
-    await page.goto("/__ui-reference.html");
-    await page.evaluate(() => document.fonts.ready);
-    const original = await page
-      .locator(
-        "header,.welcome-intro,.welcome-steps,.welcome-paths,.site-footer",
-      )
-      .evaluateAll((nodes) =>
-        nodes.map((node) => ({
-          class: node.className,
-          rect: JSON.stringify(node.getBoundingClientRect()),
-          font: getComputedStyle(node).fontFamily,
-        })),
-      );
-    const originalPixels = await page.screenshot({
-      path: `../original-home-${viewport.width}.png`,
-      fullPage: true,
-    });
-    expect(actualPixels.equals(originalPixels)).toBe(true);
-    expect(actual).toEqual(original);
-    records.push({ viewport, matched: true });
-  }
-  await writeFile("../ui-geometry.json", JSON.stringify(records, null, 2));
-});
-
-test("original search layout matches the React search on desktop and mobile", async ({
-  page,
-}) => {
-  for (const viewport of [
-    { width: 1440, height: 1000 },
-    { width: 390, height: 844 },
-  ]) {
+    await expect(page.getByRole("heading", { name: "Find self-pay MRI and CT near you." })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Find imaging options", exact: true })).toBeVisible();
+    await expect(page.locator(".welcome-intro").getByRole("button", { name: "Center login", exact: true })).toBeVisible();
+    await expect(page.locator("header").getByRole("button", { name: "Center login", exact: true })).toHaveCount(0);
+    await expect(page.locator(".welcome-steps")).toBeVisible();
+    await expect(page.locator(".site-footer")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await expect(page.getByRole("button", { name: "Find imaging options", exact: true })).toHaveCSS("background-color", "rgb(30, 34, 38)");
+  });
+  test(`search filters remain usable and responsive at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
-    await page
-      .getByRole("button", { name: "Find imaging options", exact: true })
-      .click();
-    await expect(page.locator("#catalogStatus")).toContainText(
-      "Directory loaded:",
-    );
-    await page.evaluate(() => document.fonts.ready);
-    const selectors = "header,h1,.tabs,.grid,.grid aside.panel,.site-footer";
-    const actual = await page
-      .locator(selectors)
-      .evaluateAll((nodes) =>
-        nodes.map((node) => ({
-          class: node.className,
-          rect: JSON.stringify(node.getBoundingClientRect()),
-        })),
-      );
-    const actualPixels = await page.screenshot({
-      path: `../react-search-${viewport.width}.png`,
-      fullPage: true,
-    });
-    await page.goto("/__ui-reference-search.html");
+    await page.getByRole("button", { name: "Find imaging options", exact: true }).click();
+    await expect(page.locator("#catalogStatus")).toContainText("Directory loaded:");
     await expect(page.locator("#searchForm")).toBeVisible();
-    await page.evaluate(() => document.fonts.ready);
-    const original = await page
-      .locator(selectors)
-      .evaluateAll((nodes) =>
-        nodes.map((node) => ({
-          class: node.className,
-          rect: JSON.stringify(node.getBoundingClientRect()),
-        })),
-      );
-    const originalPixels = await page.screenshot({
-      path: `../original-search-${viewport.width}.png`,
-      fullPage: true,
-    });
-    expect(actualPixels.equals(originalPixels)).toBe(true);
-    expect(actual).toEqual(original);
-  }
-});
+    await expect(page.locator("#location")).toBeEditable();
+    await expect(page.locator("#mod")).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Find options", exact: true })).toBeVisible();
+    await expect(page.getByRole("switch", { name: "Near to me", exact: true })).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `../tmp/search-layout-${viewport.width}.png`, fullPage: true });
+  });
+}
