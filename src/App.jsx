@@ -11,6 +11,7 @@ import { NativeAppHeader, NativeWelcome, AppIcon } from "./NativeAppShell.jsx";
 import "./native-app.css";
 import NativeInfoPage, {isNativeInfo} from "./NativeInfoPage.jsx";
 import NativeLoading from "./NativeLoading.jsx";
+import useNativeKeyboard from './useNativeKeyboard.js';
 import UserDashboard from "./UserDashboard.jsx";
 import CenterPortal, { CenterLogin } from "./CenterPortal.jsx";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
@@ -157,6 +158,7 @@ function Dialog({ children, onClose, booking = false }) {
 }
 
 export default function App() {
+  useNativeKeyboard(nativeApp);
   const [pendingBooking, setPendingBooking] = useState(null);
   const [nativeFiltersOpen,setNativeFiltersOpen] = useState(true);
   const [account, setAccount] = useState(null),

@@ -81,3 +81,26 @@ test("circular loading appears for pending data and clears on success and failur
     page.getByRole("heading", { name: "About MySelfPay", exact: true }),
   ).toBeVisible();
 });
+
+test("focused search field stays visible above a keyboard-sized viewport", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Search imaging centers", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Search & filters", exact: true }),
+  ).toBeVisible();
+  await page.locator("#location").focus();
+  await page.setViewportSize({ width: 390, height: 450 });
+  await expect
+    .poll(async () => {
+      const r = await page.locator("#location").boundingBox();
+      return r.y >= 60 && r.y + r.height <= 450;
+    })
+    .toBe(true);
+  await expect(page.locator(".native-chat-fab")).toBeHidden();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".native-chat-fab")).toBeVisible();
+});
