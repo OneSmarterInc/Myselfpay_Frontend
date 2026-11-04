@@ -1,0 +1,141 @@
+.request-status-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #e2e5e9;
+  padding: 0 0 12px;
+  margin: 0 0 22px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.request-status-tabs > button,
+.center-workspace .request-status-tabs > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 42px;
+  flex: 0 0 auto;
+  padding: 10px 15px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #576371;
+  font-size: 13px;
+  font-weight: 550;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.request-status-tabs > button:hover,
+.center-workspace .request-status-tabs > button:hover {
+  background: #f4f5f7;
+  border-color: transparent;
+}
+.request-status-tabs > button[aria-pressed="true"],
+.center-workspace .request-status-tabs > button[aria-pressed="true"] {
+  background: #faecef;
+  border-color: #f3dce1;
+  color: #a31929;
+  font-weight: 650;
+}
+.request-status-tabs small {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  line-height: 1.5;
+  background: #edf0f4;
+  color: #586575;
+  border-radius: 5px;
+  min-width: 23px;
+  padding: 1px 6px;
+  text-align: center;
+}
+.request-status-tabs > button[aria-pressed="true"] small {
+  color: #9b1727;
+  background: #f0d8de;
+}
+.request-status-tabs > button:focus-visible {
+  outline: 2px solid #b51b2b;
+  outline-offset: -2px;
+}
+.cw-request-panel > .request-status-tabs {
+  margin: 0 24px 20px;
+}
+.dashboard-requests > .request-status-tabs {
+  margin-bottom: 22px;
+}
+.request-status-tabs > button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+@media (max-width: 600px) {
+  .request-status-tabs {
+    gap: 4px;
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+  }
+  .request-status-tabs > button,
+  .center-workspace .request-status-tabs > button {
+    font-size: 11px;
+    padding: 10px;
+    gap: 7px;
+    min-height: 42px;
+  }
+  .request-status-tabs small {
+    font-size: 10px;
+    min-width: 20px;
+    padding: 1px 4px;
+  }
+  .cw-request-panel > .request-status-tabs {
+    margin-left: 18px;
+    margin-right: 18px;
+  }
+}
+@media (max-width: 360px) {
+  .request-status-tabs > button,
+  .center-workspace .request-status-tabs > button {
+    font-size: 10px;
+    padding: 9px 7px;
+    gap: 5px;
+  }
+}
+.request-status-compact {
+  display: none;
+}
+@media (max-width: 600px) {
+  .request-status-full {
+    display: none;
+  }
+  .request-status-compact {
+    display: inline;
+  }
+  .request-status-tabs {
+    gap: 5px;
+  }
+  .request-status-tabs > button,
+  .center-workspace .request-status-tabs > button {
+    flex: 1 0 auto;
+  }
+  .center-workspace .cw-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .center-workspace .cw-metrics > button {
+    padding: 13px 11px;
+    min-height: 106px;
+    justify-content: space-between;
+  }
+  .center-workspace .cw-metric-top {
+    font-size: 10px;
+    text-align: left;
+    min-height: 27px;
+    line-height: 1.4;
+  }
+  .center-workspace .cw-metric-top svg,
+  .center-workspace .cw-metric-note {
+    display: none;
+  }
+  .center-workspace .cw-metrics strong {
+    font-size: 28px;
+  }
+}

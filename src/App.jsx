@@ -9,6 +9,9 @@ import { StatewideLocationManager } from "./statewide-location.js";
 import { predefinedQuestion } from "./chat-questions.js";
 import { NativeAppHeader, NativeWelcome, AppIcon } from "./NativeAppShell.jsx";
 import "./native-app.css";
+import NativeInfoPage, {isNativeInfo} from "./NativeInfoPage.jsx";
+import NativeLoading from "./NativeLoading.jsx";
+import useNativeKeyboard from './useNativeKeyboard.js';
 import UserDashboard from "./UserDashboard.jsx";
 import CenterPortal, { CenterLogin } from "./CenterPortal.jsx";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
@@ -155,6 +158,7 @@ function Dialog({ children, onClose, booking = false }) {
 }
 
 export default function App() {
+  useNativeKeyboard(nativeApp);
   const [pendingBooking, setPendingBooking] = useState(null);
   const [nativeFiltersOpen,setNativeFiltersOpen] = useState(true);
   const [account, setAccount] = useState(null),
@@ -841,6 +845,11 @@ export default function App() {
       });
       return;
     }
+    if (id === "welcomeCenter") {
+      event.preventDefault();
+      setDialog({ type: "center-login" });
+      return;
+    }
     if (
       id === "welcomeBegin" ||
       id === "welcomeAccount" ||
@@ -1312,7 +1321,7 @@ export default function App() {
   dialogHTML = dialogHTML.replace("<h2>", '<h2 id="dialogTitle">');
   const linkedBooking = /^(booking|request|clinic)\//.test(view);
   return (
-    <div onClick={click} onSubmit={submit} ref={form} className={(nativeApp ? "native-app " : "") + (view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : "")}>
+    <div onClick={click} onSubmit={submit} ref={form} className={(nativeApp ? "native-app " : "") + (view === "center" ? "center-dashboard-active" : view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : "")}>
       {nativeApp ? <NativeAppHeader account={account} view={view} busy={busy||boot} onSearch={()=>openNativeSearch()} onHome={()=>navigate("home")} onDirectory={()=>setDialog({type:"directory"})} onSignOut={logout}/> : (
       <header>
         <a
@@ -1336,7 +1345,6 @@ export default function App() {
           </span>
         </a>
         <nav>
-          <button type="button" onClick={()=>setDialog({type:"center-login"})}>Center login</button>
           <a href="/for-imaging-centers">For imaging centers</a>
           <button id="history" hidden>
             Saved conversations
@@ -1361,14 +1369,15 @@ export default function App() {
       </header>
       )}
 
-      <main className={"shell" + (view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
-        {view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
+      <main className={"shell" + (view === "center" ? " center-shell" : view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
+        {nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (
           <OriginalHTML html={markup} onInput={input} replace={replace} />
         )}
       </main>
       {nativeApp && account && (view==="search"||view==="agent") && state.mode!=="agent" && !dialog && <button type="button" className="native-chat-fab" aria-label="Ask MySelfPay" onClick={()=>{setState(old=>({...old,mode:"agent"}));navigate("agent");window.scrollTo(0,0);}}><AppIcon name="chat"/><span>Ask MySelfPay</span></button>}
+      {nativeApp && <NativeLoading waiting={view === "search" && state.spatialLoading}/> }
       <footer className="site-footer" hidden={nativeApp}>
         <span className="footer-brand">
           <img src="/logo.png" alt="" width="28" height="28" />

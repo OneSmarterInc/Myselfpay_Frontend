@@ -51,23 +51,31 @@ export function NativeAppHeader({
     setOpen(false);
   };
   const title =
-    view === "center"
-      ? "Center dashboard"
-      : view === "home"
-        ? "MySelfPay"
-        : view === "dashboard"
-          ? "My requests"
-          : view === "login"
-            ? "Log in"
-            : view === "signup"
-              ? "Create account"
-              : view.startsWith("facility/")
-                ? "Imaging center"
-                : view.startsWith("clinic/")
-                  ? "For imaging centers"
-                  : view.startsWith("request/")
-                    ? "MySelfPay"
-                    : "Find imaging options";
+    view === "about"
+      ? "About MySelfPay"
+      : view === "privacy-terms"
+        ? "Terms & Privacy"
+        : view === "contact"
+          ? "Contact"
+          : view === "for-imaging-centers"
+            ? "For imaging centers"
+            : view === "center"
+              ? "Center dashboard"
+              : view === "home"
+                ? "MySelfPay"
+                : view === "dashboard"
+                  ? "My requests"
+                  : view === "login"
+                    ? "Log in"
+                    : view === "signup"
+                      ? "Create account"
+                      : view.startsWith("facility/")
+                        ? "Imaging center"
+                        : view.startsWith("clinic/")
+                          ? "For imaging centers"
+                          : view.startsWith("request/")
+                            ? "MySelfPay"
+                            : "Find imaging options";
   return (
     <>
       <header className="native-app-header">
@@ -168,10 +176,18 @@ export function NativeAppHeader({
             </button>
           )}
           <div className="native-menu-divider" />
-          <a href="/about">About</a>
-          <a href="/contact">Contact</a>
-          <a href="/privacy-terms">Terms &amp; Privacy</a>
-          <a href="/for-imaging-centers">For imaging centers</a>
+          <a href="#about" onClick={close}>
+            About
+          </a>
+          <a href="#contact" onClick={close}>
+            Contact
+          </a>
+          <a href="#privacy-terms" onClick={close}>
+            Terms &amp; Privacy
+          </a>
+          <a href="#for-imaging-centers" onClick={close}>
+            For imaging centers
+          </a>
           <a href="#center" onClick={close}>
             Center portal
           </a>
