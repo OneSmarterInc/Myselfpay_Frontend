@@ -1317,7 +1317,7 @@ export default function App() {
   dialogHTML = dialogHTML.replace("<h2>", '<h2 id="dialogTitle">');
   const linkedBooking = /^(booking|request|clinic)\//.test(view);
   return (
-    <div onClick={click} onSubmit={submit} ref={form} className={(nativeApp ? "native-app " : "") + (view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : "")}>
+    <div onClick={click} onSubmit={submit} ref={form} className={(nativeApp ? "native-app " : "") + (view === "center" ? "center-dashboard-active" : view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : "")}>
       {nativeApp ? <NativeAppHeader account={account} view={view} busy={busy||boot} onSearch={()=>openNativeSearch()} onHome={()=>navigate("home")} onDirectory={()=>setDialog({type:"directory"})} onSignOut={logout}/> : (
       <header>
         <a
@@ -1365,7 +1365,7 @@ export default function App() {
       </header>
       )}
 
-      <main className={"shell" + (view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
+      <main className={"shell" + (view === "center" ? " center-shell" : view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
         {view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (

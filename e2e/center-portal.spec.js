@@ -93,7 +93,7 @@ test("center login, support message, email OTP and scoped request approval", asy
     path: "../tmp/center-portal-mobile.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Open request →" }).click();
+  await page.getByRole("button", { name: "Open request", exact: true }).click();
   await expect(
     page.getByRole("link", { name: "patient@example.test" }),
   ).toBeVisible();
