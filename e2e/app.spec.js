@@ -174,9 +174,10 @@ test("original signup and login forms retain verified DRF sessions", async ({
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
   await page.locator("#accountPassword").fill(password);
   await page.locator("#accountSubmit").click();
-  await expect(
-    page.getByRole("heading", { name: "Find and compare imaging options" }),
-  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
+  const session = await page.request.get("/api/me");
+  expect(session.ok()).toBe(true);
+  expect((await session.json()).member.email).toBe(email);
 });
 
 test("expired cookies clear signed-in UI and permit sign-out", async ({

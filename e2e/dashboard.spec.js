@@ -46,6 +46,8 @@ test("signed-in dashboard shows profile, request status and request links", asyn
             clinic_name: "Synthetic Imaging Center",
             location: "Dayton",
             status: "requested",
+            secure_chat_status: "ready",
+            secure_chat_url: "https://mail.example.test/recipient/inbox#thread/synthetic",
             price_text: "Confirm price",
             service: "MRI",
             exam: "Knee",
@@ -79,6 +81,8 @@ test("signed-in dashboard shows profile, request status and request links", asyn
   await expect(
     page.getByText("Awaiting center confirmation", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open secure chat", exact: true }))
+    .toHaveAttribute("href", "https://mail.example.test/recipient/inbox#thread/synthetic");
   await expect(
     page.getByRole("link", { name: "Open request", exact: true }),
   ).toHaveAttribute("href", "#request/MSP-SYNTHETIC/synthetic-only-token");
@@ -111,6 +115,10 @@ test("signed-in dashboard shows profile, request status and request links", asyn
           ),
         )
         .toBeLessThan(2);
+      await expect.poll(() => page.evaluate(() => Math.abs(
+        document.querySelector(".dashboard-sidebar").getBoundingClientRect().top -
+        document.querySelector("header").getBoundingClientRect().bottom
+      ))).toBeLessThan(2);
       const geometry = await page.evaluate(() => {
         const side = document
           .querySelector(".dashboard-sidebar")
