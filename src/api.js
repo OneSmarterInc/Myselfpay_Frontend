@@ -88,6 +88,7 @@ async function request(
   data,
   method = data === undefined ? "GET" : "POST",
   signal,
+  recoverCsrf = true,
 ) {
   const requestSessionVersion = sessionVersion;
   const response = await fetch(base + path, {
@@ -112,6 +113,16 @@ async function request(
     );
   }
   if (!response.ok) {
+    // Authentication rejects CSRF before executing the view. Recover the
+    // cookie-bound token and retry only this explicit rejection, never delivery
+    // failures/timeouts where an OTP or booking might already have been sent.
+    if (recoverCsrf && response.status === 403 &&
+        (body.error === "CSRF token required." || body.detail === "CSRF token required.") &&
+        requestSessionVersion === sessionVersion) {
+      const session = await request("/me", undefined, "GET", signal, false);
+      if (session?.csrf) return request(path, data, method, signal, false);
+    }
+
     const publicSessionPaths = ["/me", "/guest", "/login", "/register"];
     if (
       response.status === 401 &&
