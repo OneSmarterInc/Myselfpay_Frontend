@@ -27,6 +27,8 @@ def simulated_client_throttle(path, action, ip, email):
 accounts.throttle = simulated_client_throttle
 # Only this isolated, DEBUG-only fixture can simulate SMS. No real SMS is sent.
 if os.getenv('E2E_FAKE_SMS') == 'true':
+    from cryptography.fernet import Fernet
+    os.environ.setdefault('BOOKING_ENCRYPTION_KEY', Fernet.generate_key().decode())
     import booking_sms
     import secrets
     booking_sms.configuration = lambda: {}
