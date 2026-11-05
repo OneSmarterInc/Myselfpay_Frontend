@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { OTPInput, TimeSlotPicker } from "./BookingControls.jsx";
 import { CALLING_CODES, phoneInput } from "./phone-country.js";
@@ -559,6 +559,7 @@ export default function OriginalBooking({
 
 export function OriginalBookingLink({ route, ui }) {
   const [kind, id, token] = route.split("/");
+  const initialCode = useRef(null);
   const [resendAt, setResendAt] = useState(0);
   const [resendLeft, setResendLeft] = useState(0);
   useEffect(() => {
@@ -593,6 +594,43 @@ export function OriginalBookingLink({ route, ui }) {
       clearInterval(timer);
     };
   }, [kind, id, token]);
+  useEffect(() => {
+    if (kind !== "clinic" || !id || !token) return;
+    let active = true;
+    const key = JSON.stringify([id, token]);
+    // Reuse the in-flight request during React StrictMode's effect replay.
+    if (initialCode.current?.key !== key) {
+      initialCode.current = { key, promise: call("code", { id, token }) };
+    }
+    setBusy(true);
+    setMessage("Sending your verification code…");
+    initialCode.current.promise.then((result) => {
+      if (!active) return;
+      setResendAt(Date.now() + (result.resend_after || 60) * 1000);
+      setMessage(result.delivery === "sent"
+        ? "A verification code was emailed to the center. It expires in 10 minutes."
+        : "Email delivery is disabled. No code was sent.");
+    }).catch((e) => {
+      if (!active) return;
+      setMessage("");
+      setError(e.message);
+      if (e.status === 429) setResendAt(Date.now() + (e.retryAfter || 60) * 1000);
+    }).finally(() => { if (active) setBusy(false); });
+    return () => { active = false; };
+  }, [kind, id, token]);
+  useEffect(() => {
+    if (kind !== "clinic" || !session) return;
+    let active = true;
+    const timer = setInterval(async () => {
+      try {
+        const result = await call("details", { id, session });
+        if (active) setValue(result);
+      } catch (e) {
+        if (active) setError(e.message);
+      }
+    }, 15000);
+    return () => { active = false; clearInterval(timer); };
+  }, [kind, id, session]);
   useEffect(() => {
     if (!session || !value) return;
     const tick = () => {
@@ -636,7 +674,8 @@ export function OriginalBookingLink({ route, ui }) {
       event.preventDefault();
       void run(async () => {
         const result = await call("code", { id, token });
-        setResendAt(Date.now() + (result.resend_after || 0) * 1000);
+        setCode("");
+        setResendAt(Date.now() + (result.resend_after || 60) * 1000);
         setMessage(
           result.delivery === "sent"
             ? "A verification code was emailed to the center. It expires in 10 minutes."
@@ -695,7 +734,7 @@ export function OriginalBookingLink({ route, ui }) {
           {String(remaining % 60).padStart(2, "0")}
         </p>
       );
-    if (name === "clinicCodeSend") return <button type="button" id={name} className="flow-text-button" disabled={busy || resendLeft > 0}>{resendLeft > 0 ? `Didn’t get it? Resend in 0:${String(resendLeft).padStart(2, "0")}` : message ? "Didn’t get it? Resend code" : "Send verification code"}</button>;
+    if (name === "clinicCodeSend") return <button type="button" id={name} className="flow-dark" disabled={busy || resendLeft > 0}>{busy ? "Please wait…" : resendLeft > 0 ? `Resend code in ${resendLeft}s` : "Resend code"}</button>;
     if (name === "clinicCode")
       return (
         <OTPInput
@@ -743,6 +782,17 @@ export function OriginalBookingLink({ route, ui }) {
   return (
     <div onClick={click} onSubmit={submit}>
       <OriginalHTML html={html} replace={replace} disabled={busy} />
+      {value?.secure_chat_url && (kind !== "clinic" || session) && (
+        <section className="reference-request-page">
+          <section className="flow-card">
+            <h2>Continue in OneSmarter Secure Mail</h2>
+            <p>{value.status === "scheduled"
+              ? "Your request has been approved. Continue your secure conversation with the other participant."
+              : "View your request and exchange messages securely while the clinic reviews it."}</p>
+            <a className="flow-dark" href={value.secure_chat_url} rel="noopener noreferrer">Open secure chat</a>
+          </section>
+        </section>
+      )}
       {kind !== "clinic" && error && <p role="alert">{error}</p>}
     </div>
   );
