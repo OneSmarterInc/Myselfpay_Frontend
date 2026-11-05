@@ -38,6 +38,31 @@ describe("React client for the Django REST Framework API", () => {
     await expect(api("/registration/mobile/code",{})).rejects.toMatchObject({status:403});
     expect(fetch).toHaveBeenCalledOnce();
   });
+  it("coalesces overlapping directory reads but retries after completion", async () => {
+    let finish;
+    const fetch = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
+    vi.stubGlobal("fetch", fetch);
+    const a = api("/directory-summary"), b = api("/directory-summary");
+    expect(fetch).toHaveBeenCalledOnce();
+    finish(new Response(JSON.stringify({ listing_count: 50 }), { status: 200 }));
+    await expect(a).resolves.toMatchObject({ listing_count: 50 });
+    await expect(b).resolves.toMatchObject({ listing_count: 50 });
+    fetch.mockResolvedValue(new Response(JSON.stringify({ listing_count: 51 }), { status: 200 }));
+    await expect(api("/directory-summary")).resolves.toMatchObject({ listing_count: 51 });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+  it("does not share booking sends or metadata reads across account changes", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    await Promise.all([api("/booking/email-code", { email: "a@example.com" }), api("/booking/email-code", { email: "a@example.com" })]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    setCsrf("session-one");
+    const a = api("/catalog?metadata=1");
+    setCsrf("session-two");
+    const b = api("/catalog?metadata=1");
+    await Promise.all([a, b]);
+    expect(fetch).toHaveBeenCalledTimes(4);
+  });
   it("renders nested API errors as readable text", async () => {
     mockResponse({ error: { message: "Location service unavailable." } }, 404);
     const error = await api("/v1/spatial-bundle/test").catch((e) => e);

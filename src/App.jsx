@@ -429,8 +429,7 @@ export default function App() {
     if (!account) return;
     let active = true;
     setCatalogReady(false);
-    if (summary?.spatial_api_version) {
-      api("/catalog?metadata=1")
+    api("/catalog?metadata=1")
         .then((value) => {
           if (active) {
             setCatalog(value);
@@ -444,7 +443,6 @@ export default function App() {
             if (error.status !== 401) setToast(error.message);
           }
         });
-    }
     api("/guest-usage")
       .then((value) => {
         if (active) setState((old) => ({ ...old, usage: value.usage || {} }));
@@ -453,7 +451,7 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [account, summary?.spatial_api_version]);
+  }, [account?.id, account?.tenant]);
   async function run(action) {
     setBusy(true);
     try {

@@ -269,34 +269,7 @@ export default function MobileAccount({ signup, account, onDone }) {
           </button>
         </fieldset>
       </form>
-      {!signup && (
-        <p>
-          {setup ? (
-            <button
-              type="button"
-              className="mobile-account-link"
-              onClick={() => {
-                setSetup(false);
-                setProof(null);
-                setError("");
-              }}
-            >
-              Back to login
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="mobile-account-link"
-              onClick={() => {
-                setSetup(true);
-                setError("");
-              }}
-            >
-              Already have an account from before? Set up your username
-            </button>
-          )}
-        </p>
-      )}
+      {setup && !signup && <p><button type="button" className="mobile-account-link" onClick={()=>{setSetup(false);setProof(null);setError("");}}>Back to login</button></p>}
       <p>
         {signup ? (
           <>
