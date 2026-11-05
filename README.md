@@ -1,4 +1,4 @@
-> Patient accounts now use a chosen username and verified mobile number. Registration uses SMS OTP; login uses username/password. Booking opens directly for verified accounts, without patient email or secure-chat links. Existing users have a one-time setup that preserves their requests. Deploy with the matching backend migration 0013.
+> Patient registration asks only first name and mobile number, then SMS OTP. Login asks only the registered mobile number, then SMS OTP. No username, password, email or ZIP is collected in these forms. Deploy the matching backend /api/auth/mobile endpoints first; no new migration is needed. Booking and center Secure Mail delivery remain unchanged.
 
 # MySelfPay frontend — React
 

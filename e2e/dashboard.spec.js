@@ -7,9 +7,6 @@ test("signed-in dashboard shows profile, request status and request links", asyn
   await expect(page.locator("#profile")).toBeEnabled();
   const email = `dashboard-${Date.now()}@example.com`;
   await page.locator("#accountName").fill("Dashboard Test User");
-  await page.locator("#accountUsername").fill(email.split("@")[0]);
-  await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
-  await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
   await completeMobileRegistration(page);
   expect(
     await page
@@ -24,7 +21,7 @@ test("signed-in dashboard shows profile, request status and request links", asyn
     page.getByRole("heading", { name: "No requests yet" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "My profile", exact: true }).click();
-  await expect(page.locator(".dashboard-profile")).toContainText(email.split("@")[0]);
+  await expect(page.locator(".dashboard-profile")).toContainText("Dashboard Test User");
   await page.route("**/api/dashboard?*", (r) =>
     r.fulfill({
       json: {

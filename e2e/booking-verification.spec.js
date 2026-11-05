@@ -4,9 +4,6 @@ import { completeMobileRegistration } from "./mobile-account.js";
 async function register(page) {
   await page.goto("/#signup");
   await page.locator("#accountName").fill("Synthetic Mobile Booker");
-  await page.locator("#accountUsername").fill("mobile_" + Date.now());
-  await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
-  await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
   await expect(page.locator("input[type=email]")).toHaveCount(0);
   await completeMobileRegistration(page);
   await page.locator("#location").fill("Ohio");
@@ -28,15 +25,9 @@ test("verified mobile accounts go directly to slots, without patient email or OT
   );
   const rows = page.locator(".time-choice-row");
   await expect(rows).toHaveCount(5);
-  for (let i = 0; i < 3; i++)
-    await rows
-      .nth(i)
-      .getByRole("button", { name: "Morning", exact: true })
-      .click();
-  await rows
-    .nth(3)
-    .getByRole("button", { name: "Morning", exact: true })
-    .click();
+  const mornings = rows.locator('button:enabled').filter({hasText: /^Morning$/});
+  for (let i = 0; i < 3; i++) await mornings.nth(i).click();
+  await mornings.nth(3).click();
   await expect(page.locator("#bookingError")).toContainText("up to 3");
   await expect(
     page.locator(".time-choice-row button[aria-pressed=true]"),
@@ -93,9 +84,6 @@ test("mobile OTP registration has six responsive boxes and requires a successful
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/#signup");
   await page.locator("#accountName").fill("OTP Layout");
-  await page.locator("#accountUsername").fill("otp_" + Date.now());
-  await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
-  await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
   await page.locator("#accountPhone").fill("5550123456");
   await page.locator("#accountSubmit").click();
   await expect(page.locator(".otp-input-group input")).toHaveCount(6);

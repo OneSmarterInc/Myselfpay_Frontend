@@ -292,7 +292,7 @@ export default function UserDashboard({ account }) {
                   <dl>
                     {[
                       ["Name", value.profile.name],
-                      ["Username", value.profile.username || "Setup required"],
+                      ...(value.profile.username ? [["Username", value.profile.username]] : []),
                       ["Mobile number", value.profile.phone || "Not provided"],
                       ["ZIP code", value.profile.zip_code || "Not provided"],
                       [

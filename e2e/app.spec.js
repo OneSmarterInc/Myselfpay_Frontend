@@ -1,4 +1,4 @@
-import { completeMobileRegistration } from "./mobile-account.js";
+import { completeMobileRegistration, completeMobileLogin } from "./mobile-account.js";
 import { test, expect } from "@playwright/test";
 
 test("National lists directory centers with ten results per page", async ({
@@ -161,22 +161,17 @@ test("original signup and login forms retain verified DRF sessions", async ({
     password = "Synthetic-only-passphrase!";
   await page.goto("/#signup");
   await page.locator("#accountName").fill("Synthetic UI Test");
-  await page.locator("#accountUsername").fill(email.split("@")[0]);
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
-  await page.locator("#accountPassword").fill(password);
-  await page.locator("#accountConfirm").fill(password);
   await completeMobileRegistration(page);
   await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible({ timeout: 15000 });
   await page.locator("#profile").click();
   await page.locator("#accountLogin").click();
-  await page.locator("#accountUsername").fill(email.split("@")[0]);
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
-  await page.locator("#accountPassword").fill(password);
-  await page.locator("#accountSubmit").click();
+  await completeMobileLogin(page);
   await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
   const session = await page.request.get("/api/me");
   expect(session.ok()).toBe(true);
-  expect((await session.json()).member.username).toBe(email.split("@")[0]);
+  expect((await session.json()).member.mobile_verified).toBe(true);
 });
 
 test("expired cookies clear signed-in UI and permit sign-out", async ({
@@ -249,9 +244,6 @@ test("reference appointment dialog requires an account and handles email deliver
     page.getByRole("heading", { name: "Create an account", exact: true }),
   ).toBeVisible();
   await page.locator("#accountName").fill("Synthetic Booker");
-  await page.locator("#accountUsername").fill(`booking-${Date.now()}`);
-  await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
-  await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
   await completeMobileRegistration(page);
   await expect(
     page.getByRole("heading", { name: "Request a Time" }),

@@ -42,16 +42,13 @@ test("Android theme matches reference and core search actions work",async({page}
  await expect(page.getByRole("dialog",{name:"App navigation"})).toBeVisible();
  await page.screenshot({path:"../tmp/native-menu-390.png"});
  await page.getByRole("link",{name:"Log in",exact:true}).click();
- await expect(page.locator("#accountUsername")).toBeVisible();
+ await expect(page.locator("#accountPhone")).toBeVisible();
  await expect(page.locator(".site-footer")).toBeHidden();
 });
 
 test("Android menu exposes dashboard for registered members",async({page})=>{
  await page.goto("/#signup");
  await page.locator("#accountName").fill("Native Test User");
- await page.locator("#accountUsername").fill(`native-${Date.now()}`);
- await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
- await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
  await completeMobileRegistration(page);
  await expect(page.getByRole("heading",{name:"Search & filters",exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Open navigation",exact:true}).click();
