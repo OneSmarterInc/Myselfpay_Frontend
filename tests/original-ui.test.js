@@ -202,3 +202,16 @@ it("pins only the Gitesh email test center by default and keeps nearest mode by 
  context.state.nearToMe=true;
  expect(names()).toEqual(["Real center","Gitesh Imaging Center"]);
 });
+
+it('pins only the labeled Ammar demo before other matching results', () => {
+  const normal = { ...offer, id: 'normal', entry: { ...entry, name: 'Normal clinic' }, distance_miles: 0 };
+  const demo = { ...offer, id: 'demo', entry: { ...entry, name: 'ammar test', is_test_center: true, booking_id: 'portal-ammar-test-center' }, distance_miles: 20 };
+  for (const nearToMe of [false, true]) {
+    const view = originalUI({ state: { ...state, searched: true, location: 'Cincinnati, OH', nearToMe },
+      account: null, DIRECTORY: [], offers: [normal, demo], results: [normal, demo], catalogReady: true });
+    const html = view.search();
+    expect(html.indexOf('<h3>ammar test</h3>')).toBeGreaterThan(-1);
+    expect(html.indexOf('<h3>ammar test</h3>')).toBeLessThan(html.indexOf('<h3>Normal clinic</h3>'));
+    expect(html).toContain('TEST CENTER');
+  }
+});

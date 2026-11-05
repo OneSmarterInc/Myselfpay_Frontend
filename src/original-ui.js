@@ -56,7 +56,8 @@ function groupedCards(found){
   return 100+Number(!!addressOf(o.entry))*20+Number(!!websiteOf(o.entry))*10+Number(!!o.entry.booking_id)*5+Number(email);
  };
  const miles=o=>Number.isFinite(o.distance_miles)?o.distance_miles:Infinity;
- listings.sort((a,b)=>(state.nearToMe?0:detailRank(b)-detailRank(a))||((!state.sort||state.sort==='distance')?(miles(a)<miles(b)?-1:miles(a)>miles(b)?1:0):0));
+ const demoRank=o=>Number(o.entry.is_test_center===true&&o.entry.booking_id==='portal-ammar-test-center');
+ listings.sort((a,b)=>demoRank(b)-demoRank(a)||(state.nearToMe?0:detailRank(b)-detailRank(a))||((!state.sort||state.sort==='distance')?(miles(a)<miles(b)?-1:miles(a)>miles(b)?1:0):0));
  const page=paginateGroups([listings],state.resultsPage||0);
  if(!page.total)return '';
  const [cards]=page.items;
