@@ -1,3 +1,4 @@
+import MobileAccount from "./MobileAccount.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import parse, { attributesToProps, domToReact } from "html-react-parser";
 import { api, establishSession, setCsrf } from "./api.js";
@@ -182,8 +183,6 @@ export default function App() {
     [locationsOpen, setLocationsOpen] = useState(false),
     [locationAll, setLocationAll] = useState(false),
     [map, setMap] = useState(null),
-    [auth, setAuth] = useState({}),
-    [authError, setAuthError] = useState(""),
     [boot, setBoot] = useState(true);
   const [spatialEnabled, setSpatialEnabled] = useState(false);
   const [spatialSnapshot, setSpatialSnapshot] = useState(null);
@@ -387,8 +386,6 @@ export default function App() {
         }));
       setDialog(null);
       setMap(null);
-      setAuth({});
-      setAuthError("");
       window.scrollTo({ top: 0, behavior: "instant" });
     };
     const expired = () => {
@@ -622,10 +619,6 @@ export default function App() {
       }));
       return;
     }
-    if (id?.startsWith("account")) {
-      setAuth((old) => ({ ...old, [id]: id === "accountZip" ? element.value.replace(/\D/g, "").slice(0, 5) : element.value }));
-      return;
-    }
     if (id === "sort") {
       setState((old) => ({ ...old, nearToMe: false }));
       void search({ sort: element.value, nearToMe: false });
@@ -690,44 +683,7 @@ export default function App() {
       target.reset();
       return talk(message);
     }
-    if (target.id === "accountForm") {
-      const signup = view === "signup";
-      setAuthError("");
-      if (signup && auth.accountPassword !== auth.accountConfirm)
-        return setAuthError("Passwords do not match.");
-      setBusy(true);
-      try {
-        const value = await establishSession(signup ? "/register" : "/login", {
-          email: auth.accountEmail,
-          password: auth.accountPassword,
-          ...(signup
-            ? {
-                name: auth.accountName,
-                phone: auth.accountPhone || "",
-                zip_code: auth.accountZip || "",
-              }
-            : {}),
-        });
-        setAccount(value.member);
-        setAuth({});
-        navigate("search");
-        if (value.member.zip_code && !pendingBooking) {
-          await search({
-            ...initialState(),
-            location: value.member.zip_code.slice(0, 5),
-            sort: "distance",
-          });
-        }
-        setToast(
-          signup ? "Account created. You are signed in." : "You are signed in.",
-        );
-      } catch (error) {
-        setAuthError(error.message);
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
+
   }
   function click(event) {
     const nativeAction=event.target.closest("[data-native-action]");
@@ -1239,16 +1195,6 @@ export default function App() {
           {id === "dirPrev" ? "Previous" : "Next"}
         </button>
       );
-    if (id === "accountError")
-      return (
-        <p id="accountError" role="alert" tabIndex={-1}>
-          {authError}
-        </p>
-      );
-    if (id?.startsWith("account") && node.name === "input") {
-      const props = attributesToProps(node.attribs);
-      return <input {...props} value={auth[id] || ""} onChange={input} />;
-    }
     if (id === "dirSearch")
       return (
         <input
@@ -1370,7 +1316,8 @@ export default function App() {
       )}
 
       <main className={"shell" + (view === "center" ? " center-shell" : view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
-        {nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
+        {account?.setup_required && view !== "login" && view !== "signup" && <p className="panel" role="status">Complete your account setup to request a time. <a href="#login">Choose a username and verify your mobile number</a></p>}
+        {(view === "login" || view === "signup") ? <MobileAccount key={view} signup={view === "signup"} account={account} onDone={async member=>{setAccount(member);navigate("search");setToast("You are signed in.");if(member.zip_code && !pendingBooking) await search({...initialState(),location:member.zip_code,sort:"distance"});}}/> : nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (
           <OriginalHTML html={markup} onInput={input} replace={replace} />

@@ -95,8 +95,6 @@ function RequestCard({ item }) {
           <dd>{item.location || "Confirm with center"}</dd>
           <dt>Patient</dt>
           <dd>{item.contact_name || "—"}</dd>
-          <dt>Email</dt>
-          <dd>{item.contact_email || "—"}</dd>
           <dt>Mobile</dt>
           <dd>{item.contact_phone || "Not provided"}</dd>
           <dt>Contrast</dt>
@@ -112,7 +110,7 @@ function RequestCard({ item }) {
           <dd>{item.price_text}</dd>
           <dt>Submitted</dt>
           <dd>{stamp(item.created)}</dd>
-          <dt>Email delivery</dt>
+          <dt>Center notification</dt>
           <dd>{item.delivery || "Pending"}</dd>
           {item.approved_at && (
             <>
@@ -123,12 +121,6 @@ function RequestCard({ item }) {
         </dl>
       </details>
       <div className="request-card-footer">
-        {item.secure_chat_url && (
-          <a className="flow-outline" href={item.secure_chat_url} target="_blank" rel="noopener noreferrer">Open secure chat</a>
-        )}
-        {item.secure_chat_status === "pending" && (
-          <span role="status">Your secure chat is being prepared. Refresh shortly.</span>
-        )}
         {phone.length >= 8 && (
           <a className="flow-outline" href={`tel:${phone}`}>
             Call center
@@ -300,13 +292,9 @@ export default function UserDashboard({ account }) {
                   <dl>
                     {[
                       ["Name", value.profile.name],
-                      ["Account email", value.profile.email],
+                      ["Username", value.profile.username || "Setup required"],
                       ["Mobile number", value.profile.phone || "Not provided"],
                       ["ZIP code", value.profile.zip_code || "Not provided"],
-                      [
-                        "Verified booking email",
-                        value.verified_email || "Not verified yet",
-                      ],
                       [
                         "Member since",
                         new Date(

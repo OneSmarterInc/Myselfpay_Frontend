@@ -1,3 +1,4 @@
+import { completeMobileRegistration } from "./mobile-account.js";
 import {test,expect} from "@playwright/test";
 test.use({viewport:{width:390,height:844},isMobile:true,hasTouch:true,userAgent:"Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36 MySelfPayAndroid/1.0.9"});
 test("Android theme matches reference and core search actions work",async({page})=>{
@@ -41,17 +42,17 @@ test("Android theme matches reference and core search actions work",async({page}
  await expect(page.getByRole("dialog",{name:"App navigation"})).toBeVisible();
  await page.screenshot({path:"../tmp/native-menu-390.png"});
  await page.getByRole("link",{name:"Log in",exact:true}).click();
- await expect(page.locator("#accountEmail")).toBeVisible();
+ await expect(page.locator("#accountUsername")).toBeVisible();
  await expect(page.locator(".site-footer")).toBeHidden();
 });
 
 test("Android menu exposes dashboard for registered members",async({page})=>{
  await page.goto("/#signup");
  await page.locator("#accountName").fill("Native Test User");
- await page.locator("#accountEmail").fill(`native-${Date.now()}@example.com`);
+ await page.locator("#accountUsername").fill(`native-${Date.now()}`);
  await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
  await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
- await page.locator("#accountSubmit").click();
+ await completeMobileRegistration(page);
  await expect(page.getByRole("heading",{name:"Search & filters",exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Open navigation",exact:true}).click();
  await page.getByRole("link",{name:"Dashboard",exact:true}).click();

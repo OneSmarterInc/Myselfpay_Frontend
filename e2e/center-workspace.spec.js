@@ -146,10 +146,10 @@ test("center workspace navigation, filters, pagination and responsive request de
     page.getByRole("heading", { name: "Preferred appointment times" }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Open secure chat", exact: true }))
-    .toHaveAttribute("href", "https://mail.example.test/recipient/inbox#thread/synthetic");
+    .toHaveCount(0);
   await expect(
     page.getByRole("link", { name: "patient@example.test" }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await page.screenshot({
     path: "../tmp/center-workspace-detail-mobile.png",
     fullPage: true,

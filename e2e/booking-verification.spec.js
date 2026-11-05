@@ -1,140 +1,119 @@
-import {test,expect} from "@playwright/test";
-test("email is required and mobile OTP is optional before booking",async({page})=>{
- await page.route("**/api/booking/options",r=>r.fulfill({json:{name:"Synthetic Imaging",location:"Ohio",price_text:"Confirm total",delivery:"enabled",is_test_center:true,today:{"America/New_York":"2026-11-03"}}}));
- await page.route("**/api/booking/email-code",r=>r.fulfill({json:{verification_id:"synthetic-email",delivery:"sent"}}));
- await page.route("**/api/booking/email-verify",r=>r.fulfill({json:{verification_token:"synthetic-email-proof"}}));
- await page.route("**/api/booking/phone-code",r=>r.fulfill({json:{verification_id:"synthetic-phone"}}));
- await page.route("**/api/booking/phone-verify",r=>r.fulfill({json:{verification_token:"synthetic-phone-proof"}}));
- await page.goto("/#signup");
- await page.locator("#accountName").fill("Synthetic Booking User");
- await page.locator("#accountEmail").fill(`booking-${Date.now()}@example.com`);
- await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
- await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
- await page.locator("#accountSubmit").click();
- await page.locator("#location").fill("Ohio");
- await page.getByRole("button",{name:"Find options",exact:true}).click();
- await page.locator("article.card [data-appointment]").first().click();
- await expect(page.getByRole("heading",{name:"What’s your email address?"})).toBeVisible();
- await expect(page.locator("#bookingZone")).toHaveCount(0);
- await page.setViewportSize({width:390,height:844});
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.locator(".booking-verification-gate").screenshot({path:"../tmp/booking-contact-verification-mobile.png"});
- await expect(page.locator("#patientCodeSend")).toBeVisible();
- await page.locator("#bookingEmail").fill("patient@example.test");
- await page.locator("#patientCodeSend").click();
- await expect(page.locator('.otp-input-group').first().locator('input')).toHaveCount(6);
- await page.screenshot({path:"../tmp/booking-otp-page-mobile.png"});
- await page.locator(".otp-input-group").first().screenshot({path:"../tmp/booking-otp-mobile.png"});
- await page.locator("#patientEmailCode").fill("123456");
- await page.locator("#patientCodeVerify").click();
- await expect(page.locator("#patientEmailStatus")).toContainText("Email verified successfully");
- await expect(page.getByRole("button",{name:"Continue to booking"})).toBeEnabled();
- await page.locator(".flow-mobile-optional summary").click();
- await page.locator("#bookingPhoneCountry").selectOption("IN");
- await page.locator("#bookingPhone").fill("9000000000");
- const sentPhone=page.waitForRequest(r=>r.url().endsWith("/api/booking/phone-code"));
- await page.locator("#patientPhoneSend").click();
- expect((await sentPhone).postDataJSON().phone).toBe("+919000000000");
- await page.locator("#patientPhoneCode").fill("654321");
- await page.locator("#patientPhoneVerify").click();
- await expect(page.locator("#patientPhoneStatus")).toContainText("Mobile number verified successfully");
- await page.getByRole("button",{name:"Continue to booking"}).click();
- await expect(page.locator(".time-choice-panel")).toBeVisible();
- await expect(page.locator(".booking-notice")).toHaveCount(0);
- await expect(page.locator("#bookingExam")).toHaveCount(0);
- await expect(page.locator("#bookingContrast")).toHaveCount(0);
- await expect(page.locator("#bookingService")).toHaveCount(0);
- await expect(page.locator("#bookingZone")).toHaveCount(0);
- await page.locator(".flow-more-dates summary").click();
- await page.locator("#bookingDate").fill("2026-11-10");
- await page.locator(".time-choice-row").first().getByRole("button",{name:"Morning",exact:true}).click();
- await expect(page.locator("#bookingName")).toBeVisible();
- await expect(page.locator("#bookingEmail")).toHaveCount(0);
- await expect(page.locator(".booking-verified-contacts")).toContainText("patient@example.test");
- await page.locator("#editBookingContacts").click();
- await expect(page.locator("#bookingEmail")).toBeVisible();
- await page.locator(".flow-mobile-optional summary").click();
- await page.locator("#bookingPhoneCountry").selectOption("US");
- await expect(page.locator("#patientPhoneStatus")).not.toContainText("Mobile number verified successfully");
- await expect(page.getByRole("button",{name:"Continue to booking"})).toBeEnabled();
- await page.locator("#bookingPhone").fill("");
- await page.route("**/api/booking/create",async r=>{
-   const data=r.request().postDataJSON();
-   expect(data.verification_token).toBe("synthetic-email-proof");
-   expect(data.phone).toBe("");
-   expect(data.phone_verification_id).toBeUndefined();
-   expect(data.phone_verification_token).toBeUndefined();
-   await r.fulfill({json:{id:"MSP-EMAIL-ONLY",tracking_token:"synthetic-tracking"}});
- });
- await page.getByRole("button",{name:"Continue to booking"}).click();
- await page.locator("#bookingName").fill("Synthetic Patient");
- await page.locator("#bookingConsent").check();
- const created=page.waitForResponse(r=>r.url().endsWith("/api/booking/create"));
- await page.locator("#bookingSubmit").click();
- expect((await created).status()).toBe(200);
+import { test, expect } from "@playwright/test";
+import { completeMobileRegistration } from "./mobile-account.js";
+
+async function register(page) {
+  await page.goto("/#signup");
+  await page.locator("#accountName").fill("Synthetic Mobile Booker");
+  await page.locator("#accountUsername").fill("mobile_" + Date.now());
+  await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
+  await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
+  await expect(page.locator("input[type=email]")).toHaveCount(0);
+  await completeMobileRegistration(page);
+  await page.locator("#location").fill("Ohio");
+  await page.getByRole("button", { name: "Find options", exact: true }).click();
+  await page.locator("article.card [data-appointment]").first().click();
+}
+
+test("verified mobile accounts go directly to slots, without patient email or OTP at booking", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await register(page);
+  await expect(page.locator(".time-choice-panel")).toBeVisible();
+  await expect(page.locator("#bookingEmail")).toHaveCount(0);
+  await expect(page.locator("#patientCodeSend")).toHaveCount(0);
+  await expect(page.locator("#bookingZone")).toHaveCount(0);
+  await expect(page.locator(".flow-verified")).toContainText(
+    "Verified mobile number:",
+  );
+  const rows = page.locator(".time-choice-row");
+  await expect(rows).toHaveCount(5);
+  for (let i = 0; i < 3; i++)
+    await rows
+      .nth(i)
+      .getByRole("button", { name: "Morning", exact: true })
+      .click();
+  await rows
+    .nth(3)
+    .getByRole("button", { name: "Morning", exact: true })
+    .click();
+  await expect(page.locator("#bookingError")).toContainText("up to 3");
+  await expect(
+    page.locator(".time-choice-row button[aria-pressed=true]"),
+  ).toHaveCount(3);
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page
+        .locator("#modalBody")
+        .evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+    ).toBe(true);
+  }
+  await page.locator("#bookingConsent").check();
+  await page.route("**/api/booking/create", async (route) => {
+    const data = route.request().postDataJSON();
+    expect(data.email).toBeUndefined();
+    expect(data.verification_token).toBeUndefined();
+    expect(data.phone).toMatch(/^\+1/);
+    await route.fulfill({
+      json: {
+        id: "MSP-MOBILE-TEST",
+        tracking_token: "synthetic-token",
+        delivery: "sent",
+      },
+    });
+  });
+  await page.route("**/api/booking/patient", (route) =>
+    route.fulfill({
+      json: {
+        id: "MSP-MOBILE-TEST",
+        clinic_name: "Synthetic Imaging",
+        status: "requested",
+        delivery: "sent",
+        service: "MRI",
+        exam: "",
+        contrast: "unknown",
+        slots: [],
+        timezone: "America/New_York",
+      },
+    }),
+  );
+  await page.locator("#bookingSubmit").click();
+  await expect(
+    page.getByRole("heading", { name: "Request sent", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Open secure chat" }),
+  ).toHaveCount(0);
 });
 
-test("receipt replaces yellow notices with center contact message",async({page})=>{
- await page.route("**/api/booking/patient",r=>r.fulfill({json:{id:"MSP-TEST",status:"requested",delivery:"sent",clinic_name:"Gitesh Imaging Center",location:"Dayton",service:"MRI",exam:"",contrast:"unknown",timezone:"America/New_York",slots:[{date:"2026-11-10",period:"morning"}],price_text:"Clinic will confirm the exact total.",is_test_center:true}}));
- await page.goto("/#request/MSP-TEST/synthetic-token");
- await expect(page.getByRole("heading",{name:"Request sent",exact:true})).toBeVisible();
- await expect(page.locator(".booking-notice")).toHaveCount(0);
- await expect(page.locator(".booking-follow-up")).toContainText("The center will contact you by email or phone");
- await expect(page.getByRole("button",{name:"Copy request link"})).toBeVisible();
- await page.setViewportSize({width:390,height:844});
- await page.screenshot({path:"../tmp/booking-receipt-reference-mobile.png"});
- expect(await page.getByRole("link",{name:"My requests",exact:true}).evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight)).toBe(true);
-});
-
-test("saved verified email skips OTP on another booking",async({page})=>{
- await page.route("**/api/booking/options",r=>r.fulfill({json:{name:"Synthetic Imaging",location:"Ohio",price_text:"MRI: $350",delivery:"enabled",verified_email:"saved@example.com",today:{"America/New_York":"2026-11-03"}}}));
- await page.goto("/#signup");
- await page.locator("#accountName").fill("Saved Email User");
- await page.locator("#accountEmail").fill(`saved-${Date.now()}@example.com`);
- await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
- await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
- await page.locator("#accountSubmit").click();
- await page.locator("#location").fill("Ohio");
- await page.getByRole("button",{name:"Find options",exact:true}).click();
- await page.locator("article.card [data-appointment]").first().click();
- await expect(page.locator(".time-choice-panel")).toBeVisible();
- await expect(page.locator("#patientCodeSend")).toHaveCount(0);
- await page.setViewportSize({width:390,height:844});
- await expect(page.locator("#bookingZone")).toHaveCount(0);
- await page.locator(".flow-more-dates summary").click();
- await page.locator("#bookingDate").fill("2026-11-10");
- const rows=page.locator(".time-choice-row");
- await expect(rows).toHaveCount(5);
- await rows.nth(0).getByRole("button",{name:"Morning",exact:true}).click();
- await rows.nth(1).getByRole("button",{name:"Afternoon",exact:true}).click();
- await rows.nth(2).getByRole("button",{name:"Morning",exact:true}).click();
- await expect(page.locator(".time-choice-row button[aria-pressed=true]")).toHaveCount(3);
- await rows.nth(3).getByRole("button",{name:"Morning",exact:true}).click();
- await expect(page.locator("#bookingError")).toContainText("up to 3");
- await rows.nth(0).getByRole("button",{name:"Morning",exact:true}).click();
- await expect(page.locator(".time-choice-row button[aria-pressed=true]")).toHaveCount(2);
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.locator("#bookingName").fill("Jamie");
- await page.locator("#bookingConsent").check();
- await page.locator(".flow-more-dates summary").click();
- expect(await page.locator("#bookingConsent").evaluate(el=>el.getBoundingClientRect().width)).toBeLessThan(24);
- await page.locator("#modalBody").evaluate(el=>el.scrollTop=0);
- await page.screenshot({path:"../tmp/booking-flow-reference-mobile.png"});
- await page.locator("#modalBody").evaluate(el=>el.scrollTop=el.scrollHeight);
- expect(await page.locator(".flow-consent>span").evaluate(el=>el.getBoundingClientRect().width)).toBeGreaterThan(150);
- await page.screenshot({path:"../tmp/booking-flow-contact-mobile.png"});
- await page.locator(".time-choice-panel").screenshot({path:"../tmp/booking-time-picker-mobile.png"});
- for (const width of [320,768,1280]) {
-   await page.setViewportSize({width,height:900});
-   expect(await page.locator("#modalBody").evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
-   await page.locator("#modalBody").evaluate(el=>el.scrollTop=0);
-   await page.screenshot({path:`../tmp/booking-flow-reference-${width}.png`});
- }
- await page.setViewportSize({width:390,height:844});
- await page.locator("#editBookingContacts").click();
- await expect(page.locator("#bookingEmail")).toHaveValue("saved@example.com");
- await expect(page.getByRole("button",{name:"Continue to booking"})).toBeEnabled();
- await page.locator("#bookingEmail").fill("different@example.com");
- await expect(page.locator("#patientCodeSend")).toBeVisible();
- await expect(page.locator(".time-choice-panel")).toHaveCount(0);
+test("mobile OTP registration has six responsive boxes and requires a successful verification", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/#signup");
+  await page.locator("#accountName").fill("OTP Layout");
+  await page.locator("#accountUsername").fill("otp_" + Date.now());
+  await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
+  await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
+  await page.locator("#accountPhone").fill("5550123456");
+  await page.locator("#accountSubmit").click();
+  await expect(page.locator(".otp-input-group input")).toHaveCount(6);
+  await page
+    .locator(".mobile-account")
+    .screenshot({ path: "mobile-registration-360.png" });
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page
+    .locator(".mobile-account")
+    .screenshot({ path: "mobile-registration-1280.png" });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await expect(page.locator("#accountSubmit")).toBeDisabled();
+  await page.locator("#registrationOTP").fill("000000");
+  await page.locator("#accountSubmit").click();
+  await expect(page.getByRole("alert")).toContainText("Incorrect");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });

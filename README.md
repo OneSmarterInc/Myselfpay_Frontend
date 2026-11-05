@@ -1,3 +1,5 @@
+> Patient accounts now use a chosen username and verified mobile number. Registration uses SMS OTP; login uses username/password. Booking opens directly for verified accounts, without patient email or secure-chat links. Existing users have a one-time setup that preserves their requests. Deploy with the matching backend migration 0013.
+
 # MySelfPay frontend — React
 
 The original SelfPay UI is restored from commit `bf839ef9af6efde48b2666cc26e7e793a7d9bd06`: original layout, wording, CSS, logo, self-hosted Public Sans font, icons, information pages, filter controls, dialogs and booking screens. `src/original-ui.js` retains the source presentation templates; React converts them to elements and owns component state and events. The original imperative `app.js` is not loaded.
@@ -73,3 +75,5 @@ No existing live patient/account data, production credentials or live database b
 ## Predefined chat
 
 Ask MySelfPay retains the original chat layout and supports only the three questions in `src/chat-questions.js`. The suggestion buttons, Send field and voice-preview selector use this allowlist. Other text is rejected locally. Registered users receive the same questions; guest conversation quotas still apply. The backend must also be updated to enforce the allowlist on `/api/agent`. No external AI or speech service is called.
+
+The browser-test workflow pins the matching backend revision for the mobile account API and uses simulated SMS only in its isolated DEBUG fixture. Update that revision when intentionally changing the API contract. Production SMS always uses the configured Twilio Verify service.

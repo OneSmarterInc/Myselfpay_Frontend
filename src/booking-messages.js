@@ -1,8 +1,8 @@
 export function deliveryMessage(delivery) {
   return (
     {
-      secure_mail_pending: "Your request is saved. Secure Mail is preparing a private conversation and will email you and the clinic.",
-      secure_mail_ready: "Your request is available in Secure Mail. The clinic can review and confirm it in the secure conversation.",
+      secure_mail_pending: "Your request is saved. The center notification is being prepared.",
+      secure_mail_ready: "Your request is available for the center to review.",
       sent: "Your booking request was emailed to the center. The clinic must confirm the appointment.",
       queued: "Your request is saved and its center notification is queued.",
       sending: "Your request is saved. Its center notification is being sent.",
@@ -20,10 +20,6 @@ export function deliveryMessage(delivery) {
 export function productionBookingCopy(html, enabled) {
   if (!enabled) return html;
   return html
-    .replace(
-      "Testing mode: the clinic will not be emailed. Verification codes are sent to your personal email. Use sample patient details and an inbox you control.",
-      "Your request will be emailed to the center after you verify your personal email. Preferred times are requests, not confirmed appointments.",
-    )
     .replace(
       "Preview only. No clinic will receive this request.",
       "The center will receive your booking request by email. Your appointment is confirmed only when the clinic contacts you.",

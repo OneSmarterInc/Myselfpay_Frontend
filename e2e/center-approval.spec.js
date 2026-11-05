@@ -15,10 +15,10 @@ test("center email OTP is required before approving an appointment request",asyn
  await page.screenshot({path:"../tmp/center-otp-reference-mobile.png"});
  await page.locator("#clinicCode").fill("123456");
  await page.locator("#clinicVerifyButton").click();
- await expect(page.getByRole("link",{name:"patient@example.test",exact:true})).toBeVisible();
+ await expect(page.getByRole("link",{name:"patient@example.test",exact:true})).toHaveCount(0);
  await page.screenshot({path:"../tmp/center-review-reference-mobile.png"});
  await page.getByRole("button",{name:"Approve request",exact:true}).click();
- await expect(page.getByRole("link",{name:"Open secure chat",exact:true})).toBeVisible();
+ await expect(page.getByRole("link",{name:"Open secure chat",exact:true})).toHaveCount(0);
  await expect(page.locator("#clinicOutcome")).toContainText("Approved by center");
  await expect(page.getByRole("button",{name:"Approve request",exact:true})).toHaveCount(0);
  await expect(page.getByRole("heading",{name:"Request approved",exact:true})).toBeVisible();

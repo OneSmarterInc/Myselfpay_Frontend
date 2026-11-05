@@ -1,3 +1,4 @@
+import { completeMobileRegistration } from "./mobile-account.js";
 import { test, expect } from "@playwright/test";
 test("signed-in dashboard shows profile, request status and request links", async ({
   page,
@@ -6,10 +7,10 @@ test("signed-in dashboard shows profile, request status and request links", asyn
   await expect(page.locator("#profile")).toBeEnabled();
   const email = `dashboard-${Date.now()}@example.com`;
   await page.locator("#accountName").fill("Dashboard Test User");
-  await page.locator("#accountEmail").fill(email);
+  await page.locator("#accountUsername").fill(email.split("@")[0]);
   await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
   await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
-  await page.locator("#accountSubmit").click();
+  await completeMobileRegistration(page);
   expect(
     await page
       .getByRole("link", { name: "Dashboard", exact: true })
@@ -23,18 +24,17 @@ test("signed-in dashboard shows profile, request status and request links", asyn
     page.getByRole("heading", { name: "No requests yet" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "My profile", exact: true }).click();
-  await expect(page.locator(".dashboard-profile")).toContainText(email);
+  await expect(page.locator(".dashboard-profile")).toContainText(email.split("@")[0]);
   await page.route("**/api/dashboard?*", (r) =>
     r.fulfill({
       json: {
         profile: {
           name: "Dashboard Test User",
-          email,
+          username: email.split("@")[0],
           phone: "",
           zip_code: "",
           created: 1793700000,
         },
-        verified_email: email,
         stats: { requested: 1, scheduled: 1 },
         total: 2,
         page: 1,
@@ -81,8 +81,7 @@ test("signed-in dashboard shows profile, request status and request links", asyn
   await expect(
     page.getByText("Awaiting center confirmation", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open secure chat", exact: true }))
-    .toHaveAttribute("href", "https://mail.example.test/recipient/inbox#thread/synthetic");
+  await expect(page.getByRole("link", { name: "Open secure chat" })).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: "Open request", exact: true }),
   ).toHaveAttribute("href", "#request/MSP-SYNTHETIC/synthetic-only-token");
@@ -144,6 +143,6 @@ test("signed-in dashboard shows profile, request status and request links", asyn
     .screenshot({ path: "../tmp/user-dashboard-mobile.png" });
   await page.getByRole("button", { name: "My profile", exact: true }).click();
   await expect(page.locator(".dashboard-profile")).toContainText(
-    "Verified booking email",
+    "Username",
   );
 });

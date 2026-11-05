@@ -1,3 +1,4 @@
+import { completeMobileRegistration } from "./mobile-account.js";
 import { test, expect } from "@playwright/test";
 
 test("current-location search loads the whole selected state and recalculates overseas miles locally", async ({
@@ -108,7 +109,7 @@ test("five-digit ZIP registration persists and automatically searches after logi
     password = "Synthetic-only-passphrase!";
   await page.goto("/#signup");
   await page.locator("#accountName").fill("Synthetic ZIP User");
-  await page.locator("#accountEmail").fill(email);
+  await page.locator("#accountUsername").fill(email.split("@")[0]);
   await page.locator("#accountZip").fill("4520");
   expect(
     await page
@@ -125,14 +126,14 @@ test("five-digit ZIP registration persists and automatically searches after logi
         request.postDataJSON()?.location === "45202",
     );
   const registered = search();
-  await page.locator("#accountSubmit").click();
+  await completeMobileRegistration(page);
   expect((await registered).postDataJSON().sort).toBe("distance");
   await expect(page.locator("article.card").first()).toBeVisible();
   const profile = await page.request.get("/api/me");
   expect((await profile.json()).member.zip_code).toBe("45202");
   await page.locator("#profile").click();
   await page.locator("#accountLogin").click();
-  await page.locator("#accountEmail").fill(email);
+  await page.locator("#accountUsername").fill(email.split("@")[0]);
   await page.locator("#accountPassword").fill(password);
   const loggedIn = search();
   await page.locator("#accountSubmit").click();

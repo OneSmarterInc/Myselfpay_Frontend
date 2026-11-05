@@ -25,5 +25,12 @@ def simulated_client_throttle(path, action, ip, email):
     return original_throttle(path, action, 'browser-fixture:' + email, email)
 
 accounts.throttle = simulated_client_throttle
+# Only this isolated, DEBUG-only fixture can simulate SMS. No real SMS is sent.
+if os.getenv('E2E_FAKE_SMS') == 'true':
+    import booking_sms
+    import secrets
+    booking_sms.configuration = lambda: {}
+    booking_sms.send_code = lambda phone: 'VE' + secrets.token_hex(16)
+    booking_sms.check_code = lambda sid, code: code == '123456'
 from django.core.management import execute_from_command_line
 execute_from_command_line(['manage.py', 'runserver', os.getenv('E2E_BACKEND_ADDRESS', '127.0.0.1:8000'), '--noreload'])

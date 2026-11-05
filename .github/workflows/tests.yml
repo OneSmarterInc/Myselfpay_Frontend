@@ -21,11 +21,14 @@ jobs:
       DJANGO_DEBUG: 'true'
       FRONTEND_ORIGIN: http://localhost:5173
       PLAYWRIGHT_CHANNEL: chromium
+      E2E_FAKE_SMS: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
           repository: OneSmarterInc/MyselfPay_Backend
+          # Paired API contract for mobile-only patient accounts.
+          ref: 900c0f801b9639da5a5595136b96a6cbddd31162
           path: .backend
       - uses: actions/setup-node@v4
         with:

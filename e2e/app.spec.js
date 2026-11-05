@@ -1,3 +1,4 @@
+import { completeMobileRegistration } from "./mobile-account.js";
 import { test, expect } from "@playwright/test";
 
 test("National lists directory centers with ten results per page", async ({
@@ -160,22 +161,22 @@ test("original signup and login forms retain verified DRF sessions", async ({
     password = "Synthetic-only-passphrase!";
   await page.goto("/#signup");
   await page.locator("#accountName").fill("Synthetic UI Test");
-  await page.locator("#accountEmail").fill(email);
+  await page.locator("#accountUsername").fill(email.split("@")[0]);
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
   await page.locator("#accountPassword").fill(password);
   await page.locator("#accountConfirm").fill(password);
-  await page.locator("#accountSubmit").click();
+  await completeMobileRegistration(page);
   await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible({ timeout: 15000 });
   await page.locator("#profile").click();
   await page.locator("#accountLogin").click();
-  await page.locator("#accountEmail").fill(email);
+  await page.locator("#accountUsername").fill(email.split("@")[0]);
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
   await page.locator("#accountPassword").fill(password);
   await page.locator("#accountSubmit").click();
   await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
   const session = await page.request.get("/api/me");
   expect(session.ok()).toBe(true);
-  expect((await session.json()).member.email).toBe(email);
+  expect((await session.json()).member.username).toBe(email.split("@")[0]);
 });
 
 test("expired cookies clear signed-in UI and permit sign-out", async ({
@@ -202,7 +203,7 @@ test("original information pages remain public", async ({ page }) => {
   );
   await page.goto("/#login");
   await expect(
-    page.getByRole("heading", { name: "Log in", exact: true }),
+    page.getByRole("heading", { name: "Welcome back", exact: true }),
   ).toBeVisible();
 });
 
@@ -234,7 +235,7 @@ test("reference appointment dialog requires an account and handles email deliver
     .getByRole("button", { name: "Log in", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Log in", exact: true }),
+    page.getByRole("heading", { name: "Welcome back", exact: true }),
   ).toBeVisible();
   await page.goBack();
   await page.locator("[data-appointment]").first().click();
@@ -248,31 +249,14 @@ test("reference appointment dialog requires an account and handles email deliver
     page.getByRole("heading", { name: "Create an account", exact: true }),
   ).toBeVisible();
   await page.locator("#accountName").fill("Synthetic Booker");
-  await page.locator("#accountEmail").fill(`booking-${Date.now()}@example.com`);
+  await page.locator("#accountUsername").fill(`booking-${Date.now()}`);
   await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
   await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
-  await page.locator("#accountSubmit").click();
+  await completeMobileRegistration(page);
   await expect(
     page.getByRole("heading", { name: "Request a Time" }),
   ).toBeVisible();
-  await expect(page.locator("#bookingEmail")).toBeVisible();
-  await expect(page.locator(".time-choice-panel")).toHaveCount(0);
-  await page.route("**/api/booking/email-code", (route) =>
-    route.fulfill({
-      status: 503,
-      contentType: "application/json",
-      body: JSON.stringify({
-        error: "Email delivery is unavailable. Please try again later.",
-      }),
-    }),
-  );
-  await page.locator("#bookingEmail").fill("synthetic@example.com");
-  await page.locator("#patientCodeSend").click();
-  await expect(page.locator("#bookingError")).toContainText(
-    "Email delivery is unavailable",
-  );
-  await expect(page.locator("#patientEmailStatus")).not.toContainText(
-    "Sending",
-  );
-  await expect(page.locator("#patientCodeSend")).toBeEnabled();
+  await expect(page.locator("#bookingEmail")).toHaveCount(0);
+  await expect(page.locator(".time-choice-panel")).toBeVisible();
+  await expect(page.locator("#patientCodeSend")).toHaveCount(0);
 });
