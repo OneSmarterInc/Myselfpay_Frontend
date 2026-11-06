@@ -1,4 +1,10 @@
-export function deliveryMessage(delivery) {
+export function deliveryMessage(delivery, notificationTarget = "center") {
+  if (notificationTarget === "support") {
+    if (delivery === "sent") return "Your request was sent to MySelfPay Patient Care for follow-up with the center. The center must confirm your appointment.";
+    if (["failed", "uncertain"].includes(delivery)) return "Your request is saved, but its delivery to MySelfPay Patient Care has not been confirmed. Contact support before submitting another request.";
+    if (delivery === "suppressed") return "Your request is saved in testing mode. No email was sent to MySelfPay Patient Care.";
+    return "Your request is saved. Its notification to MySelfPay Patient Care is queued for follow-up with the center.";
+  }
   return (
     {
       secure_mail_pending: "Your request is saved. The center notification is being prepared.",

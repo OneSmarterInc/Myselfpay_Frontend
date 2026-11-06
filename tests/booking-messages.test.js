@@ -4,6 +4,12 @@ import {
   productionBookingCopy,
 } from "../src/booking-messages.js";
 describe("live booking email wording", () => {
+  it("identifies support delivery without claiming the center received it", () => {
+    expect(deliveryMessage("sent", "support")).toContain("sent to MySelfPay Patient Care");
+    expect(deliveryMessage("queued", "support")).toContain("queued");
+    expect(deliveryMessage("failed", "support")).toContain("has not been confirmed");
+    expect(deliveryMessage("suppressed", "support")).toContain("No email was sent");
+  });
   it("only claims an email was sent when the API confirms sent", () => {
     expect(deliveryMessage("sent")).toContain("emailed to the center");
     expect(deliveryMessage("failed")).toContain("could not be sent");

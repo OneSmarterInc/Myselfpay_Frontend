@@ -72,7 +72,7 @@ export default function OriginalBooking({
     try {
       const result = await call("create", draft);
       onClose();
-      notify(deliveryMessage(result.delivery));
+      notify(deliveryMessage(result.delivery, result.notification_target));
       location.hash = `request/${result.id}/${result.tracking_token}`;
     } catch (e) {
       setError(e.message);
@@ -121,6 +121,9 @@ export default function OriginalBooking({
             <section className="flow-card flow-clinic">
               <h3>{draft.clinic_name}</h3>
               <p>{draft.price_text}</p>
+              {options.notification_target === "support" && (
+                <p className="flow-help">MySelfPay Patient Care will receive this request and follow up with the center. The center must confirm your appointment.</p>
+              )}
             </section>
             <TimeSlotPicker
               draft={draft}
@@ -424,12 +427,12 @@ export function OriginalBookingLink({ route, ui }) {
     value &&
     kind !== "clinic" &&
     value.status === "requested" &&
-    value.delivery !== "sent"
+    (value.delivery !== "sent" || value.notification_target === "support")
   ) {
     html = html.replace("Request sent", "Request saved");
     html = html.replace(
       "The center will call or text you about your appointment request.",
-      ui.esc(deliveryMessage(value.delivery)),
+      ui.esc(deliveryMessage(value.delivery, value.notification_target)),
     );
   }
   if (kind === "clinic" && error && /expired/i.test(error))
