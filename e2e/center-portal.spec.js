@@ -52,13 +52,13 @@ test("center login, support message, email OTP and scoped request approval", asy
   );
   await page.route("**/api/center/request", (r) => {
     expect(r.request().headers()["x-center-csrf"]).toBe("synthetic-csrf");
-    if (r.request().postDataJSON().status) approved = true;
+    if (r.request().postDataJSON().status) {expect(r.request().postDataJSON().appointment).toEqual({preferred_index:0}); approved = true;}
     return r.fulfill({
       json: {
         ...item,
         status: approved ? "scheduled" : "requested",
         ...(approved
-          ? { contact_hidden: true }
+          ? { contact_hidden: true, approved_slot:{date:"2026-12-10",period:"morning",timezone:"America/New_York",source:"preferred"} }
           : {
               first_name: "Synthetic",
               patient_email: "patient@example.test",
@@ -97,6 +97,8 @@ test("center login, support message, email OTP and scoped request approval", asy
   await expect(
     page.getByRole("link", { name: "patient@example.test" }),
   ).toHaveCount(0);
+  await expect(page.getByRole("button",{name:"Approve request",exact:true})).toBeDisabled();
+  await page.locator('.appointment-choice input[type=radio]').first().check();
   await page
     .getByRole("button", { name: "Approve request", exact: true })
     .click();

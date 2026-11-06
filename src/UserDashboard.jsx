@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import RequestStatusTabs from "./RequestStatusTabs.jsx";
+import { approvedSlotLabel } from "./approved-slot.js";
+import "./approval-slots.css";
 
 const labels = {
   requested: "Awaiting center confirmation",
@@ -69,6 +71,18 @@ function RequestCard({ item }) {
         <span aria-hidden="true" className="status-dot" />
         {labels[item.status] || item.status}
       </span>
+      {item.status === "scheduled" && (
+        <div className="approved-appointment">
+          <strong>Approved appointment</strong>
+          <p>{approvedSlotLabel(item.approved_slot)}</p>
+          {item.approved_slot?.source === "custom" && (
+            <p>
+              The center selected an alternative to your preferred times.
+              Contact the center if it does not work for you.
+            </p>
+          )}
+        </div>
+      )}
       <details className="dashboard-request-details">
         <summary>Full request details</summary>
         <div className="request-slot-heading">
@@ -292,7 +306,9 @@ export default function UserDashboard({ account }) {
                   <dl>
                     {[
                       ["Name", value.profile.name],
-                      ...(value.profile.username ? [["Username", value.profile.username]] : []),
+                      ...(value.profile.username
+                        ? [["Username", value.profile.username]]
+                        : []),
                       ["Mobile number", value.profile.phone || "Not provided"],
                       ["ZIP code", value.profile.zip_code || "Not provided"],
                       [

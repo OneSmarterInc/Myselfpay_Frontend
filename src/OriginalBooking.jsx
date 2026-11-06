@@ -3,6 +3,8 @@ import { api } from "./api.js";
 import { OTPInput, TimeSlotPicker } from "./BookingControls.jsx";
 import { OriginalHTML } from "./App.jsx";
 import { deliveryMessage } from "./booking-messages.js";
+import ApprovalSlotPicker from "./ApprovalSlotPicker.jsx";
+import { approvalReady } from "./approved-slot.js";
 const call = (action, data) => api("/booking/" + action, data);
 const zoneNames = {
   "America/New_York": "Eastern",
@@ -122,7 +124,10 @@ export default function OriginalBooking({
               <h3>{draft.clinic_name}</h3>
               <p>{draft.price_text}</p>
               {options.notification_target === "support" && (
-                <p className="flow-help">MySelfPay Patient Care will receive this request and follow up with the center. The center must confirm your appointment.</p>
+                <p className="flow-help">
+                  MySelfPay Patient Care will receive this request and follow up
+                  with the center. The center must confirm your appointment.
+                </p>
               )}
             </section>
             <TimeSlotPicker
@@ -188,6 +193,8 @@ export default function OriginalBooking({
 export function OriginalBookingLink({ route, ui }) {
   const [kind, id, token] = route.split("/");
   const initialCode = useRef(null);
+  const [appointment, setAppointment] = useState(null);
+  useEffect(() => setAppointment(null), [id, token]);
   const [resendAt, setResendAt] = useState(0);
   const [resendLeft, setResendLeft] = useState(0);
   useEffect(() => {
@@ -342,6 +349,9 @@ export function OriginalBookingLink({ route, ui }) {
             id,
             session,
             status: button.dataset.bookingStatus,
+            ...(button.dataset.bookingStatus === "scheduled"
+              ? { appointment }
+              : {}),
           }),
         ),
       );
@@ -358,6 +368,25 @@ export function OriginalBookingLink({ route, ui }) {
   }
   const replace = (node) => {
     const name = node.attribs.id;
+    if (name === "clinicAppointment" && value)
+      return (
+        <ApprovalSlotPicker
+          request={value}
+          value={appointment}
+          onChange={setAppointment}
+          disabled={busy}
+        />
+      );
+    if (node.attribs["data-booking-status"] === "scheduled")
+      return (
+        <button
+          className="flow-dark"
+          data-booking-status="scheduled"
+          disabled={busy || !approvalReady(appointment)}
+        >
+          Approve request
+        </button>
+      );
     if (name === "clinicError")
       return (
         <p id={name} role="alert">
