@@ -212,10 +212,10 @@ test("request a time verifies a US phone directly and preserves the center", asy
   await expect(page.getByRole("heading", {name:"Verify your phone to request a time",exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"Create account and continue",exact:true})).toHaveCount(0);
   await expect(page.locator("#accountName")).toHaveCount(0);
-  await expect(page.getByRole("combobox",{name:"Country code"})).toHaveCount(0);
-  await page.locator("#accountPhone").fill("+14165550123");
+  await expect(page.getByRole("combobox",{name:"Country code"})).toHaveCount(1);
+  await page.locator("#accountPhone").fill("+15550123456");
   await page.locator("#accountSubmit").click();
-  await expect(page.getByRole("alert")).toContainText("US phone number");
+  await expect(page.getByRole("alert")).toContainText("phone number");
   await page.locator("#accountPhone").fill("6145550198");
   await page.locator("#accountSubmit").click();
   await expect(page.locator(".otp-input-group input")).toHaveCount(6);

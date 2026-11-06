@@ -10,14 +10,15 @@ export default function MobileAccount({
   onDone,
   requestOnly = false,
 }) {
-  const [name, setName] = useState(account?.name?.split(" ")[0] || "");
+  const [name, setName] = useState("");
+  const [nameFocused, setNameFocused] = useState(false);
   const [country, setCountry] = useState("US");
   const [national, setNational] = useState("");
   const [challenge, setChallenge] = useState(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const phone = requestOnly ? national : phoneInput(country, national).phone;
+  const phone = phoneInput(country, national).phone;
   const intent = requestOnly ? "request" : signup ? "register" : "login";
   const payload = {
     intent,
@@ -26,13 +27,6 @@ export default function MobileAccount({
   };
   const Heading = requestOnly ? "h2" : "h1";
   function changePhone(nextCountry, value) {
-    if (requestOnly) {
-      setNational(value.slice(0, 30));
-      setChallenge(null);
-      setCode("");
-      setError("");
-      return;
-    }
     const parsed = phoneInput(nextCountry, value);
     setCountry(parsed.country);
     setNational(parsed.national);
@@ -88,7 +82,7 @@ export default function MobileAccount({
         {challenge
           ? `Enter the six-digit SMS code sent to ${challenge.phone || phone}.`
           : requestOnly
-            ? "You only need a valid US phone number that can receive an SMS verification code. Your selected center will be kept."
+            ? "Select your country code and enter a phone number that can receive an SMS verification code. Your selected center will be kept."
             : signup
               ? "Enter your first name and mobile number to get started."
               : "Enter your registered mobile number. We’ll send you a login code."}
@@ -106,16 +100,15 @@ export default function MobileAccount({
                     required
                     maxLength={100}
                     value={name}
+                    placeholder={nameFocused ? "" : "Enter your name"}
+                    onFocus={() => setNameFocused(true)}
+                    onBlur={() => setNameFocused(false)}
                     onChange={(e) => setName(e.target.value)}
                   />
                 </label>
               )}
-              <div
-                className={
-                  requestOnly ? "request-phone-number" : "mobile-account-phone"
-                }
-              >
-                {!requestOnly && (
+              <div className="mobile-account-phone">
+                {
                   <label>
                     Country code
                     <select
@@ -130,16 +123,16 @@ export default function MobileAccount({
                       ))}
                     </select>
                   </label>
-                )}
+                }
                 <label>
-                  {requestOnly ? "US phone number (+1)" : "Mobile number"}
+                  Mobile number
                   <input
                     id="accountPhone"
                     type="tel"
                     inputMode="tel"
                     autoComplete="tel-national"
                     required
-                    placeholder={requestOnly ? "(614) 555-0142" : undefined}
+                    placeholder="Enter mobile number"
                     maxLength={requestOnly ? 30 : undefined}
                     value={national}
                     onChange={(e) => changePhone(country, e.target.value)}

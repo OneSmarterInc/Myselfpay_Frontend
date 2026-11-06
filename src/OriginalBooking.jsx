@@ -61,7 +61,7 @@ export default function OriginalBooking({
         if (
           active &&
           onRequirePhone &&
-          /US phone number|Verify your mobile number/i.test(e.message)
+          /(?:US |valid )?phone number|Verify your mobile number/i.test(e.message)
         ) {
           onRequirePhone();
           return;
@@ -121,7 +121,7 @@ export default function OriginalBooking({
             <p role="alert">{error}</p>
             {account?.setup_required && (
               <a href="#login" onClick={onClose}>
-                Verify your US phone number
+                Verify your phone number
               </a>
             )}
           </section>
