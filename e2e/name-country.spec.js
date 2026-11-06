@@ -35,17 +35,20 @@ test("guest signup has a clean name placeholder and supports another calling cod
   await expect(page.locator(".mobile-account")).toContainText("+919876543210");
 });
 
-test("direct time requests support country selection and international OTP",async({page})=>{
+test("account creation from time requests supports country selection",async({page})=>{
  await page.goto('/');
  await page.getByRole('button',{name:'Find imaging options',exact:true}).click();
  await page.locator('#location').fill('Ohio');
  await page.getByRole('button',{name:'Find options',exact:true}).click();
  await page.locator('article.card [data-appointment]').first().click();
+ await page.getByRole('button',{name:'Create account and continue',exact:true}).click();
+ await page.locator('#accountName').fill('Synthetic Patient');
  await page.getByRole('combobox',{name:'Country code'}).selectOption('IN');
- await page.locator('#accountPhone').fill('9876543210');
+ const requestPhone='98765'+String(Date.now()).slice(-5);
+ await page.locator('#accountPhone').fill(requestPhone);
  await page.locator('#accountSubmit').click();
  await page.locator('#registrationOTP').fill('123456');
  await page.locator('#accountSubmit').click();
  await expect(page.locator('.time-choice-panel')).toBeVisible();
- await expect(page.locator('.flow-verified')).toContainText('+919876543210');
+ await expect(page.locator('.flow-verified')).toContainText('+91'+requestPhone);
 });

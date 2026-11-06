@@ -1327,7 +1327,16 @@ export default function App() {
       </footer>
       {dialog && (
         <Dialog onClose={close} booking={dialog.type === "booking"}>
-          {dialog.type === "booking-login" ? <MobileAccount requestOnly account={account} onDone={member=>{setAccount(member);setDialog(old=>old?.type === "booking-login" ? null : old);}}/> : dialog.type === "center-login" ? <CenterLogin onDone={()=>{setDialog(null);if(view==="center") location.reload();else navigate("center");}}/> : dialog.type === "booking" ? (
+          {dialog.type === "booking-login" ? <section className="booking-account-choice">
+            <h2 id="dialogTitle">Log in to request a time</h2>
+            <p>We only require a valid US-based phone number which can receive an OTP to create a request.</p>
+            <p>Your selected center will be kept so you can continue after signing in.</p>
+            <div className="actions">
+              <button className="primary" onClick={()=>navigate("signup")}>Create account and continue</button>
+              <button onClick={()=>navigate("login")}>Log in</button>
+              <button onClick={close}>Cancel</button>
+            </div>
+          </section> : dialog.type === "center-login" ? <CenterLogin onDone={()=>{setDialog(null);if(view==="center") location.reload();else navigate("center");}}/> : dialog.type === "booking" ? (
             <OriginalBooking
               entry={dialog.entry}
               account={account}

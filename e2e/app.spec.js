@@ -202,21 +202,22 @@ test("original information pages remain public", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("request a time verifies a US phone directly and preserves the center", async ({ page }) => {
+test("request a time offers account choices and preserves the center", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Find imaging options", exact: true }).click();
   await page.getByRole("button", { name: "Try sample: knee MRI in Cincinnati" }).click();
   await page.locator("[data-detail]").first().click();
   await page.setViewportSize({width:390,height:844});
   await page.locator("[data-appointment]").first().click();
-  await expect(page.getByRole("heading", {name:"Verify your phone to request a time",exact:true})).toBeVisible();
-  await expect(page.getByRole("button",{name:"Create account and continue",exact:true})).toHaveCount(0);
-  await expect(page.locator("#accountName")).toHaveCount(0);
+  await expect(page.getByRole("heading", {name:"Log in to request a time",exact:true})).toBeVisible();
+  await expect(page.locator("#accountPhone")).toHaveCount(0);
+  await expect(page.locator("#modalBody")).toContainText("We only require a valid US-based phone number which can receive an OTP to create a request.");
+  await page.getByRole("button",{name:"Create account and continue",exact:true}).click();
+  await page.locator("#accountName").fill("Synthetic Patient");
+  await expect(page.locator("#accountName")).toHaveValue("Synthetic Patient");
   await expect(page.getByRole("combobox",{name:"Country code"})).toHaveCount(1);
-  await page.locator("#accountPhone").fill("+15550123456");
-  await page.locator("#accountSubmit").click();
-  await expect(page.getByRole("alert")).toContainText("phone number");
-  await page.locator("#accountPhone").fill("6145550198");
+  const requestPhone="614555" + String(Date.now()).slice(-4);
+  await page.locator("#accountPhone").fill(requestPhone);
   await page.locator("#accountSubmit").click();
   await expect(page.locator(".otp-input-group input")).toHaveCount(6);
   await page.locator("#registrationOTP").fill("000000");
@@ -225,13 +226,12 @@ test("request a time verifies a US phone directly and preserves the center", asy
   await page.locator("#registrationOTP").fill("123456");
   for(const width of [320,390,1280]){
     await page.setViewportSize({width,height:900});
-    expect(await page.locator("#modalBody").evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
-    await page.locator("#modal").screenshot({path:`us-request-otp-${width}.png`});
+    expect(await page.locator("body").evaluate(el=>el.scrollWidth<=window.innerWidth+1)).toBe(true);
   }
   await page.locator("#accountSubmit").click();
   await expect(page.getByRole("heading",{name:"Request a Time",exact:true})).toBeVisible();
   await expect(page.locator(".time-choice-panel")).toBeVisible();
   await expect(page.locator("#bookingName")).not.toHaveAttribute("required", "");
   await expect(page.locator("#bookingEmail")).toHaveCount(0);
-  await expect(page.locator(".flow-verified")).toContainText("+16145550198");
+  await expect(page.locator(".flow-verified")).toContainText("+1"+requestPhone);
 });

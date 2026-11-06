@@ -24,13 +24,14 @@ test("booking phone errors recover into OTP and the dashboard identifies the use
   await page.locator("article.card [data-appointment]").first().click();
   await expect(
     page.getByRole("heading", {
-      name: "Verify your phone to request a time",
+      name: "Log in to request a time",
       exact: true,
     }),
   ).toBeVisible();
   await expect(
     page.locator("input[type=email],input[type=password],#accountName"),
   ).toHaveCount(0);
+  await page.getByRole("button", { name: "Log in", exact: true }).click();
   await page.locator("#accountPhone").fill(phone);
   await page.locator("#accountSubmit").click();
   await page.locator("#registrationOTP").fill("123456");
