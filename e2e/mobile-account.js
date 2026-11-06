@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 const phones = new WeakMap();
 export async function completeMobileRegistration(page) {
-  const phone = "555" + String(Date.now()).slice(-6) + Math.floor(Math.random() * 10);
+  const phone = "614555" + String(Date.now()).slice(-3) + Math.floor(Math.random() * 10);
   phones.set(page,phone);
   await page.locator("#accountPhone").fill(phone);
   await page.locator("#accountSubmit").click();

@@ -4,7 +4,12 @@ import { OTPInput } from "./BookingControls.jsx";
 import { CALLING_CODES, phoneInput } from "./phone-country.js";
 import "./mobile-account.css";
 
-export default function MobileAccount({ signup, account, onDone }) {
+export default function MobileAccount({
+  signup,
+  account,
+  onDone,
+  requestOnly = false,
+}) {
   const [name, setName] = useState(account?.name?.split(" ")[0] || "");
   const [country, setCountry] = useState("US");
   const [national, setNational] = useState("");
@@ -12,10 +17,22 @@ export default function MobileAccount({ signup, account, onDone }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const phone = phoneInput(country, national).phone;
-  const intent = signup ? "register" : "login";
-  const payload = { intent, phone, ...(signup ? { name } : {}) };
+  const phone = requestOnly ? national : phoneInput(country, national).phone;
+  const intent = requestOnly ? "request" : signup ? "register" : "login";
+  const payload = {
+    intent,
+    phone,
+    ...(signup && !requestOnly ? { name } : {}),
+  };
+  const Heading = requestOnly ? "h2" : "h1";
   function changePhone(nextCountry, value) {
+    if (requestOnly) {
+      setNational(value.slice(0, 30));
+      setChallenge(null);
+      setCode("");
+      setError("");
+      return;
+    }
     const parsed = phoneInput(nextCountry, value);
     setCountry(parsed.country);
     setNational(parsed.national);
@@ -53,26 +70,34 @@ export default function MobileAccount({ signup, account, onDone }) {
     });
   }
   return (
-    <section className="mobile-account panel">
-      <h1>
+    <section
+      className={
+        requestOnly ? "mobile-account request-phone" : "mobile-account panel"
+      }
+    >
+      <Heading id={requestOnly ? "dialogTitle" : undefined}>
         {challenge
           ? "Verify your mobile number"
-          : signup
-            ? "Create an account"
-            : "Welcome back"}
-      </h1>
+          : requestOnly
+            ? "Verify your phone to request a time"
+            : signup
+              ? "Create an account"
+              : "Welcome back"}
+      </Heading>
       <p>
         {challenge
-          ? `Enter the six-digit SMS code sent to ${phone}.`
-          : signup
-            ? "Enter your first name and mobile number to get started."
-            : "Enter your registered mobile number. We’ll send you a login code."}
+          ? `Enter the six-digit SMS code sent to ${challenge.phone || phone}.`
+          : requestOnly
+            ? "You only need a valid US phone number that can receive an SMS verification code. Your selected center will be kept."
+            : signup
+              ? "Enter your first name and mobile number to get started."
+              : "Enter your registered mobile number. We’ll send you a login code."}
       </p>
       <form onSubmit={submit}>
         <fieldset disabled={busy}>
           {!challenge ? (
             <>
-              {signup && (
+              {signup && !requestOnly && (
                 <label>
                   First name
                   <input
@@ -85,29 +110,37 @@ export default function MobileAccount({ signup, account, onDone }) {
                   />
                 </label>
               )}
-              <div className="mobile-account-phone">
+              <div
+                className={
+                  requestOnly ? "request-phone-number" : "mobile-account-phone"
+                }
+              >
+                {!requestOnly && (
+                  <label>
+                    Country code
+                    <select
+                      aria-label="Country code"
+                      value={country}
+                      onChange={(e) => changePhone(e.target.value, national)}
+                    >
+                      {CALLING_CODES.map((c) => (
+                        <option key={c.country} value={c.country}>
+                          {c.name} (+{c.dial})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <label>
-                  Country code
-                  <select
-                    aria-label="Country code"
-                    value={country}
-                    onChange={(e) => changePhone(e.target.value, national)}
-                  >
-                    {CALLING_CODES.map((c) => (
-                      <option key={c.country} value={c.country}>
-                        {c.name} (+{c.dial})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Mobile number
+                  {requestOnly ? "US phone number (+1)" : "Mobile number"}
                   <input
                     id="accountPhone"
                     type="tel"
                     inputMode="tel"
                     autoComplete="tel-national"
                     required
+                    placeholder={requestOnly ? "(614) 555-0142" : undefined}
+                    maxLength={requestOnly ? 30 : undefined}
                     value={national}
                     onChange={(e) => changePhone(country, e.target.value)}
                   />
@@ -120,22 +153,27 @@ export default function MobileAccount({ signup, account, onDone }) {
                 id="registrationOTP"
                 label="Mobile verification code"
                 value={code}
-                onChange={setCode}
-                disabled={busy}
-              />
-              <button type="button" onClick={() => void run(send)}>
-                Resend code
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setChallenge(null);
-                  setCode("");
+                onChange={(value) => {
+                  setCode(value);
                   setError("");
                 }}
-              >
-                Change mobile number
-              </button>
+                disabled={busy}
+              />
+              <div className="mobile-otp-actions">
+                <button type="button" onClick={() => void run(send)}>
+                  Resend code
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChallenge(null);
+                    setCode("");
+                    setError("");
+                  }}
+                >
+                  Change mobile number
+                </button>
+              </div>
             </section>
           )}
           {error && (
@@ -151,24 +189,30 @@ export default function MobileAccount({ signup, account, onDone }) {
             {busy
               ? "Please wait…"
               : challenge
-                ? signup
-                  ? "Verify and create account"
-                  : "Verify and log in"
-                : "Send mobile OTP"}
+                ? requestOnly
+                  ? "Verify and continue"
+                  : signup
+                    ? "Verify and create account"
+                    : "Verify and log in"
+                : requestOnly
+                  ? "Send verification code"
+                  : "Send mobile OTP"}
           </button>
         </fieldset>
       </form>
-      <p>
-        {signup ? (
-          <>
-            Already registered? <a href="#login">Log in</a>
-          </>
-        ) : (
-          <>
-            New to MySelfPay? <a href="#signup">Create an account</a>
-          </>
-        )}
-      </p>
+      {!requestOnly && (
+        <p>
+          {signup ? (
+            <>
+              Already registered? <a href="#login">Log in</a>
+            </>
+          ) : (
+            <>
+              New to MySelfPay? <a href="#signup">Create an account</a>
+            </>
+          )}
+        </p>
+      )}
     </section>
   );
 }

@@ -48,12 +48,14 @@
   text-align: left;
   text-decoration: underline;
 }
+.request-phone{margin:0;max-width:560px;padding:8px 0}.request-phone h2{font-size:26px;line-height:1.3;margin:0 0 12px}.request-phone-number{display:block}
 .mobile-otp {
   margin: 24px 0;
 }
 .mobile-otp h2 {
   font-size: 21px;
 }
+.mobile-otp-actions{display:flex;gap:8px;flex-wrap:wrap}
 .mobile-otp .otp-input-group {
   margin: 16px 0;
 }

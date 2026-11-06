@@ -31,8 +31,8 @@ test("Android theme matches reference and core search actions work",async({page}
  await page.locator("[data-detail]").first().click();
  await expect(page.locator(".facility-reference h1")).toBeVisible();
  await page.locator("[data-appointment]").first().click();
- await expect(page.getByRole("heading",{name:"Log in to request a time",exact:true})).toBeVisible();
- await page.getByRole("button",{name:"Cancel",exact:true}).click();
+ await expect(page.getByRole("heading",{name:"Verify your phone to request a time",exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"Close dialog",exact:true}).click();
  await page.getByRole("button",{name:"Search imaging centers",exact:true}).click();
  await expect(page.locator("#searchForm")).toBeVisible();
  await page.getByRole("button",{name:"Ask MySelfPay",exact:true}).click();

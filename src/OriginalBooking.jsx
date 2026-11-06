@@ -138,12 +138,11 @@ export default function OriginalBooking({
             </p>
             <section className="flow-card flow-contact">
               <label className="flow-label">
-                First name
+                First name (optional)
                 <input
                   id="bookingName"
                   autoComplete="given-name"
                   maxLength={80}
-                  required
                   disabled={busy}
                   value={draft.first_name}
                   onChange={(e) => change("first_name", e.target.value)}

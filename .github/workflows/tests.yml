@@ -28,7 +28,7 @@ jobs:
         with:
           repository: OneSmarterInc/MyselfPay_Backend
           # Paired API contract for mobile-only patient accounts.
-          ref: 17fa213839d771c841bbd825deae5b556e793ed7
+          ref: f38fc0e97de733886a7ad9183bc095ad022bd058
           path: .backend
       - uses: actions/setup-node@v4
         with:

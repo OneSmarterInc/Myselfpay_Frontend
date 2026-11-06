@@ -187,7 +187,7 @@ export default function UserDashboard({ account }) {
   const stats = value?.stats || {},
     open = (stats.requested || 0) + (stats.voicemail || 0),
     total = Object.values(stats).reduce((a, b) => a + b, 0);
-  const name = value?.profile.name || account.name;
+  const name = value?.profile.name || account.name || "Your account";
   const initials = name
     ?.split(/\s+/)
     .map((part) => part[0])

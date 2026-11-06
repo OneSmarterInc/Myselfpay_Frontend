@@ -356,7 +356,8 @@ export default function App() {
       pendingBooking &&
       account &&
       account.tenant !== "guest" &&
-      view === "search"
+      account.booking_eligible &&
+      (view === "search" || view.startsWith("facility/"))
     ) {
       setDialog(pendingBooking);
       setPendingBooking(null);
@@ -739,14 +740,6 @@ export default function App() {
       }
       return;
     }
-    const bookingChoice = event.target.closest("[data-booking-auth]");
-    if (bookingChoice) {
-      event.preventDefault();
-      const choice = bookingChoice.dataset.bookingAuth;
-      if (choice === "cancel") close();
-      else navigate(choice);
-      return;
-    }
     const pageButton = event.target.closest("[data-results-page]");
     if (pageButton) {
       event.preventDefault();
@@ -927,7 +920,7 @@ export default function App() {
             (x) => x.id === target.dataset.bookingOffer && !x.directory_only,
           ),
         };
-        if (!account || account.tenant === "guest") {
+        if (!account || account.tenant === "guest" || !account.booking_eligible) {
           setPendingBooking(bookingDialog);
           setDialog({ type: "booking-login" });
         } else {
@@ -1247,9 +1240,6 @@ export default function App() {
     markup = ui.search();
   else markup = ui.home();
   let dialogHTML = "";
-  if (dialog?.type === "booking-login")
-    dialogHTML =
-      '<h2>Log in to request a time</h2><p>A user account is required to request a time. Would you like to create an account and continue?</p><p>Your selected center will be kept so you can continue after signing in.</p><div class="actions"><button type="button" class="primary" data-booking-auth="signup">Create account and continue</button><button type="button" data-booking-auth="login">Log in</button><button type="button" data-booking-auth="cancel">Cancel</button></div>';
   if (dialog?.type === "directory") dialogHTML = ui.directory();
   if (dialog?.type === "compare") dialogHTML = ui.compare();
   if (dialog?.type === "quote") dialogHTML = ui.request(dialog.offer);
@@ -1337,7 +1327,7 @@ export default function App() {
       </footer>
       {dialog && (
         <Dialog onClose={close} booking={dialog.type === "booking"}>
-          {dialog.type === "center-login" ? <CenterLogin onDone={()=>{setDialog(null);if(view==="center") location.reload();else navigate("center");}}/> : dialog.type === "booking" ? (
+          {dialog.type === "booking-login" ? <MobileAccount requestOnly account={account} onDone={member=>{setAccount(member);setDialog(old=>old?.type === "booking-login" ? null : old);}}/> : dialog.type === "center-login" ? <CenterLogin onDone={()=>{setDialog(null);if(view==="center") location.reload();else navigate("center");}}/> : dialog.type === "booking" ? (
             <OriginalBooking
               entry={dialog.entry}
               account={account}

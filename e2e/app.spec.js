@@ -202,53 +202,36 @@ test("original information pages remain public", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("reference appointment dialog requires an account and handles email delivery errors", async ({
-  page,
-}) => {
+test("request a time verifies a US phone directly and preserves the center", async ({ page }) => {
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Find imaging options", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Try sample: knee MRI in Cincinnati" })
-    .click();
+  await page.getByRole("button", { name: "Find imaging options", exact: true }).click();
+  await page.getByRole("button", { name: "Try sample: knee MRI in Cincinnati" }).click();
   await page.locator("[data-detail]").first().click();
   await page.setViewportSize({width:390,height:844});
-  await page.screenshot({path:"../tmp/facility-reference-mobile.png"});
-  await expect(
-    page.locator(".facility-request-action [data-appointment]").first(),
-  ).toHaveCSS("background-color", "rgb(183, 25, 38)");
   await page.locator("[data-appointment]").first().click();
-  await expect(
-    page.getByRole("heading", {
-      name: "Log in to request a time",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "Log in", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Welcome back", exact: true }),
-  ).toBeVisible();
-  await page.goBack();
-  await page.locator("[data-appointment]").first().click();
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expect(page.getByRole("dialog")).not.toBeVisible();
-  await page.locator("[data-appointment]").first().click();
-  await page
-    .getByRole("button", { name: "Create account and continue", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Create an account", exact: true }),
-  ).toBeVisible();
-  await page.locator("#accountName").fill("Synthetic Booker");
-  await completeMobileRegistration(page);
-  await expect(
-    page.getByRole("heading", { name: "Request a Time" }),
-  ).toBeVisible();
-  await expect(page.locator("#bookingEmail")).toHaveCount(0);
+  await expect(page.getByRole("heading", {name:"Verify your phone to request a time",exact:true})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Create account and continue",exact:true})).toHaveCount(0);
+  await expect(page.locator("#accountName")).toHaveCount(0);
+  await expect(page.getByRole("combobox",{name:"Country code"})).toHaveCount(0);
+  await page.locator("#accountPhone").fill("+14165550123");
+  await page.locator("#accountSubmit").click();
+  await expect(page.getByRole("alert")).toContainText("US phone number");
+  await page.locator("#accountPhone").fill("6145550198");
+  await page.locator("#accountSubmit").click();
+  await expect(page.locator(".otp-input-group input")).toHaveCount(6);
+  await page.locator("#registrationOTP").fill("000000");
+  await page.locator("#accountSubmit").click();
+  await expect(page.getByRole("alert")).toContainText("Incorrect");
+  await page.locator("#registrationOTP").fill("123456");
+  for(const width of [320,390,1280]){
+    await page.setViewportSize({width,height:900});
+    expect(await page.locator("#modalBody").evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+    await page.locator("#modal").screenshot({path:`us-request-otp-${width}.png`});
+  }
+  await page.locator("#accountSubmit").click();
+  await expect(page.getByRole("heading",{name:"Request a Time",exact:true})).toBeVisible();
   await expect(page.locator(".time-choice-panel")).toBeVisible();
-  await expect(page.locator("#patientCodeSend")).toHaveCount(0);
+  await expect(page.locator("#bookingName")).not.toHaveAttribute("required", "");
+  await expect(page.locator("#bookingEmail")).toHaveCount(0);
+  await expect(page.locator(".flow-verified")).toContainText("+16145550198");
 });
