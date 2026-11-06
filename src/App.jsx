@@ -1336,6 +1336,11 @@ export default function App() {
               ui={ui}
               onClose={close}
               notify={setToast}
+              onRequirePhone={()=>{
+                setAccount(old=>old ? {...old,booking_eligible:false} : old);
+                setPendingBooking(dialog);
+                setDialog({type:"booking-login"});
+              }}
             />
           ) : (
             <OriginalHTML html={dialogHTML} onInput={input} replace={replace} />

@@ -23,6 +23,7 @@ export default function OriginalBooking({
   account,
   onClose,
   notify,
+  onRequirePhone,
 }) {
   const [options, setOptions] = useState(null),
     [error, setError] = useState(""),
@@ -57,6 +58,14 @@ export default function OriginalBooking({
         }));
       })
       .catch((e) => {
+        if (
+          active &&
+          onRequirePhone &&
+          /US phone number|Verify your mobile number/i.test(e.message)
+        ) {
+          onRequirePhone();
+          return;
+        }
         if (active) setError(e.message);
       });
     return () => {
@@ -112,7 +121,7 @@ export default function OriginalBooking({
             <p role="alert">{error}</p>
             {account?.setup_required && (
               <a href="#login" onClick={onClose}>
-                Set up your username and mobile number
+                Verify your US phone number
               </a>
             )}
           </section>

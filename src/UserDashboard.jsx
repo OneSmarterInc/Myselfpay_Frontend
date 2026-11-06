@@ -201,13 +201,17 @@ export default function UserDashboard({ account }) {
   const stats = value?.stats || {},
     open = (stats.requested || 0) + (stats.voicemail || 0),
     total = Object.values(stats).reduce((a, b) => a + b, 0);
-  const name = value?.profile.name || account.name || "Your account";
-  const initials = name
-    ?.split(/\s+/)
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const phoneIdentity = value?.profile.phone || account.phone;
+  const name =
+    phoneIdentity || value?.profile.name || account.name || "Your account";
+  const initials = phoneIdentity
+    ? phoneIdentity.slice(-2)
+    : name
+        ?.split(/\s+/)
+        .map((part) => part[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
   return (
     <section className="user-dashboard" aria-busy={loading}>
       <div className="dashboard-layout">
@@ -218,7 +222,7 @@ export default function UserDashboard({ account }) {
             </span>
             <div>
               <strong>{name}</strong>
-              <span>Personal account</span>
+              <span>{phoneIdentity ? "Verified phone" : "Personal account"}</span>
             </div>
           </div>
           <nav className="dashboard-tabs" aria-label="Dashboard sections">
@@ -305,9 +309,16 @@ export default function UserDashboard({ account }) {
                   </div>
                   <dl>
                     {[
-                      ["Name", value.profile.name],
-                      ...(value.profile.username
-                        ? [["Username", value.profile.username]]
+                      ...(value.profile.name
+                        ? [["Name", value.profile.name]]
+                        : []),
+                      ...(value.profile.phone || value.profile.username
+                        ? [
+                            [
+                              "Username",
+                              value.profile.phone || value.profile.username,
+                            ],
+                          ]
                         : []),
                       ["Mobile number", value.profile.phone || "Not provided"],
                       ["ZIP code", value.profile.zip_code || "Not provided"],
