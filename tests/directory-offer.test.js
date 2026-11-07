@@ -105,12 +105,12 @@ it("keeps starting prices and explicit ranges concise without turning fees into 
         ct: "From $130 without contrast",
       }),
     ),
-  ).toBe("MRI: From $265\nCT: From $130");
+  ).toBe("MRI: $265 onwards\nCT: $130 onwards");
   expect(
     cardPriceSummary(
       directoryOffer({ name: "Range", mri: "$400–$600 depending on exam" }),
     ),
-  ).toBe("MRI: $400–$600");
+  ).toBe("MRI: $400 onwards");
   expect(
     cardPriceSummary(
       directoryOffer({
@@ -118,7 +118,7 @@ it("keeps starting prices and explicit ranges concise without turning fees into 
         mri: "Scan $500 plus a $100 reading fee",
       }),
     ),
-  ).toBe("MRI: Scan $500 plus a $100 reading fee");
+  ).toBe("MRI: $500");
 });
 
 it("escapes stored price descriptions before rendering them", () => {
@@ -139,7 +139,6 @@ it("escapes stored price descriptions before rendering them", () => {
   expect(ui.detail(offer.id)).not.toContain("<img src=x");
 });
 
-
 it("shows the stored MRI price and contrast supplement on the search card", () => {
   const entry = {
     name: "Advantage Diagnostics � Columbus South",
@@ -149,11 +148,63 @@ it("shows the stored MRI price and contrast supplement on the search card", () =
     other: "Routine X-ray $100",
   };
   const offer = directoryOffer(entry);
-  const summary = "MRI: $400; studies ordered with contrast +$100. Specialized protocols have separate prices.";
+  const summary = "MRI: $400";
   expect(cardPriceSummary(offer)).toBe(summary);
-  const ui = originalUI({state: {selected: [], location: "Ohio", mod: "", searched: true, messages: []}, offers: [offer], results: [offer], DIRECTORY: [entry]});
+  const ui = originalUI({
+    state: {
+      selected: [],
+      location: "Ohio",
+      mod: "",
+      searched: true,
+      messages: [],
+    },
+    offers: [offer],
+    results: [offer],
+    DIRECTORY: [entry],
+  });
   expect(ui.search()).toContain("$400");
-  expect(ui.search()).toContain("+$100");
+  expect(ui.search()).not.toContain("+$100");
+  expect(ui.detail(offer.id)).toContain("+$100");
   expect(ui.search()).not.toContain("MRI: See price details");
   expect(ui.detail(offer.id)).toContain("Routine X-ray $100");
+});
+
+it("prefers without contrast even when the with-contrast price is listed first", () => {
+  const offer = directoryOffer({
+    name: "Contrast choices",
+    mri: "$800 with contrast; $750 without contrast; $850 with/without",
+    ct: "With contrast $500; Without contrast $400; With and without $600",
+  });
+  expect(cardPriceSummary(offer)).toBe("MRI: $750\nCT: $400");
+});
+it("uses with contrast next and marks ranges onwards", () => {
+  expect(
+    cardPriceSummary(
+      directoryOffer({
+        name: "Fallback",
+        mri: "With contrast $800; With and without $850",
+        ct: "$500 to $700 depending on exam",
+      }),
+    ),
+  ).toBe("MRI: $800\nCT: $500 onwards");
+  expect(
+    cardPriceSummary(
+      directoryOffer({ name: "Range", mri: "Without contrast $500\u2013$700" }),
+    ),
+  ).toBe("MRI: $500 onwards");
+});
+it("does not present standalone supplements as exam prices", () => {
+  expect(
+    cardPriceSummary(
+      directoryOffer({ name: "Fee", mri: "Contrast surcharge $100" }),
+    ),
+  ).toBe("MRI: See price details");
+});
+
+it("marks ranges with a currency symbol only on the lower endpoint", () => {
+  expect(
+    cardPriceSummary(
+      directoryOffer({ name: "Range", mri: "$500 to 700", ct: "$300-450" }),
+    ),
+  ).toBe("MRI: $500 onwards\nCT: $300 onwards");
 });
