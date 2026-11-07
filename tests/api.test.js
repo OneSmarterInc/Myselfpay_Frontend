@@ -19,6 +19,50 @@ function mockResponse(body, status = 200, headers = {}) {
 }
 
 describe("React client for the Django REST Framework API", () => {
+  it("automatically recovers a stale CSRF token before retrying OTP once", async () => {
+    const fetch = mockResponse({ verification_id:"sent" });
+    fetch.mockResolvedValueOnce(new Response(JSON.stringify({error:"CSRF token required."}),{status:403}));
+    fetch.mockResolvedValueOnce(new Response(JSON.stringify({csrf:"fresh-token",member:{id:"guest"}}),{status:200}));
+    await expect(api("/registration/mobile/code",{phone:"+15550123333"})).resolves.toEqual({verification_id:"sent"});
+    expect(fetch.mock.calls.map(([url])=>url)).toEqual(["/api/registration/mobile/code","/api/me","/api/registration/mobile/code"]);
+    expect(fetch.mock.calls[2][1].headers["X-CSRF-Token"]).toBe("fresh-token");
+  });
+  it("does not retry a second CSRF rejection or other 403 errors", async () => {
+    const fetch = mockResponse({error:"CSRF token required."},403);
+    fetch.mockResolvedValueOnce(new Response(JSON.stringify({error:"CSRF token required."}),{status:403}));
+    fetch.mockResolvedValueOnce(new Response(JSON.stringify({csrf:"fresh-token"}),{status:200}));
+    await expect(api("/registration/mobile/code",{})).rejects.toMatchObject({status:403});
+    expect(fetch).toHaveBeenCalledTimes(3);
+    fetch.mockClear();
+    fetch.mockResolvedValue(new Response(JSON.stringify({error:"Permission denied."}),{status:403}));
+    await expect(api("/registration/mobile/code",{})).rejects.toMatchObject({status:403});
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+  it("coalesces overlapping directory reads but retries after completion", async () => {
+    let finish;
+    const fetch = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
+    vi.stubGlobal("fetch", fetch);
+    const a = api("/directory-summary"), b = api("/directory-summary");
+    expect(fetch).toHaveBeenCalledOnce();
+    finish(new Response(JSON.stringify({ listing_count: 50 }), { status: 200 }));
+    await expect(a).resolves.toMatchObject({ listing_count: 50 });
+    await expect(b).resolves.toMatchObject({ listing_count: 50 });
+    fetch.mockResolvedValue(new Response(JSON.stringify({ listing_count: 51 }), { status: 200 }));
+    await expect(api("/directory-summary")).resolves.toMatchObject({ listing_count: 51 });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+  it("does not share booking sends or metadata reads across account changes", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    await Promise.all([api("/booking/email-code", { email: "a@example.com" }), api("/booking/email-code", { email: "a@example.com" })]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    setCsrf("session-one");
+    const a = api("/catalog?metadata=1");
+    setCsrf("session-two");
+    const b = api("/catalog?metadata=1");
+    await Promise.all([a, b]);
+    expect(fetch).toHaveBeenCalledTimes(4);
+  });
   it("renders nested API errors as readable text", async () => {
     mockResponse({ error: { message: "Location service unavailable." } }, 404);
     const error = await api("/v1/spatial-bundle/test").catch((e) => e);

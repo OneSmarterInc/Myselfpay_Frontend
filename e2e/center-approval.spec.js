@@ -4,7 +4,7 @@ test("center email OTP is required before approving an appointment request",asyn
  await page.route("**/api/booking/code",r=>r.fulfill({json:{delivery:"sent"}}));
  await page.route("**/api/booking/verify",r=>{expect(r.request().postDataJSON().code).toBe("123456");return r.fulfill({json:{session:"synthetic-center-session"}});});
  await page.route("**/api/booking/details",r=>r.fulfill({json:details}));
- await page.route("**/api/booking/status",r=>{const data=r.request().postDataJSON();expect(data.session).toBe("synthetic-center-session");expect(data.status).toBe("scheduled");return r.fulfill({json:{...details,status:"scheduled"}});});
+ await page.route("**/api/booking/status",r=>{const data=r.request().postDataJSON();expect(data.session).toBe("synthetic-center-session");expect(data.status).toBe("scheduled");expect(data.appointment).toEqual({date:"2026-11-12",time:"14:30"});return r.fulfill({json:{...details,status:"scheduled",approved_slot:{date:"2026-11-12",time:"14:30",timezone:"America/New_York",source:"custom"}}});});
  await page.goto("/#clinic/MSP-CENTER/synthetic-link-token");
  await expect(page.getByRole("button",{name:"Approve request",exact:true})).toHaveCount(0);
  await expect(page.getByText("patient@example.test",{exact:true})).toHaveCount(0);
@@ -15,10 +15,16 @@ test("center email OTP is required before approving an appointment request",asyn
  await page.screenshot({path:"../tmp/center-otp-reference-mobile.png"});
  await page.locator("#clinicCode").fill("123456");
  await page.locator("#clinicVerifyButton").click();
- await expect(page.getByRole("link",{name:"patient@example.test",exact:true})).toBeVisible();
+ await expect(page.getByRole("link",{name:"patient@example.test",exact:true})).toHaveCount(0);
  await page.screenshot({path:"../tmp/center-review-reference-mobile.png"});
+ await expect(page.getByRole("button",{name:"Approve request",exact:true})).toBeDisabled();
+ await page.getByLabel("Set an alternative date and time").check();
+ await page.getByLabel("Appointment date",{exact:true}).fill("2026-11-12");
+ await page.getByLabel("Appointment time",{exact:true}).fill("14:30");
+ for(const width of [360,1280]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`approval-picker-${width}.png`,fullPage:true});}
  await page.getByRole("button",{name:"Approve request",exact:true}).click();
- await expect(page.getByRole("link",{name:"Open secure chat",exact:true})).toBeVisible();
+ await expect(page.locator(".approved-appointment")).toContainText("2:30 PM");
+ await expect(page.getByRole("link",{name:"Open secure chat",exact:true})).toHaveCount(0);
  await expect(page.locator("#clinicOutcome")).toContainText("Approved by center");
  await expect(page.getByRole("button",{name:"Approve request",exact:true})).toHaveCount(0);
  await expect(page.getByRole("heading",{name:"Request approved",exact:true})).toBeVisible();

@@ -1,3 +1,4 @@
+import { completeMobileRegistration, completeMobileLogin } from "./mobile-account.js";
 import { test, expect } from "@playwright/test";
 
 test("National lists directory centers with ten results per page", async ({
@@ -160,22 +161,17 @@ test("original signup and login forms retain verified DRF sessions", async ({
     password = "Synthetic-only-passphrase!";
   await page.goto("/#signup");
   await page.locator("#accountName").fill("Synthetic UI Test");
-  await page.locator("#accountEmail").fill(email);
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
-  await page.locator("#accountPassword").fill(password);
-  await page.locator("#accountConfirm").fill(password);
-  await page.locator("#accountSubmit").click();
+  await completeMobileRegistration(page);
   await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible({ timeout: 15000 });
   await page.locator("#profile").click();
   await page.locator("#accountLogin").click();
-  await page.locator("#accountEmail").fill(email);
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
-  await page.locator("#accountPassword").fill(password);
-  await page.locator("#accountSubmit").click();
+  await completeMobileLogin(page);
   await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
   const session = await page.request.get("/api/me");
   expect(session.ok()).toBe(true);
-  expect((await session.json()).member.email).toBe(email);
+  expect((await session.json()).member.mobile_verified).toBe(true);
 });
 
 test("expired cookies clear signed-in UI and permit sign-out", async ({
@@ -202,77 +198,40 @@ test("original information pages remain public", async ({ page }) => {
   );
   await page.goto("/#login");
   await expect(
-    page.getByRole("heading", { name: "Log in", exact: true }),
+    page.getByRole("heading", { name: "Welcome back", exact: true }),
   ).toBeVisible();
 });
 
-test("reference appointment dialog requires an account and handles email delivery errors", async ({
-  page,
-}) => {
+test("request a time offers account choices and preserves the center", async ({ page }) => {
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Find imaging options", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Try sample: knee MRI in Cincinnati" })
-    .click();
+  await page.getByRole("button", { name: "Find imaging options", exact: true }).click();
+  await page.getByRole("button", { name: "Try sample: knee MRI in Cincinnati" }).click();
   await page.locator("[data-detail]").first().click();
   await page.setViewportSize({width:390,height:844});
-  await page.screenshot({path:"../tmp/facility-reference-mobile.png"});
-  await expect(
-    page.locator(".facility-request-action [data-appointment]").first(),
-  ).toHaveCSS("background-color", "rgb(183, 25, 38)");
   await page.locator("[data-appointment]").first().click();
-  await expect(
-    page.getByRole("heading", {
-      name: "Log in to request a time",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "Log in", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Log in", exact: true }),
-  ).toBeVisible();
-  await page.goBack();
-  await page.locator("[data-appointment]").first().click();
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expect(page.getByRole("dialog")).not.toBeVisible();
-  await page.locator("[data-appointment]").first().click();
-  await page
-    .getByRole("button", { name: "Create account and continue", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Create an account", exact: true }),
-  ).toBeVisible();
-  await page.locator("#accountName").fill("Synthetic Booker");
-  await page.locator("#accountEmail").fill(`booking-${Date.now()}@example.com`);
-  await page.locator("#accountPassword").fill("Synthetic-only-passphrase!");
-  await page.locator("#accountConfirm").fill("Synthetic-only-passphrase!");
+  await expect(page.getByRole("heading", {name:"Log in to request a time",exact:true})).toBeVisible();
+  await expect(page.locator("#accountPhone")).toHaveCount(0);
+  await expect(page.locator("#modalBody")).toContainText("We only require a valid US-based phone number which can receive an OTP to create a request.");
+  await page.getByRole("button",{name:"Create account and continue",exact:true}).click();
+  await page.locator("#accountName").fill("Synthetic Patient");
+  await expect(page.locator("#accountName")).toHaveValue("Synthetic Patient");
+  await expect(page.getByRole("combobox",{name:"Country code"})).toHaveCount(1);
+  const requestPhone="614555" + String(Date.now()).slice(-4);
+  await page.locator("#accountPhone").fill(requestPhone);
   await page.locator("#accountSubmit").click();
-  await expect(
-    page.getByRole("heading", { name: "Request a Time" }),
-  ).toBeVisible();
-  await expect(page.locator("#bookingEmail")).toBeVisible();
-  await expect(page.locator(".time-choice-panel")).toHaveCount(0);
-  await page.route("**/api/booking/email-code", (route) =>
-    route.fulfill({
-      status: 503,
-      contentType: "application/json",
-      body: JSON.stringify({
-        error: "Email delivery is unavailable. Please try again later.",
-      }),
-    }),
-  );
-  await page.locator("#bookingEmail").fill("synthetic@example.com");
-  await page.locator("#patientCodeSend").click();
-  await expect(page.locator("#bookingError")).toContainText(
-    "Email delivery is unavailable",
-  );
-  await expect(page.locator("#patientEmailStatus")).not.toContainText(
-    "Sending",
-  );
-  await expect(page.locator("#patientCodeSend")).toBeEnabled();
+  await expect(page.locator(".otp-input-group input")).toHaveCount(6);
+  await page.locator("#registrationOTP").fill("000000");
+  await page.locator("#accountSubmit").click();
+  await expect(page.getByRole("alert")).toContainText("Incorrect");
+  await page.locator("#registrationOTP").fill("123456");
+  for(const width of [320,390,1280]){
+    await page.setViewportSize({width,height:900});
+    expect(await page.locator("body").evaluate(el=>el.scrollWidth<=window.innerWidth+1)).toBe(true);
+  }
+  await page.locator("#accountSubmit").click();
+  await expect(page.getByRole("heading",{name:"Request a Time",exact:true})).toBeVisible();
+  await expect(page.locator(".time-choice-panel")).toBeVisible();
+  await expect(page.locator("#bookingName")).not.toHaveAttribute("required", "");
+  await expect(page.locator("#bookingEmail")).toHaveCount(0);
+  await expect(page.locator(".flow-verified")).toContainText("+1"+requestPhone);
 });

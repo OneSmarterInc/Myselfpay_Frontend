@@ -239,3 +239,5 @@
     flex-wrap: wrap;
   }
 }
+
+.center-direct-login{width:100%;max-width:540px;margin:40px auto;padding:28px}.center-direct-login .center-login{max-width:none;margin:0}.center-direct-login h2{margin:0 0 12px}@media(max-width:600px){.center-direct-login{margin:20px auto;padding:22px 18px}}

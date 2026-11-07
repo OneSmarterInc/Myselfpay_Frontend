@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import RequestStatusTabs from "./RequestStatusTabs.jsx";
+import { approvedSlotLabel } from "./approved-slot.js";
+import "./approval-slots.css";
 
 const labels = {
   requested: "Awaiting center confirmation",
@@ -69,6 +71,18 @@ function RequestCard({ item }) {
         <span aria-hidden="true" className="status-dot" />
         {labels[item.status] || item.status}
       </span>
+      {item.status === "scheduled" && (
+        <div className="approved-appointment">
+          <strong>Approved appointment</strong>
+          <p>{approvedSlotLabel(item.approved_slot)}</p>
+          {item.approved_slot?.source === "custom" && (
+            <p>
+              The center selected an alternative to your preferred times.
+              Contact the center if it does not work for you.
+            </p>
+          )}
+        </div>
+      )}
       <details className="dashboard-request-details">
         <summary>Full request details</summary>
         <div className="request-slot-heading">
@@ -95,8 +109,6 @@ function RequestCard({ item }) {
           <dd>{item.location || "Confirm with center"}</dd>
           <dt>Patient</dt>
           <dd>{item.contact_name || "—"}</dd>
-          <dt>Email</dt>
-          <dd>{item.contact_email || "—"}</dd>
           <dt>Mobile</dt>
           <dd>{item.contact_phone || "Not provided"}</dd>
           <dt>Contrast</dt>
@@ -112,7 +124,7 @@ function RequestCard({ item }) {
           <dd>{item.price_text}</dd>
           <dt>Submitted</dt>
           <dd>{stamp(item.created)}</dd>
-          <dt>Email delivery</dt>
+          <dt>Center notification</dt>
           <dd>{item.delivery || "Pending"}</dd>
           {item.approved_at && (
             <>
@@ -123,12 +135,6 @@ function RequestCard({ item }) {
         </dl>
       </details>
       <div className="request-card-footer">
-        {item.secure_chat_url && (
-          <a className="flow-outline" href={item.secure_chat_url} target="_blank" rel="noopener noreferrer">Open secure chat</a>
-        )}
-        {item.secure_chat_status === "pending" && (
-          <span role="status">Your secure chat is being prepared. Refresh shortly.</span>
-        )}
         {phone.length >= 8 && (
           <a className="flow-outline" href={`tel:${phone}`}>
             Call center
@@ -195,13 +201,17 @@ export default function UserDashboard({ account }) {
   const stats = value?.stats || {},
     open = (stats.requested || 0) + (stats.voicemail || 0),
     total = Object.values(stats).reduce((a, b) => a + b, 0);
-  const name = value?.profile.name || account.name;
-  const initials = name
-    ?.split(/\s+/)
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const phoneIdentity = value?.profile.phone || account.phone;
+  const name =
+    phoneIdentity || value?.profile.name || account.name || "Your account";
+  const initials = phoneIdentity
+    ? phoneIdentity.slice(-2)
+    : name
+        ?.split(/\s+/)
+        .map((part) => part[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
   return (
     <section className="user-dashboard" aria-busy={loading}>
       <div className="dashboard-layout">
@@ -212,7 +222,7 @@ export default function UserDashboard({ account }) {
             </span>
             <div>
               <strong>{name}</strong>
-              <span>Personal account</span>
+              <span>{phoneIdentity ? "Verified phone" : "Personal account"}</span>
             </div>
           </div>
           <nav className="dashboard-tabs" aria-label="Dashboard sections">
@@ -299,14 +309,19 @@ export default function UserDashboard({ account }) {
                   </div>
                   <dl>
                     {[
-                      ["Name", value.profile.name],
-                      ["Account email", value.profile.email],
+                      ...(value.profile.name
+                        ? [["Name", value.profile.name]]
+                        : []),
+                      ...(value.profile.phone || value.profile.username
+                        ? [
+                            [
+                              "Username",
+                              value.profile.phone || value.profile.username,
+                            ],
+                          ]
+                        : []),
                       ["Mobile number", value.profile.phone || "Not provided"],
                       ["ZIP code", value.profile.zip_code || "Not provided"],
-                      [
-                        "Verified booking email",
-                        value.verified_email || "Not verified yet",
-                      ],
                       [
                         "Member since",
                         new Date(

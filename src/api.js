@@ -2,6 +2,7 @@ import { beginLoading } from "./loading-state.js";
 const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 let csrf = "";
 let sessionVersion = 0;
+const directoryReads = new Map();
 
 function validationMessages(value, field = "") {
   if (typeof value === "string") {
@@ -60,7 +61,26 @@ export async function establishSession(path, data) {
     );
   }
 }
-export async function api(
+export function api(
+  path,
+  data,
+  method = data === undefined ? "GET" : "POST",
+) {
+  // Coalesce overlapping directory startup reads only. Never cache account,
+  // booking or verification responses, and never share across login changes.
+  const key = method === "GET" && ["/directory-summary", "/catalog?metadata=1"].includes(path)
+    ? `${sessionVersion}:${path}` : null;
+  if (key && directoryReads.has(key)) return directoryReads.get(key);
+  const pending = performRequest(path, data, method);
+  if (!key) return pending;
+  const shared = pending.finally(() => {
+    if (directoryReads.get(key) === shared) directoryReads.delete(key);
+  });
+  directoryReads.set(key, shared);
+  return shared;
+}
+
+async function performRequest(
   path,
   data,
   method = data === undefined ? "GET" : "POST",
@@ -88,6 +108,7 @@ async function request(
   data,
   method = data === undefined ? "GET" : "POST",
   signal,
+  recoverCsrf = true,
 ) {
   const requestSessionVersion = sessionVersion;
   const response = await fetch(base + path, {
@@ -112,6 +133,16 @@ async function request(
     );
   }
   if (!response.ok) {
+    // Authentication rejects CSRF before executing the view. Recover the
+    // cookie-bound token and retry only this explicit rejection, never delivery
+    // failures/timeouts where an OTP or booking might already have been sent.
+    if (recoverCsrf && response.status === 403 &&
+        (body.error === "CSRF token required." || body.detail === "CSRF token required.") &&
+        requestSessionVersion === sessionVersion) {
+      const session = await request("/me", undefined, "GET", signal, false);
+      if (session?.csrf) return request(path, data, method, signal, false);
+    }
+
     const publicSessionPaths = ["/me", "/guest", "/login", "/register"];
     if (
       response.status === 401 &&

@@ -1,8 +1,11 @@
+import PasswordReset from "./PasswordReset.jsx";
+import MobileAccount from "./MobileAccount.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import parse, { attributesToProps, domToReact } from "html-react-parser";
 import { api, establishSession, setCsrf } from "./api.js";
 import { originalUI } from "./original-ui.js";
 import { directoryOffer } from "./directory-offer.js";
+import { presentListing, visibleDirectoryData } from "./directory-policy.js";
 import { spatialOffers, watchLocation } from "./spatial.js";
 import { currentLocationLabel } from "./auto-location.js";
 import { StatewideLocationManager } from "./statewide-location.js";
@@ -67,7 +70,10 @@ const filterNames = [
 ];
 const payload = (state) =>
   Object.fromEntries(filterNames.map((key) => [key, state[key]]));
-const route = () => decodeURIComponent(location.hash.slice(1) || "home");
+const route = () => {
+  const path = location.pathname.replace(/\/+$/, "");
+  return decodeURIComponent(location.hash.slice(1) || (path === "/center-login" ? "center-login" : path === "/center-portal" ? "center" : "home"));
+};
 
 export function OriginalHTML({ html, onInput, replace, disabled = false }) {
   const options = {
@@ -182,15 +188,13 @@ export default function App() {
     [locationsOpen, setLocationsOpen] = useState(false),
     [locationAll, setLocationAll] = useState(false),
     [map, setMap] = useState(null),
-    [auth, setAuth] = useState({}),
-    [authError, setAuthError] = useState(""),
     [boot, setBoot] = useState(true);
   const [spatialEnabled, setSpatialEnabled] = useState(false);
   const [spatialSnapshot, setSpatialSnapshot] = useState(null);
   const [spatialManager] = useState(() => new StatewideLocationManager(api));
   const displayResults = useMemo(
     () =>
-      spatialSnapshot ? spatialOffers(spatialSnapshot.records, state) : results,
+      (spatialSnapshot ? spatialOffers(spatialSnapshot.records, state) : results).map(item=>presentListing(item)),
     [
       spatialSnapshot,
       results,
@@ -356,7 +360,8 @@ export default function App() {
       pendingBooking &&
       account &&
       account.tenant !== "guest" &&
-      view === "search"
+      account.booking_eligible &&
+      (view === "search" || view.startsWith("facility/"))
     ) {
       setDialog(pendingBooking);
       setPendingBooking(null);
@@ -387,8 +392,6 @@ export default function App() {
         }));
       setDialog(null);
       setMap(null);
-      setAuth({});
-      setAuthError("");
       window.scrollTo({ top: 0, behavior: "instant" });
     };
     const expired = () => {
@@ -432,11 +435,10 @@ export default function App() {
     if (!account) return;
     let active = true;
     setCatalogReady(false);
-    if (summary?.spatial_api_version) {
-      api("/catalog?metadata=1")
+    api("/catalog?metadata=1")
         .then((value) => {
           if (active) {
-            setCatalog(value);
+            setCatalog(visibleDirectoryData(value));
             setCatalogReady(true);
             setCatalogError("");
           }
@@ -447,7 +449,6 @@ export default function App() {
             if (error.status !== 401) setToast(error.message);
           }
         });
-    }
     api("/guest-usage")
       .then((value) => {
         if (active) setState((old) => ({ ...old, usage: value.usage || {} }));
@@ -456,7 +457,7 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [account, summary?.spatial_api_version]);
+  }, [account?.id, account?.tenant]);
   async function run(action) {
     setBusy(true);
     try {
@@ -508,6 +509,7 @@ export default function App() {
     });
   }
   function acceptResults(data) {
+    data = visibleDirectoryData(data);
     if(nativeApp) {setNativeFiltersOpen(!!(data.location_suggestions?.length || (data.resolved_location === null && data.search?.location?.toLowerCase() !== "national")));window.scrollTo(0,0);}
     setResults(data.offers || []);
     setState((old) => ({
@@ -622,10 +624,6 @@ export default function App() {
       }));
       return;
     }
-    if (id?.startsWith("account")) {
-      setAuth((old) => ({ ...old, [id]: id === "accountZip" ? element.value.replace(/\D/g, "").slice(0, 5) : element.value }));
-      return;
-    }
     if (id === "sort") {
       setState((old) => ({ ...old, nearToMe: false }));
       void search({ sort: element.value, nearToMe: false });
@@ -690,44 +688,7 @@ export default function App() {
       target.reset();
       return talk(message);
     }
-    if (target.id === "accountForm") {
-      const signup = view === "signup";
-      setAuthError("");
-      if (signup && auth.accountPassword !== auth.accountConfirm)
-        return setAuthError("Passwords do not match.");
-      setBusy(true);
-      try {
-        const value = await establishSession(signup ? "/register" : "/login", {
-          email: auth.accountEmail,
-          password: auth.accountPassword,
-          ...(signup
-            ? {
-                name: auth.accountName,
-                phone: auth.accountPhone || "",
-                zip_code: auth.accountZip || "",
-              }
-            : {}),
-        });
-        setAccount(value.member);
-        setAuth({});
-        navigate("search");
-        if (value.member.zip_code && !pendingBooking) {
-          await search({
-            ...initialState(),
-            location: value.member.zip_code.slice(0, 5),
-            sort: "distance",
-          });
-        }
-        setToast(
-          signup ? "Account created. You are signed in." : "You are signed in.",
-        );
-      } catch (error) {
-        setAuthError(error.message);
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
+
   }
   function click(event) {
     const nativeAction=event.target.closest("[data-native-action]");
@@ -784,14 +745,6 @@ export default function App() {
       }
       return;
     }
-    const bookingChoice = event.target.closest("[data-booking-auth]");
-    if (bookingChoice) {
-      event.preventDefault();
-      const choice = bookingChoice.dataset.bookingAuth;
-      if (choice === "cancel") close();
-      else navigate(choice);
-      return;
-    }
     const pageButton = event.target.closest("[data-results-page]");
     if (pageButton) {
       event.preventDefault();
@@ -827,7 +780,7 @@ export default function App() {
       if (catalog.metadata_only || !catalogReady) {
         void run(async () => {
           const value = await api("/catalog");
-          setCatalog(value);
+          setCatalog(visibleDirectoryData(value));
           setCatalogReady(true);
           setCatalogError("");
         });
@@ -972,7 +925,7 @@ export default function App() {
             (x) => x.id === target.dataset.bookingOffer && !x.directory_only,
           ),
         };
-        if (!account || account.tenant === "guest") {
+        if (!account || account.tenant === "guest" || !account.booking_eligible) {
           setPendingBooking(bookingDialog);
           setDialog({ type: "booking-login" });
         } else {
@@ -1239,16 +1192,6 @@ export default function App() {
           {id === "dirPrev" ? "Previous" : "Next"}
         </button>
       );
-    if (id === "accountError")
-      return (
-        <p id="accountError" role="alert" tabIndex={-1}>
-          {authError}
-        </p>
-      );
-    if (id?.startsWith("account") && node.name === "input") {
-      const props = attributesToProps(node.attribs);
-      return <input {...props} value={auth[id] || ""} onChange={input} />;
-    }
     if (id === "dirSearch")
       return (
         <input
@@ -1302,9 +1245,6 @@ export default function App() {
     markup = ui.search();
   else markup = ui.home();
   let dialogHTML = "";
-  if (dialog?.type === "booking-login")
-    dialogHTML =
-      '<h2>Log in to request a time</h2><p>A user account is required to request a time. Would you like to create an account and continue?</p><p>Your selected center will be kept so you can continue after signing in.</p><div class="actions"><button type="button" class="primary" data-booking-auth="signup">Create account and continue</button><button type="button" data-booking-auth="login">Log in</button><button type="button" data-booking-auth="cancel">Cancel</button></div>';
   if (dialog?.type === "directory") dialogHTML = ui.directory();
   if (dialog?.type === "compare") dialogHTML = ui.compare();
   if (dialog?.type === "quote") dialogHTML = ui.request(dialog.offer);
@@ -1370,7 +1310,8 @@ export default function App() {
       )}
 
       <main className={"shell" + (view === "center" ? " center-shell" : view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
-        {nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
+        {account?.setup_required && view !== "login" && view !== "signup" && <p className="panel" role="status">Complete your account setup to request a time. <a href="#login">Verify your mobile number</a></p>}
+        {view === "center-login" ? <section className="panel center-direct-login"><CenterLogin onDone={()=>navigate("center")}/></section> : view === "reset-password" ? <PasswordReset onReset={clear}/> : (view === "login" || view === "signup") ? <MobileAccount key={view} signup={view === "signup"} account={account} onDone={async member=>{setAccount(member);navigate("search");setToast("You are signed in.");if(member.zip_code && !pendingBooking) await search({...initialState(),location:member.zip_code,sort:"distance"});}}/> : nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (
           <OriginalHTML html={markup} onInput={input} replace={replace} />
@@ -1391,7 +1332,16 @@ export default function App() {
       </footer>
       {dialog && (
         <Dialog onClose={close} booking={dialog.type === "booking"}>
-          {dialog.type === "center-login" ? <CenterLogin onDone={()=>{setDialog(null);if(view==="center") location.reload();else navigate("center");}}/> : dialog.type === "booking" ? (
+          {dialog.type === "booking-login" ? <section className="booking-account-choice">
+            <h2 id="dialogTitle">Log in to request a time</h2>
+            <p>We only require a valid US-based phone number which can receive an OTP to create a request.</p>
+            <p>Your selected center will be kept so you can continue after signing in.</p>
+            <div className="actions">
+              <button className="primary" onClick={()=>navigate("signup")}>Create account and continue</button>
+              <button onClick={()=>navigate("login")}>Log in</button>
+              <button onClick={close}>Cancel</button>
+            </div>
+          </section> : dialog.type === "center-login" ? <CenterLogin onDone={()=>{setDialog(null);if(view==="center") location.reload();else navigate("center");}}/> : dialog.type === "booking" ? (
             <OriginalBooking
               entry={dialog.entry}
               account={account}
@@ -1400,6 +1350,11 @@ export default function App() {
               ui={ui}
               onClose={close}
               notify={setToast}
+              onRequirePhone={()=>{
+                setAccount(old=>old ? {...old,booking_eligible:false} : old);
+                setPendingBooking(dialog);
+                setDialog({type:"booking-login"});
+              }}
             />
           ) : (
             <OriginalHTML html={dialogHTML} onInput={input} replace={replace} />

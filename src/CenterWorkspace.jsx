@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { centerAPI as call } from "./center-api.js";
 import "./center-workspace.css";
 import RequestStatusTabs from "./RequestStatusTabs.jsx";
+import ApprovalSlotPicker from "./ApprovalSlotPicker.jsx";
+import { approvedSlotLabel, approvalReady } from "./approved-slot.js";
 
 function Icon({ name, ...props }) {
   const paths = {
@@ -251,6 +253,8 @@ function Profile({ centers, email }) {
   );
 }
 function RequestDetail({ request, busy, onBack, onAction }) {
+  const [appointment, setAppointment] = useState(null);
+  useEffect(() => setAppointment(null), [request.id]);
   return (
     <div className="cw-detail">
       <button
@@ -272,14 +276,14 @@ function RequestDetail({ request, busy, onBack, onAction }) {
         </div>
         <Badge status={request.status} />
       </div>
-      {request.secure_chat_url && (
-        <a className="flow-outline" href={request.secure_chat_url} target="_blank" rel="noopener noreferrer">Open secure chat</a>
-      )}
-      {request.secure_chat_status === "pending" && (
-        <p role="status">Your secure chat is being prepared. Refresh shortly.</p>
-      )}
       <div className="cw-detail-grid">
         <section className="cw-detail-main">
+          {request.status === "scheduled" && (
+            <div className="approved-appointment">
+              <strong>Approved appointment</strong>
+              <p>{approvedSlotLabel(request.approved_slot)}</p>
+            </div>
+          )}
           <div className="cw-panel-heading">
             <Icon name="calendar" />
             <h3>Preferred appointment times</h3>
@@ -288,20 +292,29 @@ function RequestDetail({ request, busy, onBack, onAction }) {
             {zones[request.timezone] || request.timezone}. The center confirms
             availability directly.
           </p>
-          <div className="cw-time-options">
-            {(request.slots || []).map((slot, index) => (
-              <div key={`${slot.date}-${slot.period}`}>
-                <span className="cw-slot-number">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div>
-                  <strong>{formatDate(slot.date)}</strong>
-                  <span>{period(slot)}</span>
+          {!request.contact_hidden ? (
+            <ApprovalSlotPicker
+              request={request}
+              value={appointment}
+              onChange={setAppointment}
+              disabled={busy}
+            />
+          ) : (
+            <div className="cw-time-options">
+              {(request.slots || []).map((slot, index) => (
+                <div key={`${slot.date}-${slot.period}`}>
+                  <span className="cw-slot-number">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <strong>{formatDate(slot.date)}</strong>
+                    <span>{period(slot)}</span>
+                  </div>
+                  <Icon name="clock" />
                 </div>
-                <Icon name="clock" />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
           <section className="cw-price-note">
             <span>Price information</span>
             <p>
@@ -328,19 +341,6 @@ function RequestDetail({ request, busy, onBack, onAction }) {
                 {request.first_name || "Patient"}
               </p>
               <dl>
-                <div>
-                  <dt>Email address</dt>
-                  <dd>
-                    {request.patient_email ? (
-                      <a href={`mailto:${request.patient_email}`}>
-                        <Icon name="mail" />
-                        {request.patient_email}
-                      </a>
-                    ) : (
-                      "Not provided"
-                    )}
-                  </dd>
-                </div>
                 <div>
                   <dt>Mobile number</dt>
                   <dd>
@@ -374,8 +374,8 @@ function RequestDetail({ request, busy, onBack, onAction }) {
             <button
               type="button"
               className="cw-primary"
-              disabled={busy}
-              onClick={() => onAction(request.id, "scheduled")}
+              disabled={busy || !approvalReady(appointment)}
+              onClick={() => onAction(request.id, "scheduled", appointment)}
             >
               <Icon name="check" />
               Approve request
@@ -453,7 +453,7 @@ export default function CenterWorkspace({ onLogin }) {
     setPage(0);
     setMessage("");
   }
-  async function open(id, status) {
+  async function open(id, status, appointment) {
     const seq = ++sequence.current;
     setBusy(true);
     setError("");
@@ -462,6 +462,7 @@ export default function CenterWorkspace({ onLogin }) {
       const detail = await call("request", {
         id,
         ...(status ? { status } : {}),
+        ...(status === "scheduled" ? { appointment } : {}),
       });
       if (seq !== sequence.current) return;
       setRequest(detail);
@@ -864,7 +865,7 @@ export default function CenterWorkspace({ onLogin }) {
                   >
                     <div className="cw-table-head" role="row">
                       <span role="columnheader">Reference / Center</span>
-                      <span role="columnheader">Preferred times</span>
+                      <span role="columnheader">Appointment times</span>
                       <span role="columnheader">Received</span>
                       <span role="columnheader">Status</span>
                       <span role="columnheader" className="cw-sr-only">
@@ -885,7 +886,9 @@ export default function CenterWorkspace({ onLogin }) {
                           <div role="cell" className="cw-preferences">
                             <Icon name="calendar" />
                             <div>
-                              {item.slots?.length ? (
+                              {item.status === "scheduled" ? (
+                                <><strong>Approved appointment</strong><span>{approvedSlotLabel(item.approved_slot)}</span></>
+                              ) : item.slots?.length ? (
                                 <>
                                   <strong>
                                     {formatDate(item.slots[0].date)}
