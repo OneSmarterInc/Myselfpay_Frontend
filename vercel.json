@@ -2,6 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/center-login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/center-portal",
+      "destination": "/index.html"
+    },
+    {
       "source": "/api/mailer/unsubscribe",
       "destination": "https://myselfpaybackend.onesmarter.com/api/mailer/unsubscribe"
     },

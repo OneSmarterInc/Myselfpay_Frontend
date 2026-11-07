@@ -69,7 +69,10 @@ const filterNames = [
 ];
 const payload = (state) =>
   Object.fromEntries(filterNames.map((key) => [key, state[key]]));
-const route = () => decodeURIComponent(location.hash.slice(1) || "home");
+const route = () => {
+  const path = location.pathname.replace(/\/+$/, "");
+  return decodeURIComponent(location.hash.slice(1) || (path === "/center-login" ? "center-login" : path === "/center-portal" ? "center" : "home"));
+};
 
 export function OriginalHTML({ html, onInput, replace, disabled = false }) {
   const options = {
@@ -1306,7 +1309,7 @@ export default function App() {
 
       <main className={"shell" + (view === "center" ? " center-shell" : view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
         {account?.setup_required && view !== "login" && view !== "signup" && <p className="panel" role="status">Complete your account setup to request a time. <a href="#login">Verify your mobile number</a></p>}
-        {view === "reset-password" ? <PasswordReset onReset={clear}/> : (view === "login" || view === "signup") ? <MobileAccount key={view} signup={view === "signup"} account={account} onDone={async member=>{setAccount(member);navigate("search");setToast("You are signed in.");if(member.zip_code && !pendingBooking) await search({...initialState(),location:member.zip_code,sort:"distance"});}}/> : nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
+        {view === "center-login" ? <section className="panel center-direct-login"><CenterLogin onDone={()=>navigate("center")}/></section> : view === "reset-password" ? <PasswordReset onReset={clear}/> : (view === "login" || view === "signup") ? <MobileAccount key={view} signup={view === "signup"} account={account} onDone={async member=>{setAccount(member);navigate("search");setToast("You are signed in.");if(member.zip_code && !pendingBooking) await search({...initialState(),location:member.zip_code,sort:"distance"});}}/> : nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (
           <OriginalHTML html={markup} onInput={input} replace={replace} />
