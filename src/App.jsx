@@ -5,7 +5,7 @@ import parse, { attributesToProps, domToReact } from "html-react-parser";
 import { api, establishSession, setCsrf } from "./api.js";
 import { originalUI } from "./original-ui.js";
 import { directoryOffer } from "./directory-offer.js";
-import { excludedListing, visibleDirectoryData } from "./directory-policy.js";
+import { presentListing, visibleDirectoryData } from "./directory-policy.js";
 import { spatialOffers, watchLocation } from "./spatial.js";
 import { currentLocationLabel } from "./auto-location.js";
 import { StatewideLocationManager } from "./statewide-location.js";
@@ -194,7 +194,7 @@ export default function App() {
   const [spatialManager] = useState(() => new StatewideLocationManager(api));
   const displayResults = useMemo(
     () =>
-      (spatialSnapshot ? spatialOffers(spatialSnapshot.records, state) : results).filter(item=>!excludedListing(item)),
+      (spatialSnapshot ? spatialOffers(spatialSnapshot.records, state) : results).map(item=>presentListing(item)),
     [
       spatialSnapshot,
       results,

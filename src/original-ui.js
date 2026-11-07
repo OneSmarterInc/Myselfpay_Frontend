@@ -1,4 +1,4 @@
-import { excludedListing } from './directory-policy.js';
+import { presentListing } from './directory-policy.js';
 import { approvedSlotLabel } from './approved-slot.js';
 import { CHAT_QUESTIONS } from './chat-questions.js';
 import { centerPhone } from './center-phone.js';
@@ -8,7 +8,7 @@ import { paginateGroups } from './pagination.js';
 // React owns state, rendering and event handling; the old imperative app.js is not loaded.
 export function originalUI(context) {
 const {account,catalogReady,catalogError,summary,catalogCounts}=context;
-const visible=items=>(items||[]).filter(item=>!excludedListing(item));
+const visible=items=>(items||[]).map(item=>presentListing(item));
 const DIRECTORY=visible(context.DIRECTORY), offers=visible(context.offers), results=visible(context.results);
 const state={...context.state,programs:visible(context.state.programs),programEntries:visible(context.state.programEntries),nearbyUnpriced:visible(context.state.nearbyUnpriced)};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
