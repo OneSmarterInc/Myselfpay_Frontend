@@ -5,6 +5,7 @@ import parse, { attributesToProps, domToReact } from "html-react-parser";
 import { api, establishSession, setCsrf } from "./api.js";
 import { originalUI } from "./original-ui.js";
 import { directoryOffer } from "./directory-offer.js";
+import { excludedListing, visibleDirectoryData } from "./directory-policy.js";
 import { spatialOffers, watchLocation } from "./spatial.js";
 import { currentLocationLabel } from "./auto-location.js";
 import { StatewideLocationManager } from "./statewide-location.js";
@@ -193,7 +194,7 @@ export default function App() {
   const [spatialManager] = useState(() => new StatewideLocationManager(api));
   const displayResults = useMemo(
     () =>
-      spatialSnapshot ? spatialOffers(spatialSnapshot.records, state) : results,
+      (spatialSnapshot ? spatialOffers(spatialSnapshot.records, state) : results).filter(item=>!excludedListing(item)),
     [
       spatialSnapshot,
       results,
@@ -437,7 +438,7 @@ export default function App() {
     api("/catalog?metadata=1")
         .then((value) => {
           if (active) {
-            setCatalog(value);
+            setCatalog(visibleDirectoryData(value));
             setCatalogReady(true);
             setCatalogError("");
           }
@@ -508,6 +509,7 @@ export default function App() {
     });
   }
   function acceptResults(data) {
+    data = visibleDirectoryData(data);
     if(nativeApp) {setNativeFiltersOpen(!!(data.location_suggestions?.length || (data.resolved_location === null && data.search?.location?.toLowerCase() !== "national")));window.scrollTo(0,0);}
     setResults(data.offers || []);
     setState((old) => ({
@@ -778,7 +780,7 @@ export default function App() {
       if (catalog.metadata_only || !catalogReady) {
         void run(async () => {
           const value = await api("/catalog");
-          setCatalog(value);
+          setCatalog(visibleDirectoryData(value));
           setCatalogReady(true);
           setCatalogError("");
         });
