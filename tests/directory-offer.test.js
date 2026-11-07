@@ -118,7 +118,7 @@ it("keeps starting prices and explicit ranges concise without turning fees into 
         mri: "Scan $500 plus a $100 reading fee",
       }),
     ),
-  ).toBe("MRI: See price details");
+  ).toBe("MRI: Scan $500 plus a $100 reading fee");
 });
 
 it("escapes stored price descriptions before rendering them", () => {
@@ -137,4 +137,23 @@ it("escapes stored price descriptions before rendering them", () => {
   });
   expect(ui.detail(offer.id)).toContain("&lt;img");
   expect(ui.detail(offer.id)).not.toContain("<img src=x");
+});
+
+
+it("shows the stored MRI price and contrast supplement on the search card", () => {
+  const entry = {
+    name: "Advantage Diagnostics � Columbus South",
+    booking_id: "columbus-south",
+    mri: "MRI $400; studies ordered with contrast +$100. Specialized protocols have separate prices.",
+    ct: "Not listed at this branch",
+    other: "Routine X-ray $100",
+  };
+  const offer = directoryOffer(entry);
+  const summary = "MRI: $400; studies ordered with contrast +$100. Specialized protocols have separate prices.";
+  expect(cardPriceSummary(offer)).toBe(summary);
+  const ui = originalUI({state: {selected: [], location: "Ohio", mod: "", searched: true, messages: []}, offers: [offer], results: [offer], DIRECTORY: [entry]});
+  expect(ui.search()).toContain("$400");
+  expect(ui.search()).toContain("+$100");
+  expect(ui.search()).not.toContain("MRI: See price details");
+  expect(ui.detail(offer.id)).toContain("Routine X-ray $100");
 });

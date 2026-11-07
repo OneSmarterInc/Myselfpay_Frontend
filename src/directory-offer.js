@@ -72,7 +72,9 @@ export function cardPriceSummary(offer) {
         )
       )
         value = amounts.join("–");
-      else value = "See price details";
+      // Multiple amounts may describe contrast supplements, reading fees, or
+      // different exams. Keep their labels instead of hiding or combining them.
+      else value = text.replace(new RegExp("^" + service + "\\s*[:��-]?\\s*", "i"), "");
       if (
         /\b(?:screening|calcium)\b/i.test(text) &&
         value !== "See price details"
