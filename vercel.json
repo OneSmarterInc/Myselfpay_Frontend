@@ -2,6 +2,18 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/api/mailer/unsubscribe",
+      "destination": "https://myselfpaybackend.onesmarter.com/api/mailer/unsubscribe"
+    },
+    {
+      "source": "/api/mailer/unsubscribe/:token/",
+      "destination": "https://myselfpaybackend.onesmarter.com/api/mailer/unsubscribe/:token"
+    },
+    {
+      "source": "/api/mailer/unsubscribe/:token",
+      "destination": "https://myselfpaybackend.onesmarter.com/api/mailer/unsubscribe/:token"
+    },
+    {
       "source": "/admin/",
       "destination": "https://myselfpaybackend.onesmarter.com/admin/"
     },
