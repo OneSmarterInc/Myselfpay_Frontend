@@ -36,6 +36,85 @@ export function directoryOffer(entry, search = {}) {
   };
 }
 
+function primaryPrice(text) {
+  const money =
+    /(?:\$\s*|\bUSD\s*)(\d[\d,]*(?:\.\d{1,2})?)|(\d[\d,]*(?:\.\d{1,2})?)\s*USD\b/gi;
+  const candidates = [];
+  for (const clause of text.split(/;|\n|\.(?=\s+[A-Za-z])/)) {
+    const prices = [...clause.matchAll(money)];
+    prices.forEach((match, index) => {
+      const before = clause.slice(
+        index ? prices[index - 1].index + prices[index - 1][0].length : 0,
+        match.index,
+      );
+      const after = clause.slice(
+        match.index + match[0].length,
+        prices[index + 1]?.index ?? clause.length,
+      );
+      // Never use supplements, ancillary fees, or the upper end of a range as exam prices.
+      if (
+        /[+]\s*$/.test(before) ||
+        /\b(?:plus|additional|extra|add[- ]?on|supplement|surcharge)\s*(?:a\s*)?$/i.test(
+          before,
+        ) ||
+        /^\s*(?:reading|interpretation|contrast|facility)\s*(?:charge|fee|supplement|surcharge)\b/i.test(
+          after,
+        ) ||
+        /\b(?:reading|interpretation|contrast|facility)\s*(?:charge|fee|supplement|surcharge)\s*(?:of|is|:)?\s*$/i.test(
+          before,
+        )
+      )
+        return;
+      const range =
+        /^\s*(?:[-\u2013\u2014]|to)\s*(?:\$\s*)?\d/.test(after) ||
+        (prices[index + 1] && /^\s*(?:[-\u2013\u2014]|to)\s*$/.test(after));
+      if (index && /^\s*(?:[-\u2013\u2014]|to)\s*$/.test(before)) return;
+      const protocol =
+        /\b(?:without\s+(?:and\s+)?with(?:\s+contrast)?|with\s*(?:\/|and)\s*without(?:\s+contrast)?|without\s+contrast|non[- ]?contrast|with(?:\s+contrast)?)\b/gi;
+      const nearby = [...before.matchAll(protocol)].map((m) => ({
+        label: m[0],
+        distance: before.length - m.index - m[0].length,
+      }));
+      nearby.push(
+        ...[...after.matchAll(protocol)].map((m) => ({
+          label: m[0],
+          distance: m.index,
+        })),
+      );
+      nearby.sort((a, b) => a.distance - b.distance);
+      const label = nearby[0]?.label || "";
+      const both =
+        /without\s+(?:and\s+)?with|with\s*(?:\/|and)\s*without/i.test(label);
+      const rank = both
+        ? 2
+        : /without|non[- ]?contrast/i.test(label)
+          ? 0
+          : /with/i.test(label)
+            ? 1
+            : 3;
+      const qualifier =
+        /\b(?:from|starting(?:\s+(?:at|from))?|as low as)\s*$/i.test(before) ||
+        range
+          ? " onwards"
+          : /\b(?:up to|maximum)\s*$/i.test(before)
+            ? " maximum"
+            : /\baverage\s*$/i.test(before)
+              ? " average"
+              : "";
+      candidates.push({
+        rank,
+        amount: Number((match[1] || match[2]).replaceAll(",", "")),
+        text: "$" + (match[1] || match[2]) + qualifier,
+        screening: /\b(?:screening|calcium)\b/i.test(clause),
+      });
+    });
+  }
+  candidates.sort((a, b) => a.rank - b.rank || a.amount - b.amount);
+  const chosen = candidates[0];
+  return chosen
+    ? chosen.text + (chosen.screening ? " (screening only)" : "")
+    : "See price details";
+}
 export function cardPriceSummary(offer) {
   if (!offer.directory_only || !offer.published_prices?.length) return null;
   const services = offer.published_prices.filter((price) =>
@@ -43,42 +122,6 @@ export function cardPriceSummary(offer) {
   );
   if (!services.length) return "Ask for a price";
   return services
-    .map(({ service, text }) => {
-      const prices = [
-        ...text.matchAll(
-          /(?:\$\s*|\bUSD\s*)(\d[\d,]*(?:\.\d{1,2})?)|(\d[\d,]*(?:\.\d{1,2})?)\s*USD\b/gi,
-        ),
-      ];
-      if (!prices.length) return service + ": See price details";
-      const amounts = [
-        ...new Set(prices.map((match) => "$" + (match[1] || match[2]))),
-      ];
-      const starts = text.match(
-        /\b(?:from|starting(?:\s+(?:at|from))?|as low as)\s*(?:\$\s*|USD\s*)(\d[\d,]*(?:\.\d{1,2})?)/i,
-      );
-      let value;
-      if (starts) value = "From $" + starts[1];
-      else if (prices.length === 1)
-        value =
-          (/\b(?:up to|maximum)\b/i.test(text)
-            ? "Up to "
-            : /\baverage\b/i.test(text)
-              ? "Average "
-              : "") + amounts[0];
-      else if (
-        prices.length === 2 &&
-        /^\s*(?:[-–—]|to)\s*$/.test(
-          text.slice(prices[0].index + prices[0][0].length, prices[1].index),
-        )
-      )
-        value = amounts.join("–");
-      else value = "See price details";
-      if (
-        /\b(?:screening|calcium)\b/i.test(text) &&
-        value !== "See price details"
-      )
-        value += " (screening only)";
-      return service + ": " + value;
-    })
+    .map(({ service, text }) => service + ": " + primaryPrice(text))
     .join("\n");
 }

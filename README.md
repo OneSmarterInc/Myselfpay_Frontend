@@ -1,3 +1,5 @@
+> Patient registration asks only first name and mobile number, then SMS OTP. Login asks only the registered mobile number, then SMS OTP. No username, password, email or ZIP is collected in these forms. Deploy the matching backend /api/auth/mobile endpoints first; no new migration is needed. Booking and center Secure Mail delivery remain unchanged.
+
 # MySelfPay frontend — React
 
 The original SelfPay UI is restored from commit `bf839ef9af6efde48b2666cc26e7e793a7d9bd06`: original layout, wording, CSS, logo, self-hosted Public Sans font, icons, information pages, filter controls, dialogs and booking screens. `src/original-ui.js` retains the source presentation templates; React converts them to elements and owns component state and events. The original imperative `app.js` is not loaded.
@@ -73,3 +75,5 @@ No existing live patient/account data, production credentials or live database b
 ## Predefined chat
 
 Ask MySelfPay retains the original chat layout and supports only the three questions in `src/chat-questions.js`. The suggestion buttons, Send field and voice-preview selector use this allowlist. Other text is rejected locally. Registered users receive the same questions; guest conversation quotas still apply. The backend must also be updated to enforce the allowlist on `/api/agent`. No external AI or speech service is called.
+
+The browser-test workflow pins the matching backend revision for the mobile account API and uses simulated SMS only in its isolated DEBUG fixture. Update that revision when intentionally changing the API contract. Production SMS always uses the configured Twilio Verify service.

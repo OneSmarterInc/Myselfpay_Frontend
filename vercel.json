@@ -2,6 +2,34 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/admin/mailer",
+      "destination": "/api/admin-mailer-ui"
+    },
+    {
+      "source": "/admin/mailer/",
+      "destination": "/api/admin-mailer-ui"
+    },
+    {
+      "source": "/center-login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/center-portal",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/api/mailer/unsubscribe",
+      "destination": "https://myselfpaybackend.onesmarter.com/api/mailer/unsubscribe"
+    },
+    {
+      "source": "/api/mailer/unsubscribe/:token/",
+      "destination": "https://myselfpaybackend.onesmarter.com/api/mailer/unsubscribe/:token"
+    },
+    {
+      "source": "/api/mailer/unsubscribe/:token",
+      "destination": "https://myselfpaybackend.onesmarter.com/api/mailer/unsubscribe/:token"
+    },
+    {
       "source": "/admin/",
       "destination": "https://myselfpaybackend.onesmarter.com/admin/"
     },
@@ -81,5 +109,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/admin-mailer-ui.js": {
+      "maxDuration": 30
+    }
+  }
 }

@@ -1,3 +1,4 @@
+import { completeMobileRegistration } from "./mobile-account.js";
 import { test, expect } from "@playwright/test";
 
 test("current-location search loads the whole selected state and recalculates overseas miles locally", async ({
@@ -101,43 +102,11 @@ test("current-location search loads the whole selected state and recalculates ov
   ).toBeVisible();
 });
 
-test("five-digit ZIP registration persists and automatically searches after login", async ({
-  page,
-}) => {
-  const email = `zip-ui-${Date.now()}@example.com`,
-    password = "Synthetic-only-passphrase!";
+test("registration asks only first name and mobile, without ZIP or password", async ({ page }) => {
   await page.goto("/#signup");
-  await page.locator("#accountName").fill("Synthetic ZIP User");
-  await page.locator("#accountEmail").fill(email);
-  await page.locator("#accountZip").fill("4520");
-  expect(
-    await page
-      .locator("#accountZip")
-      .evaluate((input) => input.checkValidity()),
-  ).toBe(false);
-  await page.locator("#accountZip").fill("45202");
-  await page.locator("#accountPassword").fill(password);
-  await page.locator("#accountConfirm").fill(password);
-  const search = () =>
-    page.waitForRequest(
-      (request) =>
-        request.url().endsWith("/api/search") &&
-        request.postDataJSON()?.location === "45202",
-    );
-  const registered = search();
-  await page.locator("#accountSubmit").click();
-  expect((await registered).postDataJSON().sort).toBe("distance");
-  await expect(page.locator("article.card").first()).toBeVisible();
-  const profile = await page.request.get("/api/me");
-  expect((await profile.json()).member.zip_code).toBe("45202");
-  await page.locator("#profile").click();
-  await page.locator("#accountLogin").click();
-  await page.locator("#accountEmail").fill(email);
-  await page.locator("#accountPassword").fill(password);
-  const loggedIn = search();
-  await page.locator("#accountSubmit").click();
-  expect((await loggedIn).postDataJSON().location).toBe("45202");
-  await expect(page.locator("article.card").first()).toBeVisible();
+  await expect(page.locator("#accountName")).toBeVisible();
+  await expect(page.locator("#accountPhone")).toBeVisible();
+  await expect(page.locator("#accountZip, #accountPassword, #accountUsername")).toHaveCount(0);
 });
 
 test("denied location permission provides a usable manual-search fallback", async ({
