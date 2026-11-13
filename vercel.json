@@ -2,14 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/admin/mailer",
-      "destination": "/api/admin-mailer-ui"
-    },
-    {
-      "source": "/admin/mailer/",
-      "destination": "/api/admin-mailer-ui"
-    },
-    {
       "source": "/center-login",
       "destination": "/index.html"
     },
@@ -109,10 +101,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "api/admin-mailer-ui.js": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
