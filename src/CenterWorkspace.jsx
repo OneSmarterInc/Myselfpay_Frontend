@@ -408,13 +408,14 @@ function ContactEditor({ field, current, entryId, onDone }) {
   if (step === "view")
     return (
       <span className="cw-contact-view">
-        {current || "Not listed"}{" "}
+        <span>{current || "Not listed"}</span>
         <button
           type="button"
-          className="cw-text-link"
+          className="cw-edit-button"
+          aria-label={isEmail ? "Edit login email" : "Edit phone number"}
           onClick={() => setStep("edit")}
         >
-          Edit
+          {isEmail ? "Edit email" : current ? "Edit phone" : "Add phone"}
         </button>
       </span>
     );
