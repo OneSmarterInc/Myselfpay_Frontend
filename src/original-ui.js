@@ -62,7 +62,8 @@ function groupedCards(found){
  };
  const miles=o=>Number.isFinite(o.distance_miles)?o.distance_miles:Infinity;
  const demoRank=o=>Number(o.entry.is_test_center===true&&o.entry.booking_id==='portal-ammar-test-center');
- listings.sort((a,b)=>demoRank(b)-demoRank(a)||(state.nearToMe?0:detailRank(b)-detailRank(a))||((!state.sort||state.sort==='distance')?(miles(a)<miles(b)?-1:miles(a)>miles(b)?1:0):0));
+ const featuredRank=o=>{if(state.nearToMe)return 0;const name=String(o.entry.name||'').trim();return /^Advantage Diagnostics\s*[—–-]\s*Columbus South$/i.test(name)?2:/^Advantage Diagnostics\s*[—–-]\s*Beachwood$/i.test(name)?1:0;};
+ listings.sort((a,b)=>featuredRank(b)-featuredRank(a)||demoRank(b)-demoRank(a)||(state.nearToMe?0:detailRank(b)-detailRank(a))||((!state.sort||state.sort==='distance')?(miles(a)<miles(b)?-1:miles(a)>miles(b)?1:0):0));
  const page=paginateGroups([listings],state.resultsPage||0);
  if(!page.total)return '';
  const [cards]=page.items;
