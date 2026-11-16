@@ -1,5 +1,15 @@
 // Presentation-only directory listing. Keep stored price wording and scope intact.
 export function storedPrices(entry, service = "") {
+  if (/^Advantage Diagnostics\s*[—–-]\s*(Columbus South|Beachwood)$/i.test(String(entry.name || '').trim())) {
+    return [
+      {service:'MRI without contrast',text:'$400',mod:'MRI'},
+      {service:'MRI with contrast',text:'$500',mod:'MRI'},
+      {service:'CT without contrast',text:'$300',mod:'CT'},
+      {service:'CT with contrast',text:'$400',mod:'CT'},
+      {service:'Ultrasound',text:'$300',mod:'Ultrasound'},
+      {service:'X-ray',text:'$100',mod:'X-ray'},
+    ].filter(item => !service || item.mod.toLowerCase() === service.toLowerCase());
+  }
   const fields = service
     ? [[service, service.toLowerCase()]]
     : [
