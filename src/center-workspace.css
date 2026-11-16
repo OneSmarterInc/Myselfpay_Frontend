@@ -1406,3 +1406,29 @@
 .native-app .center-shell .center-workspace {
   min-height: calc(100dvh - 60px);
 }
+
+.cw-price-form {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line, #d9dee7);
+}
+.cw-price-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.cw-price-grid label {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+}
+.cw-price-consent {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px 0 12px;
+}
+.cw-price-pending {
+  font-weight: 600;
+}

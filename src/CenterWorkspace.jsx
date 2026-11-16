@@ -174,7 +174,140 @@ function Empty({ title, description, onReset }) {
     </div>
   );
 }
-function Profile({ centers, email }) {
+function PriceForm({ center, submissions, onSaved }) {
+  const [mri, setMri] = useState(""),
+    [ct, setCt] = useState(""),
+    [contrast, setContrast] = useState("unknown"),
+    [reading, setReading] = useState("unknown"),
+    [consent, setConsent] = useState(false),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [done, setDone] = useState("");
+  const pending = submissions.filter(
+    (item) => item.entry_key === center.id && item.status === "pending",
+  );
+  const valid = (value) => /^\d{1,5}(\.\d{1,2})?$/.test(value.trim());
+  const prices = [
+    ["MRI", mri],
+    ["CT", ct],
+  ]
+    .filter(([, value]) => value.trim())
+    .map(([exam, value]) => ({
+      exam,
+      amount: value.trim(),
+      price_type: "fixed",
+      contrast,
+      interpretation_included: reading,
+    }));
+  const ready =
+    consent &&
+    prices.length > 0 &&
+    [mri, ct].every((v) => !v.trim() || valid(v));
+  async function submit(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setDone("");
+    try {
+      const value = await call("price", { id: center.id, consent, prices });
+      setDone(
+        value.message || "Thank you. Your prices will appear after review.",
+      );
+      setMri("");
+      setCt("");
+      setConsent(false);
+      onSaved?.();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <form className="cw-price-form" onSubmit={submit}>
+      <h4>Self-pay prices</h4>
+      <p>
+        Enter the price a patient pays without insurance. Prices appear on your
+        listing with the date after review.
+      </p>
+      <div className="cw-price-grid">
+        <label>
+          MRI price (USD)
+          <input
+            inputMode="decimal"
+            value={mri}
+            disabled={busy}
+            onChange={(e) => setMri(e.target.value)}
+          />
+        </label>
+        <label>
+          CT price (USD)
+          <input
+            inputMode="decimal"
+            value={ct}
+            disabled={busy}
+            onChange={(e) => setCt(e.target.value)}
+          />
+        </label>
+        <label>
+          Contrast
+          <select
+            value={contrast}
+            disabled={busy}
+            onChange={(e) => setContrast(e.target.value)}
+          >
+            <option value="unknown">Not specified</option>
+            <option value="without">Without contrast</option>
+            <option value="with">With contrast</option>
+            <option value="either">Same price either way</option>
+          </select>
+        </label>
+        <label>
+          Includes radiologist reading
+          <select
+            value={reading}
+            disabled={busy}
+            onChange={(e) => setReading(e.target.value)}
+          >
+            <option value="unknown">Not specified</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+      </div>
+      <label className="cw-price-consent">
+        <input
+          type="checkbox"
+          checked={consent}
+          disabled={busy}
+          onChange={(e) => setConsent(e.target.checked)}
+        />
+        These are our current self-pay prices. Show them on our listing.
+      </label>
+      {error && (
+        <p className="center-error" role="alert">
+          {error}
+        </p>
+      )}
+      {done && <p role="status">{done}</p>}
+      {pending.length > 0 && (
+        <p className="cw-price-pending">
+          Waiting for review:{" "}
+          {pending
+            .map(
+              (item) => `${item.exam} $${(item.amount_cents / 100).toFixed(2)}`,
+            )
+            .join(", ")}
+        </p>
+      )}
+      <button className="primary" disabled={busy || !ready}>
+        {busy ? "Please wait…" : "Send prices for review"}
+      </button>
+    </form>
+  );
+}
+
+function Profile({ centers, email, submissions = [], onSaved }) {
   return (
     <div className="cw-profiles">
       <div className="cw-section-title">
@@ -247,6 +380,11 @@ function Profile({ centers, email }) {
               )}
             </div>
           )}
+          <PriceForm
+            center={center}
+            submissions={submissions}
+            onSaved={onSaved}
+          />
         </article>
       ))}
     </div>
@@ -691,7 +829,12 @@ export default function CenterWorkspace({ onLogin }) {
             />
           </div>
         ) : tab === "profile" ? (
-          <Profile centers={centers} email={data.email} />
+          <Profile
+            centers={centers}
+            email={data.email}
+            submissions={data.price_submissions || []}
+            onSaved={() => refresh()}
+          />
         ) : (
           <>
             <div className="cw-metrics" aria-label="Request totals">
@@ -887,7 +1030,12 @@ export default function CenterWorkspace({ onLogin }) {
                             <Icon name="calendar" />
                             <div>
                               {item.status === "scheduled" ? (
-                                <><strong>Approved appointment</strong><span>{approvedSlotLabel(item.approved_slot)}</span></>
+                                <>
+                                  <strong>Approved appointment</strong>
+                                  <span>
+                                    {approvedSlotLabel(item.approved_slot)}
+                                  </span>
+                                </>
                               ) : item.slots?.length ? (
                                 <>
                                   <strong>
