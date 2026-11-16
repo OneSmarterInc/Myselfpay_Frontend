@@ -126,6 +126,9 @@ function primaryPrice(text) {
     : "See price details";
 }
 export function cardPriceSummary(offer) {
+  if (/^Advantage Diagnostics\s*[—–-]\s*(Columbus South|Beachwood)$/i.test(String(offer.entry?.name || '').trim())) {
+    return 'MRI without contrast: $400\nMRI with contrast: $500\nCT without contrast: $300\nCT with contrast: $400\nUltrasound: $300\nX-ray: $100';
+  }
   if (!offer.directory_only || !offer.published_prices?.length) return null;
   const services = offer.published_prices.filter((price) =>
     ["MRI", "CT"].includes(price.service),
