@@ -1,3 +1,4 @@
+import { presentListing } from './directory-policy.js';
 import {
   latLngToCell,
   cellToLatLng,
@@ -235,7 +236,7 @@ export function spatialOffers(records, search) {
     if (seen.has(record.entry_key)) return [];
     seen.add(record.entry_key);
     const entry = {
-      ...record.entry,
+      ...presentListing(record.entry),
       booking_id: record.entry_key,
       distance_miles: record.distance_miles,
       distance_precision: record.distance_precision,
