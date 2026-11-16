@@ -1432,3 +1432,75 @@
 .cw-price-pending {
   font-weight: 600;
 }
+
+.cw-price-live {
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #eef6f1;
+}
+.cw-price-live ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.cw-account-card {
+  margin-bottom: 16px;
+}
+.cw-contact-view {
+  display: inline-flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.cw-contact-view .cw-text-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.cw-contact-form {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+}
+.cw-contact-form label {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+}
+.cw-contact-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cw-history-button {
+  border: 1px solid var(--line, #d9dee7);
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cw-history {
+  margin: 12px 0 16px;
+  padding: 16px;
+  border: 1px solid var(--line, #d9dee7);
+  border-radius: 12px;
+  background: #fff;
+}
+.cw-history-scroll {
+  overflow-x: auto;
+}
+.cw-history table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.cw-history th,
+.cw-history td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line, #e5e8ee);
+  vertical-align: top;
+}

@@ -174,11 +174,38 @@ function Empty({ title, description, onReset }) {
     </div>
   );
 }
-function PriceForm({ center, submissions, onSaved }) {
-  const [mri, setMri] = useState(""),
-    [ct, setCt] = useState(""),
-    [contrast, setContrast] = useState("unknown"),
-    [reading, setReading] = useState("unknown"),
+const CONTRAST_LABEL = {
+  unknown: "Contrast not specified",
+  without: "Without contrast",
+  with: "With contrast",
+  either: "Same price either way",
+};
+const READING_LABEL = {
+  unknown: "Reading not specified",
+  yes: "Reading included",
+  no: "Reading billed separately",
+};
+const money = (cents) => `$${(cents / 100).toFixed(2)}`;
+const day = (stamp) =>
+  stamp
+    ? new Date(stamp * 1000).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "";
+
+function PriceForm({ center, submissions, live = [], onSaved }) {
+  const mine = live.filter((item) => item.entry_key === center.id),
+    liveFor = (exam) => mine.find((item) => item.exam === exam),
+    liveAmount = (exam) =>
+      liveFor(exam) ? (liveFor(exam).amount_cents / 100).toFixed(2) : "";
+  const [mri, setMri] = useState(liveAmount("MRI")),
+    [ct, setCt] = useState(liveAmount("CT")),
+    [contrast, setContrast] = useState(mine[0]?.contrast || "unknown"),
+    [reading, setReading] = useState(
+      mine[0]?.interpretation_included || "unknown",
+    ),
     [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -195,7 +222,7 @@ function PriceForm({ center, submissions, onSaved }) {
     .map(([exam, value]) => ({
       exam,
       amount: value.trim(),
-      price_type: "fixed",
+      price_type: liveFor(exam)?.price_type || "fixed",
       contrast,
       interpretation_included: reading,
     }));
@@ -213,8 +240,6 @@ function PriceForm({ center, submissions, onSaved }) {
       setDone(
         value.message || "Thank you. Your prices will appear after review.",
       );
-      setMri("");
-      setCt("");
       setConsent(false);
       onSaved?.();
     } catch (e) {
@@ -225,10 +250,28 @@ function PriceForm({ center, submissions, onSaved }) {
   }
   return (
     <form className="cw-price-form" onSubmit={submit}>
-      <h4>Self-pay prices</h4>
+      <h4>{mine.length ? "Update your self-pay prices" : "Self-pay prices"}</h4>
+      {mine.length > 0 && (
+        <div className="cw-price-live">
+          <strong>Live on your listing</strong>
+          <ul>
+            {mine.map((item) => (
+              <li key={item.id}>
+                <b>{item.exam}</b> {money(item.amount_cents)}
+                {item.price_type === "from" ? " and up" : ""} ·{" "}
+                {CONTRAST_LABEL[item.contrast] || CONTRAST_LABEL.unknown} ·{" "}
+                {READING_LABEL[item.interpretation_included] ||
+                  READING_LABEL.unknown}
+                {item.confirmed ? ` · confirmed ${item.confirmed}` : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <p>
-        Enter the price a patient pays without insurance. Prices appear on your
-        listing with the date after review.
+        {mine.length
+          ? "Change a price below and send it. The new price goes live after review. The current price stays until then."
+          : "Enter the price a patient pays without insurance. Prices appear on your listing with the date after review."}
       </p>
       <div className="cw-price-grid">
         <label>
@@ -301,13 +344,228 @@ function PriceForm({ center, submissions, onSaved }) {
         </p>
       )}
       <button className="primary" disabled={busy || !ready}>
-        {busy ? "Please wait…" : "Send prices for review"}
+        {busy
+          ? "Please wait…"
+          : mine.length
+            ? "Send change for review"
+            : "Send prices for review"}
       </button>
     </form>
   );
 }
 
-function Profile({ centers, email, submissions = [], onSaved }) {
+function ContactEditor({ field, current, entryId, onDone }) {
+  const isEmail = field === "email",
+    [step, setStep] = useState("view"),
+    [value, setValue] = useState(current || ""),
+    [ident, setIdent] = useState(""),
+    [code, setCode] = useState(""),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  function cancel() {
+    setStep("view");
+    setValue(current || "");
+    setCode("");
+    setError("");
+  }
+  async function send(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const result = await call("contact", {
+        field,
+        value: value.trim(),
+        ...(isEmail ? {} : { id: entryId }),
+      });
+      setIdent(result.verification_id);
+      setCode("");
+      setStep("code");
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function confirm(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const result = await call("contact-verify", {
+        verification_id: ident,
+        code: code.trim(),
+      });
+      setStep("view");
+      onDone?.(result);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const noun = isEmail ? "login email" : "phone number";
+  if (step === "view")
+    return (
+      <span className="cw-contact-view">
+        {current || "Not listed"}{" "}
+        <button
+          type="button"
+          className="cw-text-link"
+          onClick={() => setStep("edit")}
+        >
+          Edit
+        </button>
+      </span>
+    );
+  return (
+    <form
+      className="cw-contact-form"
+      onSubmit={step === "edit" ? send : confirm}
+    >
+      {step === "edit" ? (
+        <>
+          <label>
+            New {noun}
+            <input
+              type={isEmail ? "email" : "tel"}
+              value={value}
+              disabled={busy}
+              autoComplete={isEmail ? "email" : "tel"}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </label>
+          <p>
+            {isEmail
+              ? `You are changing your login email${current ? ` from ${current}` : ""}. We send a code to the new email. After you confirm, you sign in with the new email.`
+              : `You are changing the phone number for this listing${current ? ` from ${current}` : ""}. We text a code to the new number. Include the country code, such as +1.`}
+          </p>
+        </>
+      ) : (
+        <>
+          <label>
+            Code sent to {value.trim()}
+            <input
+              inputMode="numeric"
+              maxLength={6}
+              value={code}
+              disabled={busy}
+              autoComplete="one-time-code"
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            />
+          </label>
+          <p>Enter the 6-digit code to confirm the change of your {noun}.</p>
+        </>
+      )}
+      {error && (
+        <p className="center-error" role="alert">
+          {error}
+        </p>
+      )}
+      <span className="cw-contact-actions">
+        <button
+          className="primary"
+          disabled={
+            busy ||
+            (step === "edit"
+              ? !value.trim() || value.trim() === current
+              : code.length !== 6)
+          }
+        >
+          {busy
+            ? "Please wait…"
+            : step === "edit"
+              ? "Send code"
+              : "Confirm change"}
+        </button>
+        <button type="button" disabled={busy} onClick={cancel}>
+          Cancel
+        </button>
+      </span>
+    </form>
+  );
+}
+
+function History({ centers, submissions, contact }) {
+  const names = Object.fromEntries(centers.map((c) => [c.id, c.name])),
+    rows = [
+      ...submissions.map((item) => ({
+        when: item.submitted,
+        kind: "Price",
+        center: names[item.entry_key] || "",
+        detail: `${item.exam} ${money(item.amount_cents)}${item.price_type === "from" ? " and up" : ""} · ${CONTRAST_LABEL[item.contrast] || ""}`,
+        status:
+          item.status === "approved"
+            ? `Live since ${day(item.decided)}`
+            : item.status === "rejected"
+              ? `Not accepted ${day(item.decided)}`
+              : item.status === "replaced"
+                ? "Replaced before review"
+                : "Waiting for review",
+      })),
+      ...contact.map((item) => ({
+        when: item.changed,
+        kind: item.field === "email" ? "Login email" : "Phone",
+        center:
+          item.field === "email"
+            ? ""
+            : item.entry_keys
+                .map((k) => names[k])
+                .filter(Boolean)
+                .join(", "),
+        detail: `${item.old_value || "Not listed"} → ${item.new_value}`,
+        status: "Changed",
+      })),
+    ].sort((a, b) => b.when - a.when);
+  return (
+    <section className="cw-history" aria-label="Change history">
+      <h3>History</h3>
+      {rows.length === 0 ? (
+        <p>
+          No changes yet. Price updates and contact changes appear here with
+          their dates.
+        </p>
+      ) : (
+        <div className="cw-history-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>What</th>
+                <th>Center</th>
+                <th>Details</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i}>
+                  <td>{day(row.when)}</td>
+                  <td>{row.kind}</td>
+                  <td>{row.center}</td>
+                  <td>{row.detail}</td>
+                  <td>{row.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Profile({
+  centers,
+  email,
+  submissions = [],
+  live = [],
+  contact = [],
+  onSaved,
+  onEmailChanged,
+}) {
+  const [showHistory, setShowHistory] = useState(false),
+    [note, setNote] = useState("");
   return (
     <div className="cw-profiles">
       <div className="cw-section-title">
@@ -315,10 +573,39 @@ function Profile({ centers, email, submissions = [], onSaved }) {
           <h2>Your directory profiles</h2>
           <p>Center information linked to your verified email.</p>
         </div>
+        <button
+          type="button"
+          className="cw-history-button"
+          aria-expanded={showHistory}
+          onClick={() => setShowHistory((v) => !v)}
+        >
+          History
+        </button>
         <a className="cw-text-link" href="/contact">
           Request an update <Icon name="arrow" />
         </a>
       </div>
+      {showHistory && (
+        <History
+          centers={centers}
+          submissions={submissions}
+          contact={contact}
+        />
+      )}
+      {note && (
+        <p className="cw-success" role="status">
+          <Icon name="check" />
+          {note}
+        </p>
+      )}
+      <article className="cw-profile-card cw-account-card">
+        <h3>Login email</h3>
+        <p>
+          You sign in with this email. Changing it updates every listing that
+          uses it.
+        </p>
+        <ContactEditor field="email" current={email} onDone={onEmailChanged} />
+      </article>
       {centers.map((center) => (
         <article key={center.id} className="cw-profile-card">
           <div className="cw-profile-heading">
@@ -343,7 +630,17 @@ function Profile({ centers, email, submissions = [], onSaved }) {
             </div>
             <div>
               <dt>Phone</dt>
-              <dd>{center.phone || "Not listed"}</dd>
+              <dd>
+                <ContactEditor
+                  field="phone"
+                  current={center.phone}
+                  entryId={center.id}
+                  onDone={(result) => {
+                    setNote(result.message || "Your phone number is updated.");
+                    onSaved?.();
+                  }}
+                />
+              </dd>
             </div>
             <div>
               <dt>Location / coverage</dt>
@@ -381,8 +678,13 @@ function Profile({ centers, email, submissions = [], onSaved }) {
             </div>
           )}
           <PriceForm
+            key={`${center.id}:${live
+              .filter((item) => item.entry_key === center.id)
+              .map((item) => `${item.id}:${item.amount_cents}`)
+              .join(",")}`}
             center={center}
             submissions={submissions}
+            live={live}
             onSaved={onSaved}
           />
         </article>
@@ -833,7 +1135,17 @@ export default function CenterWorkspace({ onLogin }) {
             centers={centers}
             email={data.email}
             submissions={data.price_submissions || []}
+            live={data.live_prices || []}
+            contact={data.contact_history || []}
             onSaved={() => refresh()}
+            onEmailChanged={(result) => {
+              setData(null);
+              setRequest(null);
+              setMessage(
+                result.message ||
+                  "Your login email changed. Sign in again with the new email.",
+              );
+            }}
           />
         ) : (
           <>
