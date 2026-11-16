@@ -184,3 +184,7 @@ button.guest-signout{display:inline-flex;align-items:center;justify-content:cent
 /* Multi-service price lists use readable body-size type, not headline prices. */
 .card .price.compact-service-prices,.native-app .price.compact-service-prices,.facility-reference .price.compact-service-prices{font-size:16px!important;line-height:1.75;font-weight:600;white-space:pre-line;text-align:left;max-width:100%;flex-basis:100%;width:100%;margin-top:12px;padding:14px 18px;background:#f7f7f6;border-radius:10px;letter-spacing:normal}
 @media(max-width:600px){.card .price.compact-service-prices,.native-app .price.compact-service-prices,.facility-reference .price.compact-service-prices{font-size:14px!important;line-height:1.8;padding:12px 14px}}
+/* Stack multi-service prices beneath the center name in the Android layout. */
+.native-app .native-center-title:has(.compact-service-prices){display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
+.native-app .native-center-title:has(.compact-service-prices)>h3{width:100%;min-width:0;max-width:none;flex:none;white-space:normal;word-break:normal;overflow-wrap:break-word}
+.native-app .native-center-title .price.compact-service-prices{flex:none;width:100%;min-width:0;max-width:100%;margin-top:0;box-sizing:border-box}
