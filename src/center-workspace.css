@@ -1504,3 +1504,49 @@
   border-bottom: 1px solid var(--line, #e5e8ee);
   vertical-align: top;
 }
+
+.cw-contact-view {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cw-edit-button {
+  background: #0f5c4a;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+}
+.cw-edit-button:hover,
+.cw-edit-button:focus-visible {
+  background: #0b4538;
+}
+.cw-contact-form button {
+  border: 1px solid #c9d1d9;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+}
+.cw-contact-form button.primary {
+  background: #0f5c4a;
+  color: #fff;
+  border-color: #0f5c4a;
+}
+.cw-contact-form button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.cw-contact-form input {
+  padding: 9px 10px;
+  border: 1px solid #c9d1d9;
+  border-radius: 8px;
+  font-size: 14px;
+}
