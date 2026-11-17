@@ -185,6 +185,7 @@ const READING_LABEL = {
   yes: "Reading included",
   no: "Reading billed separately",
 };
+const OTHER_EXAMS = ["Ultrasound", "X-ray"];
 const money = (cents) => `$${(cents / 100).toFixed(2)}`;
 const day = (stamp) =>
   stamp
@@ -203,7 +204,10 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
       ["without", "Without contrast"],
       ["with", "With contrast"],
       ["either", "Same price with or without contrast"],
-      ...(mine.some((item) => item.contrast === "unknown")
+      ...(mine.some(
+        (item) =>
+          item.contrast === "unknown" && ["MRI", "CT"].includes(item.exam),
+      )
         ? [["unknown", "Contrast not specified"]]
         : []),
     ],
@@ -213,9 +217,12 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
         : "";
   const [amounts, setAmounts] = useState(() =>
       Object.fromEntries(
-        ["MRI", "CT"].flatMap((exam) =>
-          rows.map(([c]) => [`${exam}:${c}`, cell(exam, c)]),
-        ),
+        [
+          ...["MRI", "CT"].flatMap((exam) =>
+            rows.map(([c]) => [`${exam}:${c}`, cell(exam, c)]),
+          ),
+          ...OTHER_EXAMS.map((exam) => [`${exam}:unknown`, cell(exam, "unknown")]),
+        ],
       ),
     ),
     [reading, setReading] = useState(
@@ -283,7 +290,9 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
               <li key={item.id}>
                 <b>{item.exam}</b> {money(item.amount_cents)}
                 {item.price_type === "from" ? " and up" : ""} ·{" "}
-                {CONTRAST_LABEL[item.contrast] || CONTRAST_LABEL.unknown} ·{" "}
+                {OTHER_EXAMS.includes(item.exam)
+                  ? ""
+                  : `${CONTRAST_LABEL[item.contrast] || CONTRAST_LABEL.unknown} · `}
                 {READING_LABEL[item.interpretation_included] ||
                   READING_LABEL.unknown}
                 {item.confirmed ? (
@@ -355,6 +364,21 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="cw-price-other">
+        {OTHER_EXAMS.map((exam) => (
+          <label key={exam}>
+            {exam} price (USD, one price)
+            <input
+              inputMode="decimal"
+              value={amounts[`${exam}:unknown`] || ""}
+              disabled={busy}
+              onChange={(e) =>
+                setAmounts({ ...amounts, [`${exam}:unknown`]: e.target.value })
+              }
+            />
+          </label>
+        ))}
       </div>
       <label className="cw-price-reading">
         Radiologist reading, for all prices above
