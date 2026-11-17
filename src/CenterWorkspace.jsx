@@ -178,7 +178,7 @@ const CONTRAST_LABEL = {
   unknown: "Contrast not specified",
   without: "Without contrast",
   with: "With contrast",
-  either: "Same price either way",
+  either: "Same price with or without contrast",
 };
 const READING_LABEL = {
   unknown: "Reading not specified",
@@ -202,7 +202,7 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
     rows = [
       ["without", "Without contrast"],
       ["with", "With contrast"],
-      ["either", "Same price either way"],
+      ["either", "Same price with or without contrast"],
       ...(mine.some((item) => item.contrast === "unknown")
         ? [["unknown", "Contrast not specified"]]
         : []),
@@ -355,19 +355,19 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
             ))}
           </tbody>
         </table>
-        <label>
-          Includes radiologist reading
-          <select
-            value={reading}
-            disabled={busy}
-            onChange={(e) => setReading(e.target.value)}
-          >
-            <option value="unknown">Not specified</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </label>
       </div>
+      <label className="cw-price-reading">
+        Radiologist reading, for all prices above
+        <select
+          value={reading}
+          disabled={busy}
+          onChange={(e) => setReading(e.target.value)}
+        >
+          <option value="unknown">Not specified</option>
+          <option value="yes">Included in the price</option>
+          <option value="no">Billed separately</option>
+        </select>
+      </label>
       <label className="cw-price-consent">
         <input
           type="checkbox"
