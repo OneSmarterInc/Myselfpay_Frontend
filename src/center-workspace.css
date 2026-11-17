@@ -1551,6 +1551,19 @@
   font-size: 14px;
 }
 
+.cw-price-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.cw-price-table th,
+.cw-price-table td {
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+}
+.cw-price-table input {
+  width: 100%;
+  min-width: 6rem;
+}
 .cw-pending-note {
   display: block;
   flex-basis: 100%;

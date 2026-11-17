@@ -197,12 +197,27 @@ const day = (stamp) =>
 
 function PriceForm({ center, submissions, live = [], onSaved }) {
   const mine = live.filter((item) => item.entry_key === center.id),
-    liveFor = (exam) => mine.find((item) => item.exam === exam),
-    liveAmount = (exam) =>
-      liveFor(exam) ? (liveFor(exam).amount_cents / 100).toFixed(2) : "";
-  const [mri, setMri] = useState(liveAmount("MRI")),
-    [ct, setCt] = useState(liveAmount("CT")),
-    [contrast, setContrast] = useState(mine[0]?.contrast || "unknown"),
+    liveFor = (exam, contrast) =>
+      mine.find((item) => item.exam === exam && item.contrast === contrast),
+    rows = [
+      ["without", "Without contrast"],
+      ["with", "With contrast"],
+      ["either", "Same price either way"],
+      ...(mine.some((item) => item.contrast === "unknown")
+        ? [["unknown", "Contrast not specified"]]
+        : []),
+    ],
+    cell = (exam, contrast) =>
+      liveFor(exam, contrast)
+        ? (liveFor(exam, contrast).amount_cents / 100).toFixed(2)
+        : "";
+  const [amounts, setAmounts] = useState(() =>
+      Object.fromEntries(
+        ["MRI", "CT"].flatMap((exam) =>
+          rows.map(([c]) => [`${exam}:${c}`, cell(exam, c)]),
+        ),
+      ),
+    ),
     [reading, setReading] = useState(
       mine[0]?.interpretation_included || "unknown",
     ),
@@ -214,22 +229,19 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
     (item) => item.entry_key === center.id && item.status === "pending",
   );
   const valid = (value) => /^\d{1,5}(\.\d{1,2})?$/.test(value.trim());
-  const prices = [
-    ["MRI", mri],
-    ["CT", ct],
-  ]
-    .filter(([, value]) => value.trim())
-    .map(([exam, value]) => ({
-      exam,
-      amount: value.trim(),
-      price_type: liveFor(exam)?.price_type || "fixed",
-      contrast,
-      interpretation_included: reading,
-    }));
+  const entries = Object.entries(amounts).filter(([, v]) => v.trim()),
+    prices = entries.map(([key, value]) => {
+      const [exam, contrast] = key.split(":");
+      return {
+        exam,
+        amount: value.trim(),
+        price_type: liveFor(exam, contrast)?.price_type || "fixed",
+        contrast,
+        interpretation_included: reading,
+      };
+    });
   const ready =
-    consent &&
-    prices.length > 0 &&
-    [mri, ct].every((v) => !v.trim() || valid(v));
+    consent && prices.length > 0 && entries.every(([, v]) => valid(v));
   async function submit(event) {
     event.preventDefault();
     setBusy(true);
@@ -241,6 +253,18 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
         value.message || "Thank you. Your prices will appear after review.",
       );
       setConsent(false);
+      onSaved?.();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function confirmPrice(id) {
+    setBusy(true);
+    setError("");
+    try {
+      await call("confirm-price", { id });
       onSaved?.();
     } catch (e) {
       setError(e.message);
@@ -262,7 +286,32 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
                 {CONTRAST_LABEL[item.contrast] || CONTRAST_LABEL.unknown} ·{" "}
                 {READING_LABEL[item.interpretation_included] ||
                   READING_LABEL.unknown}
-                {item.confirmed ? ` · confirmed ${item.confirmed}` : ""}
+                {item.confirmed ? (
+                  ` · confirmed by you ${item.confirmed}`
+                ) : (
+                  <>
+                    {" · "}
+                    <em>
+                      Found on{" "}
+                      {/^https:\/\//.test(item.source || "") ? (
+                        <a href={item.source} target="_blank" rel="noreferrer">
+                          your website
+                        </a>
+                      ) : (
+                        "your website"
+                      )}
+                      . Confirm or correct it.
+                    </em>{" "}
+                    <button
+                      type="button"
+                      className="cw-edit-button"
+                      disabled={busy}
+                      onClick={() => confirmPrice(item.id)}
+                    >
+                      Confirm price
+                    </button>
+                  </>
+                )}
               </li>
             ))}
           </ul>
@@ -274,37 +323,38 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
           : "Enter the price a patient pays without insurance. Prices appear on your listing with the date after review."}
       </p>
       <div className="cw-price-grid">
-        <label>
-          MRI price (USD)
-          <input
-            inputMode="decimal"
-            value={mri}
-            disabled={busy}
-            onChange={(e) => setMri(e.target.value)}
-          />
-        </label>
-        <label>
-          CT price (USD)
-          <input
-            inputMode="decimal"
-            value={ct}
-            disabled={busy}
-            onChange={(e) => setCt(e.target.value)}
-          />
-        </label>
-        <label>
-          Contrast
-          <select
-            value={contrast}
-            disabled={busy}
-            onChange={(e) => setContrast(e.target.value)}
-          >
-            <option value="unknown">Not specified</option>
-            <option value="without">Without contrast</option>
-            <option value="with">With contrast</option>
-            <option value="either">Same price either way</option>
-          </select>
-        </label>
+        <table className="cw-price-table">
+          <thead>
+            <tr>
+              <th>Contrast</th>
+              <th>MRI price (USD)</th>
+              <th>CT price (USD)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([c, label]) => (
+              <tr key={c}>
+                <th scope="row">{label}</th>
+                {["MRI", "CT"].map((exam) => (
+                  <td key={exam}>
+                    <input
+                      inputMode="decimal"
+                      aria-label={`${exam} ${label}`}
+                      value={amounts[`${exam}:${c}`] || ""}
+                      disabled={busy}
+                      onChange={(e) =>
+                        setAmounts({
+                          ...amounts,
+                          [`${exam}:${c}`]: e.target.value,
+                        })
+                      }
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
         <label>
           Includes radiologist reading
           <select
