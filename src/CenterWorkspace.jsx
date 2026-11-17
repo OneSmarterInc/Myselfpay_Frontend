@@ -248,6 +248,18 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
       setBusy(false);
     }
   }
+  async function confirmPrice(id) {
+    setBusy(true);
+    setError("");
+    try {
+      await call("confirm-price", { id });
+      onSaved?.();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <form className="cw-price-form" onSubmit={submit}>
       <h4>{mine.length ? "Update your self-pay prices" : "Self-pay prices"}</h4>
@@ -262,7 +274,32 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
                 {CONTRAST_LABEL[item.contrast] || CONTRAST_LABEL.unknown} ·{" "}
                 {READING_LABEL[item.interpretation_included] ||
                   READING_LABEL.unknown}
-                {item.confirmed ? ` · confirmed ${item.confirmed}` : ""}
+                {item.confirmed ? (
+                  ` · confirmed by you ${item.confirmed}`
+                ) : (
+                  <>
+                    {" · "}
+                    <em>
+                      Found on{" "}
+                      {/^https:\/\//.test(item.source || "") ? (
+                        <a href={item.source} target="_blank" rel="noreferrer">
+                          your website
+                        </a>
+                      ) : (
+                        "your website"
+                      )}
+                      . Confirm or correct it.
+                    </em>{" "}
+                    <button
+                      type="button"
+                      className="cw-edit-button"
+                      disabled={busy}
+                      onClick={() => confirmPrice(item.id)}
+                    >
+                      Confirm price
+                    </button>
+                  </>
+                )}
               </li>
             ))}
           </ul>
