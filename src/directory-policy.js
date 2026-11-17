@@ -4,11 +4,6 @@ export function presentListing(value, key = '') {
   if (Array.isArray(value)) return value.map(item => presentListing(item, key));
   if (value && typeof value === 'object') {
     const result = Object.fromEntries(Object.entries(value).map(([name,item]) => [name,presentListing(item,name)]));
-    if (/^Advantage Diagnostics\s*[—–-]\s*(Columbus South|Beachwood)$/i.test(String(result.name || '').trim())) {
-      result.mri = '$400 without contrast; $500 with contrast';
-      result.ct = '$300 without contrast; $400 with contrast';
-      result.other = 'Ultrasound $300; X-ray $100';
-    }
     return result;
   }
   if (typeof value !== 'string' || identityFields.has(key) || /^https?:\/\//i.test(value)) return value;
