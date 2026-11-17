@@ -1426,7 +1426,7 @@
 .cw-price-consent {
   display: flex;
   gap: 8px;
-  align-items: flex-start;
+  align-items: center;
   margin: 8px 0 12px;
 }
 .cw-price-pending {
@@ -1553,16 +1553,55 @@
 
 .cw-price-table {
   width: 100%;
+  max-width: 44rem;
   border-collapse: collapse;
 }
 .cw-price-table th,
 .cw-price-table td {
-  padding: 0.35rem 0.5rem;
+  padding: 0.4rem 0.6rem;
   text-align: left;
+  vertical-align: middle;
+  font-size: 0.9rem;
 }
-.cw-price-table input {
+.cw-price-table thead th {
+  font-weight: 600;
+  color: #4b5563;
+}
+.cw-price-table tbody th {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.cw-money {
+  display: flex;
+  align-items: center;
+  border: 1px solid #c9d1d9;
+  border-radius: 8px;
+  background: #fff;
+  max-width: 9rem;
+}
+.cw-money i {
+  padding-left: 0.6rem;
+  font-style: normal;
+  color: #6b7280;
+}
+.cw-money input {
+  border: 0;
+  outline: 0;
   width: 100%;
-  min-width: 6rem;
+  min-width: 0;
+  padding: 0.5rem 0.6rem 0.5rem 0.25rem;
+  height: 2.5rem;
+  background: transparent;
+  font-size: 1rem;
+}
+.cw-money:focus-within {
+  border-color: #0f5c4a;
+  box-shadow: 0 0 0 2px #0f5c4a33;
+}
+.cw-price-hint {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0;
 }
 .cw-pending-note {
   display: block;
@@ -1578,13 +1617,19 @@
   margin: 0.75rem 0;
 }
 
-.cw-price-other {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.75rem;
+
+.cw-price-consent input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: none;
 }
-.cw-price-other label {
-  display: grid;
-  gap: 0.35rem;
+@media (max-width: 640px) {
+  .cw-price-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+.cw-price-grid > .cw-price-table,
+.cw-price-grid > .cw-price-hint {
+  grid-column: 1 / -1;
 }
