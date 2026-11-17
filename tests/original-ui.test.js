@@ -85,7 +85,7 @@ describe("original SelfPay presentation contracts", () => {
   });
 });
 
-it("prioritizes complete cards across categories before paginating, then sorts by miles", () => {
+it("lists priced cards nearest first, then unpriced cards nearest first, across categories", () => {
   const completeEntry = {
     ...entry,
     name: "Complete",
@@ -126,7 +126,7 @@ it("prioritizes complete cards across categories before paginating, then sorts b
   };
   const html = originalUI(context).search();
   const names = [...html.matchAll(/<h3>([^<]+)<\/h3>/g)].map((m) => m[1]);
-  expect(names).toEqual(["Complete", "Nearby", "Farther", "Unknown distance"]);
+  expect(names).toEqual(["Nearby", "Farther", "Complete", "Unknown distance"]);
   context.state.nearToMe = true;
   const nearHtml = originalUI(context).search();
   expect([...nearHtml.matchAll(/<h3>([^<]+)<\/h3>/g)].map(m=>m[1])).toEqual(["Nearby", "Farther", "Complete", "Unknown distance"]);
@@ -138,9 +138,8 @@ it("prioritizes complete cards across categories before paginating, then sorts b
   }));
   const page = originalUI(context).search();
   expect(page).toContain("of 13 listings");
-  expect(page.indexOf("<h3>Complete</h3>")).toBeLessThan(
-    page.indexOf("<h3>Nearby</h3>"),
-  );
+  expect(page).toContain("<h3>Nearby</h3>");
+  expect(page).not.toContain("<h3>Complete</h3>");
 });
 
 it("sorts GPS cards by actual miles, displays decimals and keeps missing distances last", () => {
@@ -183,35 +182,23 @@ it("sorts GPS cards by actual miles, displays decimals and keeps missing distanc
   expect(html).toContain("Distance unavailable");
 });
 
-it("puts priced cards with directions before nearby quote cards even without public email", () => {
- const make=(name,amount,coverage,distance)=>({...offer,id:name,type:amount==null?"quote":"fixed",amount,distance_miles:distance,entry:{...entry,name,booking_id:name,coverage}});
+it("puts priced cards first by distance, then unpriced cards by distance", () => {
+ const make=(name,amount,distance)=>({...offer,id:name,type:amount==null?"quote":"fixed",amount,distance_miles:distance,entry:{...entry,name,booking_id:name}});
  const context={state:{...state,searched:true,nearToMe:false},DIRECTORY:[],offers:[],catalogReady:true,
- results:[make("Nearby quote",null,"",0),make("Price only",250,"",3),make("Price and directions",350,"123 Main Street",80)]};
+ results:[make("Nearby quote",null,0),make("Far priced",350,80),make("Near priced",250,3),make("Far quote",null,50)]};
  const names=()=>[...originalUI(context).search().matchAll(/<h3>([^<]+)<\/h3>/g)].map(m=>m[1]);
- expect(names()).toEqual(["Price and directions","Price only","Nearby quote"]);
+ expect(names()).toEqual(["Near priced","Far priced","Nearby quote","Far quote"]);
  context.state.nearToMe=true;
- expect(names()).toEqual(["Nearby quote","Price only","Price and directions"]);
+ expect(names()).toEqual(["Near priced","Far priced","Nearby quote","Far quote"]);
 });
 
-it("pins only the Gitesh email test center by default and keeps nearest mode by miles",()=>{
+it("does not rank test centers or complete listings above others", () => {
  const testCenter={...entry,name:"Gitesh Imaging Center",booking_id:"portal-gitesh-email-test-center",is_test_center:true,source:"",distance_miles:80};
+ const demo={...offer,id:"demo",entry:{...entry,name:"ammar test",is_test_center:true,booking_id:"portal-ammar-test-center"},distance_miles:20};
  const nearby={...offer,id:"nearby",type:"fixed",amount:250,distance_miles:1,entry:{...entry,name:"Real center",coverage:"123 Main Street",booking_id:"real"}};
- const context={state:{...state,searched:true,nearToMe:false,nearbyUnpriced:[testCenter]},results:[nearby],DIRECTORY:[],offers:[],catalogReady:true};
- const names=()=>[...originalUI(context).search().matchAll(/<h3>([^<]+)<\/h3>/g)].map(m=>m[1]);
- expect(names()).toEqual(["Gitesh Imaging Center","Real center"]);
- context.state.nearToMe=true;
- expect(names()).toEqual(["Real center","Gitesh Imaging Center"]);
+ const context={state:{...state,searched:true,nearToMe:false,nearbyUnpriced:[testCenter]},results:[nearby,demo],DIRECTORY:[],offers:[],catalogReady:true};
+ const names=[...originalUI(context).search().matchAll(/<h3>([^<]+)<\/h3>/g)].map(m=>m[1]);
+ expect(names[0]).toBe("Real center");
+ expect(names.indexOf("ammar test")).toBeLessThan(names.indexOf("Gitesh Imaging Center"));
 });
 
-it('pins only the labeled Ammar demo before other matching results', () => {
-  const normal = { ...offer, id: 'normal', entry: { ...entry, name: 'Normal clinic' }, distance_miles: 0 };
-  const demo = { ...offer, id: 'demo', entry: { ...entry, name: 'ammar test', is_test_center: true, booking_id: 'portal-ammar-test-center' }, distance_miles: 20 };
-  for (const nearToMe of [false, true]) {
-    const view = originalUI({ state: { ...state, searched: true, location: 'Cincinnati, OH', nearToMe },
-      account: null, DIRECTORY: [], offers: [normal, demo], results: [normal, demo], catalogReady: true });
-    const html = view.search();
-    expect(html.indexOf('<h3>ammar test</h3>')).toBeGreaterThan(-1);
-    expect(html.indexOf('<h3>ammar test</h3>')).toBeLessThan(html.indexOf('<h3>Normal clinic</h3>'));
-    expect(html).toContain('TEST CENTER');
-  }
-});
