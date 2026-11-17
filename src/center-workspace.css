@@ -1563,6 +1563,7 @@
 .cw-price-table input {
   width: 100%;
   min-width: 6rem;
+}
 .cw-pending-note {
   display: block;
   flex-basis: 100%;
