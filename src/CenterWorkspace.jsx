@@ -335,50 +335,45 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
         <table className="cw-price-table">
           <thead>
             <tr>
-              <th>Contrast</th>
-              <th>MRI price (USD)</th>
-              <th>CT price (USD)</th>
+              <th>Exam</th>
+              {rows.map(([c, label]) => (
+                <th key={c}>{label}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map(([c, label]) => (
-              <tr key={c}>
-                <th scope="row">{label}</th>
-                {["MRI", "CT"].map((exam) => (
-                  <td key={exam}>
-                    <input
-                      inputMode="decimal"
-                      aria-label={`${exam} ${label}`}
-                      value={amounts[`${exam}:${c}`] || ""}
-                      disabled={busy}
-                      onChange={(e) =>
-                        setAmounts({
-                          ...amounts,
-                          [`${exam}:${c}`]: e.target.value,
-                        })
-                      }
-                    />
-                  </td>
-                ))}
+            {["MRI", "CT", ...OTHER_EXAMS].map((exam) => (
+              <tr key={exam}>
+                <th scope="row">{exam}</th>
+                {rows.map(([c, label]) => {
+                  const single = OTHER_EXAMS.includes(exam);
+                  if (single && c !== "either") return <td key={c}>—</td>;
+                  const key = `${exam}:${single ? "unknown" : c}`;
+                  return (
+                    <td key={c}>
+                      <span className="cw-money">
+                        <i>$</i>
+                        <input
+                          inputMode="decimal"
+                          aria-label={`${exam} ${single ? "price" : label}`}
+                          value={amounts[key] || ""}
+                          disabled={busy}
+                          onChange={(e) =>
+                            setAmounts({ ...amounts, [key]: e.target.value })
+                          }
+                        />
+                      </span>
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
-      <div className="cw-price-other">
-        {OTHER_EXAMS.map((exam) => (
-          <label key={exam}>
-            {exam} price (USD, one price)
-            <input
-              inputMode="decimal"
-              value={amounts[`${exam}:unknown`] || ""}
-              disabled={busy}
-              onChange={(e) =>
-                setAmounts({ ...amounts, [`${exam}:unknown`]: e.target.value })
-              }
-            />
-          </label>
-        ))}
+        <p className="cw-price-hint">
+          Use one box per exam. If the price is the same with and without
+          contrast, use the last column. Ultrasound and X-ray have one price.
+        </p>
       </div>
       <label className="cw-price-reading">
         Radiologist reading, for all prices above
