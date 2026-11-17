@@ -648,7 +648,13 @@ function ProfileFieldEditor({ center, field, current, pending, onDone }) {
   );
 }
 
-function History({ centers, submissions, contact, profile = [] }) {
+function History({
+  centers,
+  submissions,
+  contact,
+  profile = [],
+  activity = [],
+}) {
   const names = Object.fromEntries(centers.map((c) => [c.id, c.name])),
     rows = [
       ...submissions.map((item) => ({
@@ -727,6 +733,39 @@ function History({ centers, submissions, contact, profile = [] }) {
           </table>
         </div>
       )}
+      {activity.length > 0 && (
+        <>
+          <h3>Activity on your account</h3>
+          <p>
+            Every sign-in, price, and profile action on your listings, with the
+            time it happened.
+          </p>
+          <div className="cw-history-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>What</th>
+                  <th>By</th>
+                  <th>Before</th>
+                  <th>After</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activity.map((row, i) => (
+                  <tr key={i}>
+                    <td>{day(row.when)}</td>
+                    <td>{row.what}</td>
+                    <td>{row.by}</td>
+                    <td>{row.old}</td>
+                    <td>{row.new}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -771,6 +810,7 @@ function Profile({
   onSaved,
   onEmailChanged,
   onOpenPrices,
+  activity = [],
 }) {
   const [showHistory, setShowHistory] = useState(false),
     [note, setNote] = useState("");
@@ -799,6 +839,7 @@ function Profile({
           submissions={submissions}
           contact={contact}
           profile={profile}
+          activity={activity}
         />
       )}
       {note && (
@@ -1386,6 +1427,7 @@ export default function CenterWorkspace({ onLogin }) {
             live={data.live_prices || []}
             contact={data.contact_history || []}
             profile={data.profile_edits || []}
+            activity={data.activity || []}
             onOpenPrices={() => select("prices")}
             onSaved={() => refresh()}
             onEmailChanged={(result) => {
