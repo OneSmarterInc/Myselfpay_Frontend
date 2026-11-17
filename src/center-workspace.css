@@ -1563,4 +1563,9 @@
 .cw-price-table input {
   width: 100%;
   min-width: 6rem;
+.cw-pending-note {
+  display: block;
+  flex-basis: 100%;
+  font-size: 0.85rem;
+  color: #8a5a00;
 }

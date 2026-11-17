@@ -537,7 +537,91 @@ function ContactEditor({ field, current, entryId, onDone }) {
   );
 }
 
-function History({ centers, submissions, contact }) {
+function ProfileFieldEditor({ center, field, current, pending, onDone }) {
+  const isSite = field === "website",
+    label = isSite ? "website" : "address",
+    [editing, setEditing] = useState(false),
+    [value, setValue] = useState(current || ""),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  async function send(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const result = await call("profile", {
+        id: center.id,
+        field,
+        value: value.trim(),
+      });
+      setEditing(false);
+      onDone?.(result);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (!editing)
+    return (
+      <span className="cw-contact-view">
+        <span>{current || "Not listed"}</span>
+        <button
+          type="button"
+          className="cw-edit-button"
+          aria-label={`${current ? "Edit" : "Add"} ${label}`}
+          onClick={() => {
+            setValue(pending?.value || current || "");
+            setEditing(true);
+          }}
+        >
+          {current ? `Edit ${label}` : `Add ${label}`}
+        </button>
+        {pending && (
+          <span className="cw-pending-note">
+            Waiting for review: {pending.value}
+          </span>
+        )}
+      </span>
+    );
+  return (
+    <form className="cw-contact-form" onSubmit={send}>
+      <label>
+        {isSite ? "Website" : "Street address"}
+        <input
+          type={isSite ? "url" : "text"}
+          value={value}
+          disabled={busy}
+          maxLength={isSite ? 300 : 200}
+          placeholder={isSite ? "https://" : "Street, city, state, ZIP"}
+          onChange={(e) => setValue(e.target.value)}
+        />
+      </label>
+      <p>
+        Patients see this after we review it.
+        {isSite ? " The address must start with https://" : ""}
+      </p>
+      {error && (
+        <p className="center-error" role="alert">
+          {error}
+        </p>
+      )}
+      <span className="cw-contact-actions">
+        <button
+          className="primary"
+          disabled={busy || !value.trim() || value.trim() === current}
+        >
+          {busy ? "Please wait…" : "Send for review"}
+        </button>
+        <button type="button" disabled={busy} onClick={() => setEditing(false)}>
+          Cancel
+        </button>
+      </span>
+    </form>
+  );
+}
+
+function History({ centers, submissions, contact, profile = [] }) {
   const names = Object.fromEntries(centers.map((c) => [c.id, c.name])),
     rows = [
       ...submissions.map((item) => ({
@@ -554,6 +638,20 @@ function History({ centers, submissions, contact }) {
                 ? "Replaced before review"
                 : "Waiting for review",
       })),
+      ...profile
+        .filter((item) => item.status !== "replaced")
+        .map((item) => ({
+          when: item.submitted,
+          kind: item.field === "website" ? "Website" : "Address",
+          center: names[item.entry_key] || "",
+          detail: item.value,
+          status:
+            item.status === "approved"
+              ? `Live since ${day(item.decided)}`
+              : item.status === "rejected"
+                ? `Not accepted ${day(item.decided)}`
+                : "Waiting for review",
+        })),
       ...contact.map((item) => ({
         when: item.changed,
         kind: item.field === "email" ? "Login email" : "Phone",
@@ -612,6 +710,7 @@ function Profile({
   submissions = [],
   live = [],
   contact = [],
+  profile = [],
   onSaved,
   onEmailChanged,
 }) {
@@ -641,6 +740,7 @@ function Profile({
           centers={centers}
           submissions={submissions}
           contact={contact}
+          profile={profile}
         />
       )}
       {note && (
@@ -694,17 +794,50 @@ function Profile({
               </dd>
             </div>
             <div>
-              <dt>Location / coverage</dt>
+              <dt>Address</dt>
               <dd>
-                {center.address ||
-                  center.coverage ||
-                  center.area ||
-                  "Not listed"}
+                <ProfileFieldEditor
+                  center={center}
+                  field="address"
+                  current={center.address}
+                  pending={profile.find(
+                    (p) =>
+                      p.entry_key === center.id &&
+                      p.field === "address" &&
+                      p.status === "pending",
+                  )}
+                  onDone={(result) => {
+                    setNote(result.message || "Sent for review.");
+                    onSaved?.();
+                  }}
+                />
               </dd>
             </div>
+            {(center.coverage || center.area) && (
+              <div>
+                <dt>Coverage</dt>
+                <dd>{center.coverage || center.area}</dd>
+              </div>
+            )}
             <div>
               <dt>Website</dt>
-              <dd>{center.source || "Not listed"}</dd>
+              <dd>
+                <ProfileFieldEditor
+                  center={center}
+                  field="website"
+                  current={center.source}
+                  pending={profile.find(
+                    (p) =>
+                      p.entry_key === center.id &&
+                      p.field === "website" &&
+                      p.status === "pending",
+                  )}
+                  onDone={(result) => {
+                    setNote(result.message || "Sent for review.");
+                    onSaved?.();
+                  }}
+                />
+              </dd>
             </div>
           </dl>
           {[
@@ -1188,6 +1321,7 @@ export default function CenterWorkspace({ onLogin }) {
             submissions={data.price_submissions || []}
             live={data.live_prices || []}
             contact={data.contact_history || []}
+            profile={data.profile_edits || []}
             onSaved={() => refresh()}
             onEmailChanged={(result) => {
               setData(null);
