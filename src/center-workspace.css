@@ -1633,3 +1633,17 @@
 .cw-price-grid > .cw-price-hint {
   grid-column: 1 / -1;
 }
+
+.cw-navigation button.cw-nav-sub {
+  margin-left: 1.25rem;
+  font-size: 0.9rem;
+}
+.cw-profile-prices-link button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: #0f5c4a;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}

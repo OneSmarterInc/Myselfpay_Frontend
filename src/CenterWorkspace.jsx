@@ -149,6 +149,7 @@ const titles = {
   approved: "Requests",
   all: "Requests",
   profile: "Center profiles",
+  prices: "Self-pay prices",
 };
 function Badge({ status }) {
   return (
@@ -216,14 +217,15 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
         ? (liveFor(exam, contrast).amount_cents / 100).toFixed(2)
         : "";
   const [amounts, setAmounts] = useState(() =>
-      Object.fromEntries(
-        [
-          ...["MRI", "CT"].flatMap((exam) =>
-            rows.map(([c]) => [`${exam}:${c}`, cell(exam, c)]),
-          ),
-          ...OTHER_EXAMS.map((exam) => [`${exam}:unknown`, cell(exam, "unknown")]),
-        ],
-      ),
+      Object.fromEntries([
+        ...["MRI", "CT"].flatMap((exam) =>
+          rows.map(([c]) => [`${exam}:${c}`, cell(exam, c)]),
+        ),
+        ...OTHER_EXAMS.map((exam) => [
+          `${exam}:unknown`,
+          cell(exam, "unknown"),
+        ]),
+      ]),
     ),
     [reading, setReading] = useState(
       mine[0]?.interpretation_included || "unknown",
@@ -416,8 +418,8 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
         {busy
           ? "Please wait…"
           : mine.length
-            ? "Send change for review"
-            : "Send prices for review"}
+            ? "Send change to publish"
+            : "Send prices to publish"}
       </button>
     </form>
   );
@@ -723,6 +725,36 @@ function History({ centers, submissions, contact, profile = [] }) {
   );
 }
 
+function Prices({ centers, submissions = [], live = [], onSaved }) {
+  return (
+    <div className="cw-profiles">
+      {centers.map((center) => (
+        <article key={center.id} className="cw-profile-card">
+          <div className="cw-profile-heading">
+            <span className="cw-building">
+              <Icon name="building" width="24" height="24" />
+            </span>
+            <div>
+              <h3>{center.name}</h3>
+              <p>{center.entity || "Imaging center"}</p>
+            </div>
+          </div>
+          <PriceForm
+            key={`${center.id}:${live
+              .filter((item) => item.entry_key === center.id)
+              .map((item) => `${item.id}:${item.amount_cents}`)
+              .join(",")}`}
+            center={center}
+            submissions={submissions}
+            live={live}
+            onSaved={onSaved}
+          />
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function Profile({
   centers,
   email,
@@ -732,6 +764,7 @@ function Profile({
   profile = [],
   onSaved,
   onEmailChanged,
+  onOpenPrices,
 }) {
   const [showHistory, setShowHistory] = useState(false),
     [note, setNote] = useState("");
@@ -880,16 +913,11 @@ function Profile({
               )}
             </div>
           )}
-          <PriceForm
-            key={`${center.id}:${live
-              .filter((item) => item.entry_key === center.id)
-              .map((item) => `${item.id}:${item.amount_cents}`)
-              .join(",")}`}
-            center={center}
-            submissions={submissions}
-            live={live}
-            onSaved={onSaved}
-          />
+          <p className="cw-profile-prices-link">
+            <button type="button" onClick={onOpenPrices}>
+              Go to self-pay prices
+            </button>
+          </p>
         </article>
       ))}
     </div>
@@ -1176,6 +1204,7 @@ export default function CenterWorkspace({ onLogin }) {
     ["overview", "Overview", "overview", null],
     ["all", "Requests", "requests", all.length],
     ["profile", "Center profiles", "building", centers.length],
+    ["prices", "Self-pay prices", "requests", null, "sub"],
   ];
   const name = centers.length === 1 ? centers[0].name : "Center workspace",
     initials = (name || "Center")
@@ -1204,9 +1233,10 @@ export default function CenterWorkspace({ onLogin }) {
           </div>
           <p className="cw-nav-caption">WORKSPACE</p>
           <nav className="cw-navigation" aria-label="Center dashboard sections">
-            {nav.map(([key, label, icon, count]) => (
+            {nav.map(([key, label, icon, count, level]) => (
               <button
                 type="button"
+                className={level === "sub" ? "cw-nav-sub" : undefined}
                 key={key}
                 aria-label={label}
                 disabled={busy}
@@ -1255,9 +1285,11 @@ export default function CenterWorkspace({ onLogin }) {
             <p className="cw-subtitle">
               {request
                 ? "Review the request and coordinate the next step."
-                : tab === "profile"
-                  ? "Keep your center information close at hand."
-                  : "Your appointment requests and center information, in one workspace."}
+                : tab === "prices"
+                  ? "Enter or confirm the prices patients pay without insurance."
+                  : tab === "profile"
+                    ? "Keep your center information close at hand."
+                    : "Your appointment requests and center information, in one workspace."}
             </p>
           </div>
           {data && (
@@ -1333,6 +1365,13 @@ export default function CenterWorkspace({ onLogin }) {
               onAction={open}
             />
           </div>
+        ) : tab === "prices" ? (
+          <Prices
+            centers={centers}
+            submissions={data.price_submissions || []}
+            live={data.live_prices || []}
+            onSaved={() => refresh()}
+          />
         ) : tab === "profile" ? (
           <Profile
             centers={centers}
@@ -1341,6 +1380,7 @@ export default function CenterWorkspace({ onLogin }) {
             live={data.live_prices || []}
             contact={data.contact_history || []}
             profile={data.profile_edits || []}
+            onOpenPrices={() => select("prices")}
             onSaved={() => refresh()}
             onEmailChanged={(result) => {
               setData(null);
