@@ -190,10 +190,9 @@ const OTHER_EXAMS = ["Ultrasound", "X-ray"];
 const money = (cents) => `$${(cents / 100).toFixed(2)}`;
 const day = (stamp) =>
   stamp
-    ? new Date(stamp * 1000).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
+    ? new Date(stamp * 1000).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
       })
     : "";
 
@@ -298,7 +297,7 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
                 {READING_LABEL[item.interpretation_included] ||
                   READING_LABEL.unknown}
                 {item.confirmed ? (
-                  ` · confirmed by you ${item.confirmed}`
+                  ` · confirmed by you ${item.updated ? day(item.updated) : item.confirmed}`
                 ) : (
                   <>
                     {" · "}
@@ -409,9 +408,15 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
           Waiting for review:{" "}
           {pending
             .map(
-              (item) => `${item.exam} $${(item.amount_cents / 100).toFixed(2)}`,
+              (item) =>
+                `${item.exam}${
+                  OTHER_EXAMS.includes(item.exam) || item.contrast === "unknown"
+                    ? ""
+                    : ` ${(CONTRAST_LABEL[item.contrast] || "").toLowerCase()}`
+                } ${money(item.amount_cents)}`,
             )
             .join(", ")}
+          {pending[0]?.submitted ? ` · sent ${day(pending[0].submitted)}` : ""}
         </p>
       )}
       <button className="primary" disabled={busy || !ready}>
@@ -601,6 +606,7 @@ function ProfileFieldEditor({ center, field, current, pending, onDone }) {
         {pending && (
           <span className="cw-pending-note">
             Waiting for review: {pending.value}
+            {pending.submitted ? ` · sent ${day(pending.submitted)}` : ""}
           </span>
         )}
       </span>
