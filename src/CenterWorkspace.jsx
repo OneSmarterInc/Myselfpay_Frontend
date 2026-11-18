@@ -4,6 +4,7 @@ import "./center-workspace.css";
 import RequestStatusTabs from "./RequestStatusTabs.jsx";
 import ApprovalSlotPicker from "./ApprovalSlotPicker.jsx";
 import { approvedSlotLabel, approvalReady } from "./approved-slot.js";
+import { storedPrices } from "./directory-offer.js";
 
 function Icon({ name, ...props }) {
   const paths = {
@@ -196,7 +197,7 @@ const day = (stamp) =>
       })
     : "";
 
-function PriceForm({ center, submissions, live = [], onSaved }) {
+export function PriceForm({ center, submissions, live = [], onSaved }) {
   const mine = live.filter((item) => item.entry_key === center.id),
     liveFor = (exam, contrast) =>
       mine.find((item) => item.exam === exam && item.contrast === contrast),
@@ -280,9 +281,26 @@ function PriceForm({ center, submissions, live = [], onSaved }) {
       setBusy(false);
     }
   }
+  const stored = storedPrices(center);
   return (
     <form className="cw-price-form" onSubmit={submit}>
       <h4>{mine.length ? "Update your self-pay prices" : "Self-pay prices"}</h4>
+      {stored.length > 0 && (
+        <div className="cw-price-live">
+          <strong>Shown to patients now</strong>
+          <ul>
+            {stored.map((item) => (
+              <li key={item.service}>
+                <b>{item.service}</b> {item.text}
+              </li>
+            ))}
+          </ul>
+          <p>
+            Enter a new price below to change what patients see. The current
+            price stays until your new price is approved.
+          </p>
+        </div>
+      )}
       {mine.length > 0 && (
         <div className="cw-price-live">
           <strong>Live on your listing</strong>

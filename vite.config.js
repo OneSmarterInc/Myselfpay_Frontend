@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { readFileSync } from "node:fs";
 export default defineConfig({
-  test: { include: ["tests/**/*.test.js"] },
+  test: { include: ["tests/**/*.test.{js,jsx}"] },
   plugins: [
     react(),
     {
