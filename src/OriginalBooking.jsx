@@ -36,9 +36,15 @@ export default function OriginalBooking({
     slots: [],
     timezone: "America/New_York",
     price_text: "",
-    service: search.mod || "Please contact me",
+    // The request describes the listing the person picked, not the search
+    // filters, so the facility receives the exam that was quoted.
+    service:
+      ["MRI", "CT"].includes(offer?.mod) ? offer.mod : search.mod || "Please contact me",
     exam: search.body || "",
-    contrast: search.contrast || "unknown",
+    contrast:
+      offer?.contrast && offer.contrast !== "unknown"
+        ? offer.contrast
+        : search.contrast || "unknown",
     first_name: account?.name?.split(" ")[0] || "",
     phone: account?.phone || "",
     consent: false,
