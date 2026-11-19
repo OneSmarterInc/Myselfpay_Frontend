@@ -237,7 +237,7 @@ export function NativeWelcome({ onStart, onCenterLogin, busy, member }) {
             ? "Please wait…"
             : member
               ? "Find imaging options"
-              : "Sign in as guest"}
+              : "Find imaging options"}
         </button>
         <p>No account needed</p>
         <button type="button" onClick={onCenterLogin}>

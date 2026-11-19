@@ -396,7 +396,7 @@ export default function App() {
     };
     const expired = () => {
       clear();
-      setToast("Your session expired. Sign in as guest or log in again.");
+      setToast("Your session expired. Start a new search or log in again.");
     };
     window.addEventListener("hashchange", change);
     window.addEventListener("selfpay:session-expired", expired);
@@ -773,6 +773,15 @@ export default function App() {
     if (id === "accountLogin") {
       event.preventDefault();
       navigate("login");
+      return;
+    }
+    if (id === "faqLink") {
+      event.preventDefault();
+      const jump = () => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" });
+      if (view !== "home") {
+        navigate("home");
+        setTimeout(jump, 200);
+      } else jump();
       return;
     }
     if (id === "directory" || id === "browseDirectory" || id === "leads") {
@@ -1286,6 +1295,7 @@ export default function App() {
         </a>
         <nav>
           <a href="/for-imaging-centers">For imaging centers</a>
+          <button id="faqLink" type="button">FAQ</button>
           <button id="history" hidden>
             Saved conversations
           </button>
@@ -1299,7 +1309,7 @@ export default function App() {
             Log in
           </button>
           {account && account.tenant !== "guest" && <a className="button" href="#dashboard" aria-current={view === "dashboard" ? "page" : undefined}>Dashboard</a>}
-          <button id="profile" disabled={busy || boot}
+          <button id="profile" hidden={!account} disabled={busy || boot}
             aria-label={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
             title={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
             className={account?.tenant === "guest" ? "guest-signout" : undefined}>
