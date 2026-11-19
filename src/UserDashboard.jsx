@@ -2,15 +2,9 @@ import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import RequestStatusTabs from "./RequestStatusTabs.jsx";
 import { approvedSlotLabel } from "./approved-slot.js";
+import { canCancel, statusLabel } from "./request-status.js";
 import "./approval-slots.css";
 
-const labels = {
-  requested: "Waiting for the facility to call",
-  voicemail: "The facility tried to reach you",
-  scheduled: "Time confirmed",
-  unable: "This facility couldn’t schedule. Try another facility",
-  expired: "Request expired",
-};
 const tabs = [
   ["profile", "My profile"],
   ["all", "Requests"],
@@ -54,7 +48,23 @@ function CalendarIcon() {
     </svg>
   );
 }
-function RequestCard({ item }) {
+function RequestCard({ item, onChanged }) {
+  const [asking, setAsking] = useState(false),
+    [busy, setBusy] = useState(false),
+    [problem, setProblem] = useState("");
+  async function cancel() {
+    setBusy(true);
+    setProblem("");
+    try {
+      await api("/booking/cancel", { id: item.id });
+      setAsking(false);
+      onChanged();
+    } catch (e) {
+      setProblem(e.message || "We could not cancel this request. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
   const phone = String(item.clinic_phone || "").replace(/[^+0-9]/g, "");
   return (
     <article className="dashboard-request reference-dashboard-request">
@@ -68,7 +78,7 @@ function RequestCard({ item }) {
       </p>
       <span className={`request-status status-${item.status}`}>
         <span aria-hidden="true" className="status-dot" />
-        {labels[item.status] || item.status}
+        {statusLabel(item)}
       </span>
       {item.status === "scheduled" && (
         <div className="approved-appointment">
@@ -146,10 +156,103 @@ function RequestCard({ item }) {
           Open request
         </a>
       </div>
+      {canCancel(item) && (
+        <div className="request-cancel">
+          {asking ? (
+            <>
+              <p>Cancel this request? {item.clinic_name} is told it is closed.</p>
+              <div className="request-cancel-actions">
+                <button type="button" className="flow-dark" disabled={busy} onClick={cancel}>
+                  Yes, cancel request
+                </button>
+                <button type="button" className="flow-outline" disabled={busy} onClick={() => setAsking(false)}>
+                  Keep it
+                </button>
+              </div>
+            </>
+          ) : (
+            <button type="button" className="link-button" onClick={() => setAsking(true)}>
+              Cancel request
+            </button>
+          )}
+          {problem && <p role="alert" className="flow-error">{problem}</p>}
+        </div>
+      )}
     </article>
   );
 }
-export default function UserDashboard({ account }) {
+function ForgetMe({ onForgotten }) {
+  const [step, setStep] = useState("idle"),
+    [challenge, setChallenge] = useState(""),
+    [code, setCode] = useState(""),
+    [busy, setBusy] = useState(false),
+    [problem, setProblem] = useState("");
+  async function send() {
+    setBusy(true);
+    setProblem("");
+    try {
+      const sent = await api("/account/forget", {});
+      setChallenge(sent.verification_id);
+      setStep("code");
+    } catch (e) {
+      setProblem(e.message || "We could not text a code. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function confirm(event) {
+    event.preventDefault();
+    setBusy(true);
+    setProblem("");
+    try {
+      await api("/account/forget", { verification_id: challenge, code: code.trim() });
+      onForgotten();
+    } catch (e) {
+      setProblem(e.message || "That code did not work. Please try again.");
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="forget-me" aria-labelledby="forgetTitle">
+      <h3 id="forgetTitle">Forget me</h3>
+      <p>
+        Delete your account and every request now. We tell facilities about any open request.
+        This cannot be undone.
+      </p>
+      {step === "idle" && (
+        <button type="button" className="flow-outline" disabled={busy} onClick={() => setStep("ask")}>
+          Forget me
+        </button>
+      )}
+      {step === "ask" && (
+        <div className="request-cancel-actions">
+          <button type="button" className="flow-dark" disabled={busy} onClick={send}>
+            Text me a code
+          </button>
+          <button type="button" className="flow-outline" disabled={busy} onClick={() => setStep("idle")}>
+            Keep my account
+          </button>
+        </div>
+      )}
+      {step === "code" && (
+        <form onSubmit={confirm} className="forget-code">
+          <label htmlFor="forgetCode">6-digit code we texted you</label>
+          <input id="forgetCode" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} />
+          <div className="request-cancel-actions">
+            <button type="submit" className="flow-dark" disabled={busy || code.trim().length < 4}>
+              Delete my account
+            </button>
+            <button type="button" className="flow-outline" disabled={busy} onClick={() => setStep("idle")}>
+              Keep my account
+            </button>
+          </div>
+        </form>
+      )}
+      {problem && <p role="alert" className="flow-error">{problem}</p>}
+    </section>
+  );
+}
+export default function UserDashboard({ account, onForgotten }) {
   const [tab, setTab] = useState("all"),
     [page, setPage] = useState(1),
     [value, setValue] = useState(null),
@@ -304,6 +407,7 @@ export default function UserDashboard({ account }) {
                       </div>
                     ))}
                   </dl>
+                  <ForgetMe onForgotten={onForgotten} />
                 </section>
               ) : (
                 <section className="dashboard-requests">
@@ -358,7 +462,7 @@ export default function UserDashboard({ account }) {
                   )}
                   <div className="dashboard-request-list">
                     {value.requests.map((item) => (
-                      <RequestCard key={item.id} item={item} />
+                      <RequestCard key={item.id} item={item} onChanged={() => setRefresh((n) => n + 1)} />
                     ))}
                   </div>
                   {value.pages > 1 && (

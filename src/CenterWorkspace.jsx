@@ -115,6 +115,7 @@ const labels = {
   scheduled: "Approved",
   unable: "Declined",
   expired: "Expired",
+  cancelled: "Cancelled",
 };
 const zones = {
   "America/New_York": "Eastern time",
