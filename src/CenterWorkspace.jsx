@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { centerAPI as call } from "./center-api.js";
 import "./center-workspace.css";
-import RequestStatusTabs from "./RequestStatusTabs.jsx";
 import ApprovalSlotPicker from "./ApprovalSlotPicker.jsx";
 import { approvedSlotLabel, approvalReady } from "./approved-slot.js";
 import { storedPrices } from "./directory-offer.js";
@@ -110,12 +109,59 @@ function Icon({ name, ...props }) {
   );
 }
 const labels = {
-  requested: "Open request",
-  voicemail: "Contact attempted",
-  scheduled: "Approved",
-  unable: "Declined",
+  requested: "New",
+  voicemail: "Left a message",
+  scheduled: "Time confirmed",
+  unable: "Can’t schedule",
   expired: "Expired",
-  cancelled: "Cancelled",
+  cancelled: "Cancelled by patient",
+};
+const statusWords = (item) =>
+  item.status === "cancelled" && item.closed_reason === "scheduled_elsewhere"
+    ? "Closed: patient scheduled elsewhere"
+    : labels[item.status] || item.status;
+const REASONS = [
+  ["no_openings", "No openings in those windows"],
+  ["not_offered", "We don’t offer this exam"],
+  ["other", "Other"],
+];
+const prettyPhone = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  const local = digits.length === 11 && digits[0] === "1" ? digits.slice(1) : digits;
+  return local.length === 10
+    ? `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}`
+    : String(value || "");
+};
+const CLOSED = ["unable", "expired", "cancelled"];
+const isClosed = (item) => CLOSED.includes(item.status);
+const slotLine = (slots = []) =>
+  slots
+    .map((slot) => {
+      const d = new Date(`${slot.date}T12:00:00`);
+      return `${d.toLocaleDateString(undefined, { weekday: "short" })} ${d.getDate()} ${slot.period === "morning" ? "AM" : "PM"}`;
+    })
+    .join(" · ");
+const ago = (stamp) => {
+  if (!stamp) return "";
+  const days = Math.floor((Date.now() / 1000 - stamp) / 86400);
+  return days <= 0 ? "Received today" : days === 1 ? "Received 1 day ago" : `Received ${days} days ago`;
+};
+const examLine = (request) =>
+  [
+    [request.service, request.exam].filter(Boolean).join(" "),
+    { without: "without contrast", with: "with contrast", both: "without and with contrast" }[request.contrast],
+  ]
+    .filter(Boolean)
+    .join(" ");
+const chosenSlot = (request, choice) => {
+  if (!choice) return null;
+  if (choice.preferred_index !== undefined) {
+    const slot = request.slots?.[choice.preferred_index];
+    return slot ? { ...slot, timezone: request.timezone, source: "preferred" } : null;
+  }
+  return choice.date && choice.time
+    ? { date: choice.date, time: choice.time, timezone: request.timezone, source: "custom" }
+    : null;
 };
 const zones = {
   "America/New_York": "Eastern time",
@@ -146,18 +192,18 @@ const received = (stamp) =>
 const period = (slot) =>
   slot.period === "morning" ? "Morning · 8 am–12 pm" : "Afternoon · 12–5 pm";
 const titles = {
-  overview: "Center dashboard",
-  open: "Requests",
-  approved: "Requests",
-  all: "Requests",
+  open: "Inbox",
+  approved: "Inbox",
+  closed: "Inbox",
+  all: "Inbox",
   profile: "Center profiles",
   prices: "Self-pay prices",
 };
-function Badge({ status }) {
+function Badge({ status, item }) {
   return (
     <span className={`cw-badge cw-status-${status}`}>
       <i />
-      {labels[status] || status}
+      {item ? statusWords(item) : labels[status] || status}
     </span>
   );
 }
@@ -441,10 +487,9 @@ export function PriceForm({ center, submissions, live = [], onSaved }) {
       <button className="primary" disabled={busy || !ready}>
         {busy
           ? "Please wait…"
-          : mine.length
-            ? "Send change to publish"
-            : "Send prices to publish"}
+          : "Submit prices for review"}
       </button>
+      <p className="cw-subtle">We review within 1 business day.</p>
     </form>
   );
 }
@@ -849,7 +894,7 @@ function Profile({
           History
         </button>
         <a className="cw-text-link" href="/contact">
-          Request an update <Icon name="arrow" />
+          Request a change <Icon name="arrow" />
         </a>
       </div>
       {showHistory && (
@@ -990,8 +1035,15 @@ function Profile({
   );
 }
 function RequestDetail({ request, busy, onBack, onAction }) {
-  const [appointment, setAppointment] = useState(null);
-  useEffect(() => setAppointment(null), [request.id]);
+  const [appointment, setAppointment] = useState(null),
+    [reason, setReason] = useState("no_openings"),
+    [declining, setDeclining] = useState(false);
+  useEffect(() => {
+    setAppointment(null);
+    setDeclining(false);
+  }, [request.id]);
+  const phoneHref = String(request.phone || "").replace(/[^+0-9]/g, "");
+  const picked = chosenSlot(request, appointment);
   return (
     <div className="cw-detail">
       <button
@@ -1001,7 +1053,7 @@ function RequestDetail({ request, busy, onBack, onAction }) {
         onClick={onBack}
       >
         <Icon name="back" />
-        Back to requests
+        Back to inbox
       </button>
       <div className="cw-detail-title">
         <div>
@@ -1011,7 +1063,7 @@ function RequestDetail({ request, busy, onBack, onAction }) {
             {request.id} · Received {received(request.created)}
           </p>
         </div>
-        <Badge status={request.status} />
+        <Badge status={request.status} item={request} />
       </div>
       <div className="cw-detail-grid">
         <section className="cw-detail-main">
@@ -1053,10 +1105,13 @@ function RequestDetail({ request, busy, onBack, onAction }) {
             </div>
           )}
           <section className="cw-price-note">
-            <span>Price information</span>
+            <span>Exam</span>
             <p>
-              {request.price_text ||
-                "Confirm the exact total with the patient."}
+              {examLine(request) || "Exam not specified"}
+              {request.price_text ? ` · Listed price ${request.price_text}` : ""}
+            </p>
+            <p className="cw-subtle">
+              Confirm the final price with the patient when you call.
             </p>
           </section>
         </section>
@@ -1082,11 +1137,9 @@ function RequestDetail({ request, busy, onBack, onAction }) {
                   <dt>Mobile number</dt>
                   <dd>
                     {request.phone ? (
-                      <a
-                        href={`tel:${String(request.phone).replace(/[^+0-9]/g, "")}`}
-                      >
+                      <a className="cw-call" href={`tel:${phoneHref}`}>
                         <Icon name="phone" />
-                        {request.phone}
+                        Call {prettyPhone(request.phone)}
                       </a>
                     ) : (
                       "Not provided"
@@ -1101,11 +1154,20 @@ function RequestDetail({ request, busy, onBack, onAction }) {
       {!request.contact_hidden && (
         <section className="cw-decision">
           <div>
-            <h3>Update this request</h3>
+            <h3>Call the patient, then record the time</h3>
             <p>
-              Review the preferred times and contact the patient to confirm the
-              appointment.
+              Pick one of the patient’s windows or another time. The patient
+              sees the result in My requests.
             </p>
+            {picked && (
+              <p className="cw-preview">
+                The patient will see: “Your {[request.service, request.exam].filter(Boolean).join(" ") || "exam"} at{" "}
+                {request.clinic_name} is set for {approvedSlotLabel(picked)}.”
+              </p>
+            )}
+            {!approvalReady(appointment) && (
+              <p className="cw-subtle">Pick a time above to confirm.</p>
+            )}
           </div>
           <div className="cw-decision-actions">
             <button
@@ -1115,23 +1177,48 @@ function RequestDetail({ request, busy, onBack, onAction }) {
               onClick={() => onAction(request.id, "scheduled", appointment)}
             >
               <Icon name="check" />
-              Approve request
+              Confirm time
             </button>
             <button
               type="button"
               disabled={busy}
               onClick={() => onAction(request.id, "voicemail")}
             >
-              Contact attempted
+              Left a message
             </button>
-            <button
-              type="button"
-              className="cw-decline"
-              disabled={busy}
-              onClick={() => onAction(request.id, "unable")}
-            >
-              Decline request
-            </button>
+            {declining ? (
+              <span className="cw-reason">
+                <label htmlFor="cantReason">Reason</label>
+                <select
+                  id="cantReason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                >
+                  {REASONS.map(([value, text]) => (
+                    <option key={value} value={value}>
+                      {text}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="cw-decline"
+                  disabled={busy}
+                  onClick={() => onAction(request.id, "unable", null, reason)}
+                >
+                  Send: can’t schedule
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="cw-decline"
+                disabled={busy}
+                onClick={() => setDeclining(true)}
+              >
+                Can’t schedule
+              </button>
+            )}
           </div>
         </section>
       )}
@@ -1143,11 +1230,11 @@ export default function CenterWorkspace({ onLogin }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(true),
     [message, setMessage] = useState("");
-  const [tab, setTab] = useState("overview"),
+  const [tab, setTab] = useState("open"),
     [request, setRequest] = useState(null),
     [query, setQuery] = useState(""),
     [center, setCenter] = useState("all"),
-    [sort, setSort] = useState("newest"),
+    [sort, setSort] = useState("oldest"),
     [page, setPage] = useState(0),
     [updated, setUpdated] = useState(null);
   const sequence = useRef(0),
@@ -1190,7 +1277,7 @@ export default function CenterWorkspace({ onLogin }) {
     setPage(0);
     setMessage("");
   }
-  async function open(id, status, appointment) {
+  async function open(id, status, appointment, reason) {
     const seq = ++sequence.current;
     setBusy(true);
     setError("");
@@ -1200,16 +1287,17 @@ export default function CenterWorkspace({ onLogin }) {
         id,
         ...(status ? { status } : {}),
         ...(status === "scheduled" ? { appointment } : {}),
+        ...(status === "unable" && reason ? { reason } : {}),
       });
       if (seq !== sequence.current) return;
       setRequest(detail);
       if (status) {
         setMessage(
           status === "scheduled"
-            ? "Request approved. The updated status is available in the patient dashboard."
+            ? "Time confirmed. The patient sees it in My requests."
             : status === "unable"
-              ? "Request declined. The request status has been updated."
-              : "Contact attempt recorded.",
+              ? "Recorded: can’t schedule. The patient sees it in My requests."
+              : "Recorded: left a message.",
         );
         setData(await call("dashboard"));
         setUpdated(new Date());
@@ -1243,7 +1331,8 @@ export default function CenterWorkspace({ onLogin }) {
   const all = data?.requests || [],
     centers = data?.centers || [],
     openCount = all.filter(isOpen).length,
-    approved = all.filter((item) => item.status === "scheduled").length;
+    approved = all.filter((item) => item.status === "scheduled").length,
+    closedCount = all.filter(isClosed).length;
   const rows = all
     .filter(
       (item) =>
@@ -1251,9 +1340,11 @@ export default function CenterWorkspace({ onLogin }) {
           ? isOpen(item)
           : tab === "approved"
             ? item.status === "scheduled"
-            : true) &&
+            : tab === "closed"
+              ? isClosed(item)
+              : true) &&
         (!query.trim() ||
-          `${item.id} ${item.clinic_name}`
+          `${item.id} ${item.first_name || ""} ${item.clinic_name}`
             .toLowerCase()
             .includes(query.trim().toLowerCase())) &&
         (center === "all" || item.clinic_name === center),
@@ -1266,11 +1357,11 @@ export default function CenterWorkspace({ onLogin }) {
   const lastPage = Math.max(0, Math.ceil(rows.length / 10) - 1),
     currentPage = Math.min(page, lastPage),
     visible = rows.slice(currentPage * 10, currentPage * 10 + 10);
+  const inboxTabs = ["open", "approved", "closed", "all"];
   const nav = [
-    ["overview", "Overview", "overview", null],
-    ["all", "Requests", "requests", all.length],
+    ["open", "Inbox", "inbox", openCount],
+    ["prices", "Self-pay prices", "requests", null],
     ["profile", "Center profiles", "building", centers.length],
-    ["prices", "Self-pay prices", "requests", null, "sub"],
   ];
   const name = centers.length === 1 ? centers[0].name : "Center workspace",
     initials = (name || "Center")
@@ -1307,8 +1398,7 @@ export default function CenterWorkspace({ onLogin }) {
                 aria-label={label}
                 disabled={busy}
                 aria-current={
-                  tab === key ||
-                  (key === "all" && ["open", "approved"].includes(tab))
+                  tab === key || (key === "open" && inboxTabs.includes(tab))
                     ? "page"
                     : undefined
                 }
@@ -1355,7 +1445,7 @@ export default function CenterWorkspace({ onLogin }) {
                   ? "Enter or confirm the prices patients pay without insurance."
                   : tab === "profile"
                     ? "Keep your center information close at hand."
-                    : "Your appointment requests and center information, in one workspace."}
+                    : "Patient requests for your centers. Call each patient to confirm a time."}
             </p>
           </div>
           {data && (
@@ -1460,49 +1550,7 @@ export default function CenterWorkspace({ onLogin }) {
           />
         ) : (
           <>
-            <div className="cw-metrics" aria-label="Request totals">
-              {[
-                [
-                  "all",
-                  "Total requests",
-                  all.length,
-                  "requests",
-                  "All submitted requests",
-                ],
-                [
-                  "open",
-                  "Awaiting response",
-                  openCount,
-                  "inbox",
-                  "Requests to review",
-                ],
-                [
-                  "approved",
-                  "Approved",
-                  approved,
-                  "check",
-                  "Accepted by your center",
-                ],
-              ].map(([key, label, count, icon, note]) => (
-                <button
-                  type="button"
-                  key={key}
-                  onClick={() => select(key)}
-                  className={key === "open" ? "cw-metric-priority" : ""}
-                >
-                  <span className="cw-metric-top">
-                    {label}
-                    <Icon name={icon} />
-                  </span>
-                  <strong>{count}</strong>
-                  <span className="cw-metric-note">
-                    {note}
-                    <Icon name="arrow" width="16" height="16" />
-                  </span>
-                </button>
-              ))}
-            </div>
-            {tab === "overview" && openCount > 0 && (
+            {openCount > 0 && (
               <div className="cw-attention">
                 <span className="cw-attention-icon">
                   <Icon name="inbox" />
@@ -1513,47 +1561,47 @@ export default function CenterWorkspace({ onLogin }) {
                     {openCount === 1 ? "request needs" : "requests need"} your
                     attention
                   </strong>
-                  <p>Review preferred times and respond to your patients.</p>
+                  <p>Call each patient and record the time.</p>
                 </div>
-                <button type="button" onClick={() => select("open")}>
-                  Review requests <Icon name="arrow" />
-                </button>
               </div>
             )}
+            <div className="cw-counts" role="group" aria-label="Request status">
+              {[
+                ["open", "New", openCount],
+                ["approved", "Time confirmed", approved],
+                ["closed", "Closed", closedCount],
+                ["all", "Total", all.length],
+              ].map(([key, label, count]) => (
+                <button
+                  type="button"
+                  key={key}
+                  aria-pressed={tab === key}
+                  disabled={busy}
+                  onClick={() => select(key)}
+                >
+                  {label} <strong>{count}</strong>
+                </button>
+              ))}
+            </div>
             <section className="cw-request-panel">
               <div className="cw-section-title">
                 <div>
                   <h2>
-                    {tab === "overview" ? "Recent requests" : titles[tab]}
+                    {{ open: "New requests", approved: "Time confirmed", closed: "Closed requests", all: "All requests" }[tab]}
                   </h2>
                   <p>
                     {rows.length} {rows.length === 1 ? "request" : "requests"}
                     {query || center !== "all" ? " matching your filters" : ""}
                   </p>
                 </div>
-                {tab === "overview" && (
-                  <button
-                    className="cw-text-button"
-                    type="button"
-                    onClick={() => select("all")}
-                  >
-                    View all requests <Icon name="arrow" />
-                  </button>
-                )}
               </div>
-              <RequestStatusTabs
-                value={tab}
-                counts={{ all: all.length, open: openCount, approved }}
-                onChange={select}
-                disabled={busy}
-              />
               <div className="cw-toolbar">
                 <label className="cw-search">
                   <Icon name="search" />
                   <input
                     type="search"
                     aria-label="Search requests"
-                    placeholder="Search reference or center name"
+                    placeholder="Search by reference or patient name"
                     value={query}
                     onChange={(e) => {
                       setQuery(e.target.value);
@@ -1603,13 +1651,15 @@ export default function CenterWorkspace({ onLogin }) {
                   title={
                     query || center !== "all"
                       ? "No matching requests"
-                      : tab === "open"
-                        ? "You’re all caught up"
-                        : "No requests yet"
+                      : !all.length
+                        ? "No requests yet"
+                        : tab === "open"
+                          ? "You’re all caught up"
+                          : "No requests in this view"
                   }
                   description={
                     query || center !== "all"
-                      ? "Try a different reference or center name."
+                      ? "Try a different reference or name."
                       : "Appointment requests for your centers will appear here."
                   }
                   onReset={
@@ -1630,8 +1680,8 @@ export default function CenterWorkspace({ onLogin }) {
                     aria-label="Appointment requests"
                   >
                     <div className="cw-table-head" role="row">
-                      <span role="columnheader">Reference / Center</span>
-                      <span role="columnheader">Appointment times</span>
+                      <span role="columnheader">Patient</span>
+                      <span role="columnheader">Exam and times</span>
                       <span role="columnheader">Received</span>
                       <span role="columnheader">Status</span>
                       <span role="columnheader" className="cw-sr-only">
@@ -1646,44 +1696,35 @@ export default function CenterWorkspace({ onLogin }) {
                           key={item.id}
                         >
                           <div role="cell" className="cw-reference">
-                            <span>{item.id}</span>
-                            <h3>{item.clinic_name}</h3>
+                            <h3>{item.first_name || "Patient"}</h3>
+                            {item.phone && <span>{prettyPhone(item.phone)}</span>}
+                            <span>
+                              {item.id}
+                              {centers.length > 1 ? ` · ${item.clinic_name}` : ""}
+                            </span>
                           </div>
                           <div role="cell" className="cw-preferences">
                             <Icon name="calendar" />
                             <div>
+                              <strong>
+                                {[item.service, item.exam].filter(Boolean).join(" ") || "Exam not specified"}
+                              </strong>
                               {item.status === "scheduled" ? (
-                                <>
-                                  <strong>Approved appointment</strong>
-                                  <span>
-                                    {approvedSlotLabel(item.approved_slot)}
-                                  </span>
-                                </>
+                                <span>{approvedSlotLabel(item.approved_slot)}</span>
                               ) : item.slots?.length ? (
-                                <>
-                                  <strong>
-                                    {formatDate(item.slots[0].date)}
-                                  </strong>
-                                  <span>
-                                    {item.slots[0].period === "morning"
-                                      ? "Morning"
-                                      : "Afternoon"}
-                                    {item.slots.length > 1
-                                      ? ` + ${item.slots.length - 1} more`
-                                      : ""}
-                                  </span>
-                                </>
+                                <span>{slotLine(item.slots)}</span>
                               ) : (
-                                <span>Not provided</span>
+                                <span>Times not provided</span>
                               )}
                             </div>
                           </div>
                           <div role="cell" className="cw-received">
                             <span className="cw-mobile-label">Received</span>
                             {received(item.created)}
+                            <small>{ago(item.created)}</small>
                           </div>
                           <div role="cell">
-                            <Badge status={item.status} />
+                            <Badge status={item.status} item={item} />
                           </div>
                           <div role="cell" className="cw-row-action">
                             <button
@@ -1691,13 +1732,15 @@ export default function CenterWorkspace({ onLogin }) {
                               disabled={busy}
                               onClick={() => open(item.id)}
                             >
-                              Open request <span aria-hidden="true">→</span>
+                              {isOpen(item) ? "View and respond" : "View"}{" "}
+                              <span aria-hidden="true">→</span>
                             </button>
                           </div>
                         </article>
                       ))}
                     </div>
                   </div>
+                  {lastPage > 0 && (
                   <div className="cw-pagination">
                     <span>
                       Showing {currentPage * 10 + 1}–
@@ -1726,6 +1769,7 @@ export default function CenterWorkspace({ onLogin }) {
                       </button>
                     </div>
                   </div>
+                  )}
                 </>
               )}
             </section>

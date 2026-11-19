@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { OTPInput } from "./BookingControls.jsx";
 import "./center-portal.css";
 
@@ -10,7 +10,32 @@ export function CenterLogin({ onDone }) {
     [challenge, setChallenge] = useState("");
   const [code, setCode] = useState(""),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [minutes, setMinutes] = useState(10),
+    [wait, setWait] = useState(0);
+  useEffect(() => {
+    if (wait <= 0) return undefined;
+    const timer = setTimeout(() => setWait((n) => n - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [wait]);
+  async function sendCode() {
+    const value = await call("code", { email });
+    setChallenge(value.verification_id);
+    setMinutes(Math.max(1, Math.round((value.expires_in || 600) / 60)));
+    setCode("");
+    setWait(30);
+  }
+  async function resend() {
+    setBusy(true);
+    setError("");
+    try {
+      await sendCode();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function submit(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -23,9 +48,7 @@ export function CenterLogin({ onDone }) {
         await call("dashboard");
         onDone();
       } else {
-        const value = await call("code", { email });
-        setChallenge(value.verification_id);
-        setCode("");
+        await sendCode();
       }
     } catch (e) {
       setError(e.message);
@@ -38,8 +61,8 @@ export function CenterLogin({ onDone }) {
       <p className="eyebrow">FOR IMAGING CENTERS</p>
       <h2 id="dialogTitle">Center login</h2>
       <p>
-        Access your center information and appointment requests using the email
-        listed in our directory.
+        Enter the email we have on file for your center. We send it a 6-digit
+        code.
       </p>
       <form onSubmit={submit}>
         <label htmlFor="centerEmail">Center email</label>
@@ -57,8 +80,9 @@ export function CenterLogin({ onDone }) {
         {challenge && (
           <>
             <p role="status">
-              A six-digit code was sent to {email}. Check your inbox or spam
-              folder.
+              If {email} matches a listing, we sent a 6-digit code. It may take
+              a minute, and it can land in spam. The code works for {minutes}{" "}
+              {minutes === 1 ? "minute" : "minutes"}.
             </p>
             <OTPInput
               id="centerOTP"
@@ -84,24 +108,46 @@ export function CenterLogin({ onDone }) {
           {busy
             ? "Please wait…"
             : challenge
-              ? "Verify and open dashboard"
-              : "Send email code"}
+              ? "Verify and open inbox"
+              : "Email me a code"}
         </button>
       </form>
-      {challenge && (
-        <div className="actions">
+      {challenge ? (
+        <div className="actions center-login-links">
           <button
             type="button"
+            className="link-button"
+            disabled={busy || wait > 0}
+            onClick={resend}
+          >
+            {wait > 0 ? `Send a new code (${wait}s)` : "Send a new code"}
+          </button>
+          <button
+            type="button"
+            className="link-button"
             disabled={busy}
             onClick={() => {
               setChallenge("");
               setCode("");
               setError("");
+              setWait(0);
             }}
           >
-            Change email / request a new code
+            Use a different email
           </button>
         </div>
+      ) : (
+        <p className="small muted">
+          Not sure which email we have?{" "}
+          <a href="mailto:partners@onesmarter.com?subject=Find%20our%20MySelfPay%20listing">
+            Find your listing
+          </a>{" "}
+          or{" "}
+          <a href="mailto:partners@onesmarter.com?subject=Which%20email%20do%20you%20have%20for%20our%20center">
+            tell us
+          </a>
+          .
+        </p>
       )}
     </section>
   );

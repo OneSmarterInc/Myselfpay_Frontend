@@ -1647,3 +1647,6 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+.cw-counts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}.cw-counts button{background:#fff;border:1px solid #d9dcdf;border-radius:999px;padding:8px 14px;font-size:14px;min-height:40px}.cw-counts button strong{margin-left:4px}.cw-counts button[aria-pressed=true]{background:#202629;border-color:#202629;color:#fff}
+.cw-call{display:inline-flex;align-items:center;gap:8px;background:#a91d2b;color:#fff!important;border-radius:10px;padding:12px 16px;font-weight:650;text-decoration:none}.cw-preview{background:#f4f8f5;border-radius:10px;padding:10px 12px;font-size:14px;margin:10px 0}.cw-reason{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap}.cw-received small{display:block;color:#747d86}.cw-reference span{display:block;font-size:12px;color:#747d86}
