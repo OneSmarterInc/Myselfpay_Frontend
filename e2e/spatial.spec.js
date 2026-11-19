@@ -72,7 +72,7 @@ test("current-location search loads the whole selected state and recalculates ov
           .first()
           .textContent();
         return Number(
-          text.match(/about ([\d,.]+) miles/)?.[1].replaceAll(",", ""),
+          text.match(/([\d,.]+) miles/)?.[1].replaceAll(",", ""),
         );
       },
       { timeout: 15000 },

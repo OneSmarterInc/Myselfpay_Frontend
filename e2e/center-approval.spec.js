@@ -25,7 +25,7 @@ test("center email OTP is required before approving an appointment request",asyn
  await page.getByRole("button",{name:"Approve request",exact:true}).click();
  await expect(page.locator(".approved-appointment")).toContainText("2:30 PM");
  await expect(page.getByRole("link",{name:"Open secure chat",exact:true})).toHaveCount(0);
- await expect(page.locator("#clinicOutcome")).toContainText("Approved by center");
+ await expect(page.locator("#clinicOutcome")).toContainText("Time confirmed");
  await expect(page.getByRole("button",{name:"Approve request",exact:true})).toHaveCount(0);
  await expect(page.getByRole("heading",{name:"Request approved",exact:true})).toBeVisible();
  await page.screenshot({path:"../tmp/center-approved-reference-mobile.png"});

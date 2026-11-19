@@ -24,14 +24,14 @@ test("booking phone errors recover into OTP and the dashboard identifies the use
   await page.locator("article.card [data-appointment]").first().click();
   await expect(
     page.getByRole("heading", {
-      name: "Log in to request a time",
-      exact: true,
+      name: /^Request a time at /,
     }),
   ).toBeVisible();
   await expect(
     page.locator("input[type=email],input[type=password],#accountName"),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await page.getByRole("button", { name: "Continue with my phone", exact: true }).click();
+  await page.locator("#accountName").fill("Synthetic Patient");
   await page.locator("#accountPhone").fill(phone);
   await page.locator("#accountSubmit").click();
   await page.locator("#registrationOTP").fill("123456");
@@ -47,12 +47,12 @@ test("booking phone errors recover into OTP and the dashboard identifies the use
   await page.locator("#bookingConsent").check();
   await page.locator("#bookingSubmit").click();
   await expect(page.locator(".flow-reference-id")).toBeVisible();
-  await page.getByRole("link", { name: "Dashboard", exact: true }).click();
+  await page.getByRole("navigation").getByRole("link", { name: "My requests", exact: true }).click();
   await expect(page.locator(".dashboard-account-mini strong")).toHaveText(
     "+1" + phone,
   );
   await expect(page.locator(".dashboard-request")).toHaveCount(1);
   await page.getByRole("button", { name: "My profile", exact: true }).click();
-  await expect(page.locator(".dashboard-profile")).toContainText("Username");
+  await expect(page.locator(".dashboard-profile")).toContainText("Home ZIP");
   await expect(page.locator(".dashboard-profile")).toContainText("+1" + phone);
 });

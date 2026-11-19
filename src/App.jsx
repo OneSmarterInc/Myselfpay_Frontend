@@ -1294,7 +1294,7 @@ export default function App() {
           </span>
         </a>
         <nav>
-          <a href="/for-imaging-centers">For imaging centers</a>
+          <a className="center-door" href="/for-imaging-centers">For imaging centers</a>
           <button id="faqLink" type="button">FAQ</button>
           <button id="history" hidden>
             Saved conversations
@@ -1308,7 +1308,7 @@ export default function App() {
           >
             Log in
           </button>
-          {account && account.tenant !== "guest" && <a className="button" href="#dashboard" aria-current={view === "dashboard" ? "page" : undefined}>Dashboard</a>}
+          {account && account.tenant !== "guest" && <a className="button" href="#dashboard" aria-current={view === "dashboard" ? "page" : undefined}>My requests</a>}
           <button id="profile" hidden={!account} disabled={busy || boot}
             aria-label={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
             title={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
@@ -1321,7 +1321,7 @@ export default function App() {
 
       <main className={"shell" + (view === "center" ? " center-shell" : view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
         {account?.setup_required && view !== "login" && view !== "signup" && <p className="panel" role="status">Complete your account setup to request a time. <a href="#login">Verify your mobile number</a></p>}
-        {view === "center-login" ? <section className="panel center-direct-login"><CenterLogin onDone={()=>navigate("center")}/></section> : view === "reset-password" ? <PasswordReset onReset={clear}/> : (view === "login" || view === "signup") ? <MobileAccount key={view} signup={view === "signup"} account={account} onDone={async member=>{setAccount(member);navigate("search");setToast("You are signed in.");if(member.zip_code && !pendingBooking) await search({...initialState(),location:member.zip_code,sort:"distance"});}}/> : nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
+        {view === "center-login" ? <section className="panel center-direct-login"><CenterLogin onDone={()=>navigate("center")}/></section> : view === "reset-password" ? <PasswordReset onReset={clear}/> : (view === "login" || view === "signup") ? <MobileAccount key={view} signup={view === "signup"} facility={pendingBooking?.entry?.name} account={account} onDone={async member=>{setAccount(member);navigate("search");setToast("You are signed in.");if(member.zip_code && !pendingBooking) await search({...initialState(),location:member.zip_code,sort:"distance"});}}/> : nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (
           <OriginalHTML html={markup} onInput={input} replace={replace} />
@@ -1343,13 +1343,12 @@ export default function App() {
       {dialog && (
         <Dialog onClose={close} booking={dialog.type === "booking"}>
           {dialog.type === "booking-login" ? <section className="booking-account-choice">
-            <h2 id="dialogTitle">Log in to request a time</h2>
-            <p>We only require a valid US-based phone number which can receive an OTP to create a request.</p>
-            <p>Your selected center will be kept so you can continue after signing in.</p>
+            <h2 id="dialogTitle">{pendingBooking?.entry?.name ? `Request a time at ${pendingBooking.entry.name}` : "Request a time"}</h2>
+            <p>Enter your mobile number and we text you a code. No password.</p>
+            {pendingBooking?.entry?.name && <p>We’ll hold your spot with {pendingBooking.entry.name}.</p>}
             <div className="actions">
-              <button className="primary" onClick={()=>navigate("signup")}>Create account and continue</button>
-              <button onClick={()=>navigate("login")}>Log in</button>
-              <button onClick={close}>Cancel</button>
+              <button className="primary" onClick={()=>navigate("signup")}>Continue with my phone</button>
+              <button className="text-link" onClick={close}>Cancel</button>
             </div>
           </section> : dialog.type === "center-login" ? <CenterLogin onDone={()=>{setDialog(null);if(view==="center") location.reload();else navigate("center");}}/> : dialog.type === "booking" ? (
             <OriginalBooking

@@ -7,7 +7,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(page.locator("#publicCoverage")).toContainText("74");
     await expect(page.getByRole("heading", { name: "Find self-pay MRI and CT near you." })).toBeVisible();
     await expect(page.getByRole("button", { name: "Find imaging options", exact: true })).toBeVisible();
-    await expect(page.locator(".welcome-intro").getByRole("button", { name: "Center login", exact: true })).toBeVisible();
+    await expect(page.locator(".welcome-intro").getByRole("button", { name: "Center login", exact: true })).toHaveCount(0);
     await expect(page.locator("header").getByRole("button", { name: "Center login", exact: true })).toHaveCount(0);
     await expect(page.locator(".welcome-steps")).toBeVisible();
     await expect(page.locator(".site-footer")).toBeVisible();

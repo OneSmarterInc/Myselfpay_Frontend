@@ -50,7 +50,7 @@ for (const scenario of [
     await expect(page.locator("#location")).toHaveValue(scenario.location);
     await expect(page.locator("article.card").first()).toBeVisible();
     await expect(page.locator("article.card").first()).toContainText(
-      /about [\d,]+\.\d miles away/,
+      /[\d,]+\.\d miles away/,
     );
     await expect(
       page.getByText(
@@ -72,7 +72,7 @@ for (const scenario of [
     await info.focus();
     await expect(page.getByRole("tooltip")).toBeVisible();
     const cards = await page.locator("article.card").evaluateAll(items => items.map(card => {
-      const match = card.textContent.match(/about ([\d,]+\.\d) miles away/);
+      const match = card.textContent.match(/([\d,]+\.\d) miles away/);
       return {
         miles: match ? Number(match[1].replaceAll(",", "")) : Infinity,
         onRequest: /Price on request|Quote required/.test(card.textContent),

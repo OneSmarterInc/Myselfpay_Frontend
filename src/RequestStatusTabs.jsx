@@ -5,6 +5,7 @@ export default function RequestStatusTabs({
   counts,
   onChange,
   disabled = false,
+  confirmedLabel = "Approved requests",
 }) {
   return (
     <div
@@ -15,7 +16,7 @@ export default function RequestStatusTabs({
       {[
         ["all", "All requests"],
         ["open", "Open requests"],
-        ["approved", "Approved requests"],
+        ["approved", confirmedLabel],
       ].map(([key, label]) => (
         <button
           type="button"
@@ -29,7 +30,7 @@ export default function RequestStatusTabs({
         >
           <span className="request-status-full">{label}</span>
           <span className="request-status-compact">
-            {key === "all" ? "All" : key === "open" ? "Open" : "Approved"}
+            {key === "all" ? "All" : key === "open" ? "Open" : confirmedLabel === "Approved requests" ? "Approved" : "Confirmed"}
           </span>
           <small>{counts[key] || 0}</small>
         </button>

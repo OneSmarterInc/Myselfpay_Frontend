@@ -26,7 +26,7 @@ test("National lists directory centers with ten results per page", async ({
   await expect(page.locator("article.card h3").first()).toHaveText(first);
   await expect(
     page.locator("article.card").first().locator(".facts .fact"),
-  ).toHaveCount(2);
+  ).toHaveCount(1);
   await page.locator("article.card [data-select]").first().check();
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(
@@ -163,12 +163,12 @@ test("original signup and login forms retain verified DRF sessions", async ({
   await page.locator("#accountName").fill("Synthetic UI Test");
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
   await completeMobileRegistration(page);
-  await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("link", { name: "My requests", exact: true })).toBeVisible({ timeout: 15000 });
   await page.locator("#profile").click();
   await page.locator("#accountLogin").click();
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
   await completeMobileLogin(page);
-  await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "My requests", exact: true })).toBeVisible();
   const session = await page.request.get("/api/me");
   expect(session.ok()).toBe(true);
   expect((await session.json()).member.mobile_verified).toBe(true);
@@ -209,10 +209,10 @@ test("request a time offers account choices and preserves the center", async ({ 
   await page.locator("[data-detail]").first().click();
   await page.setViewportSize({width:390,height:844});
   await page.locator("[data-appointment]").first().click();
-  await expect(page.getByRole("heading", {name:"Log in to request a time",exact:true})).toBeVisible();
+  await expect(page.getByRole("heading", {name:/^Request a time at /})).toBeVisible();
   await expect(page.locator("#accountPhone")).toHaveCount(0);
-  await expect(page.locator("#modalBody")).toContainText("We only require a valid US-based phone number which can receive an OTP to create a request.");
-  await page.getByRole("button",{name:"Create account and continue",exact:true}).click();
+  await expect(page.locator("#modalBody")).toContainText("Enter your mobile number and we text you a code. No password.");
+  await page.getByRole("button",{name:"Continue with my phone",exact:true}).click();
   await page.locator("#accountName").fill("Synthetic Patient");
   await expect(page.locator("#accountName")).toHaveValue("Synthetic Patient");
   await expect(page.getByRole("combobox",{name:"Country code"})).toHaveCount(1);

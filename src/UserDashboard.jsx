@@ -5,14 +5,13 @@ import { approvedSlotLabel } from "./approved-slot.js";
 import "./approval-slots.css";
 
 const labels = {
-  requested: "Awaiting center confirmation",
-  voicemail: "Center follow-up in progress",
-  scheduled: "Approved by center",
-  unable: "Center unable to schedule",
+  requested: "Waiting for the facility to call",
+  voicemail: "The facility tried to reach you",
+  scheduled: "Time confirmed",
+  unable: "This facility couldn’t schedule. Try another facility",
   expired: "Request expired",
 };
 const tabs = [
-  ["overview", "Overview"],
   ["profile", "My profile"],
   ["all", "Requests"],
 ];
@@ -73,12 +72,12 @@ function RequestCard({ item }) {
       </span>
       {item.status === "scheduled" && (
         <div className="approved-appointment">
-          <strong>Approved appointment</strong>
+          <strong>Time confirmed</strong>
           <p>{approvedSlotLabel(item.approved_slot)}</p>
           {item.approved_slot?.source === "custom" && (
             <p>
-              The center selected an alternative to your preferred times.
-              Contact the center if it does not work for you.
+              The facility chose a different time than your preferred windows.
+              Call the facility if it does not work for you.
             </p>
           )}
         </div>
@@ -106,7 +105,7 @@ function RequestCard({ item }) {
         </div>
         <dl>
           <dt>Location</dt>
-          <dd>{item.location || "Confirm with center"}</dd>
+          <dd>{item.location || "Confirm with the facility"}</dd>
           <dt>Patient</dt>
           <dd>{item.contact_name || "—"}</dd>
           <dt>Mobile</dt>
@@ -124,11 +123,11 @@ function RequestCard({ item }) {
           <dd>{item.price_text}</dd>
           <dt>Submitted</dt>
           <dd>{stamp(item.created)}</dd>
-          <dt>Center notification</dt>
+          <dt>Sent to the facility</dt>
           <dd>{item.delivery || "Pending"}</dd>
           {item.approved_at && (
             <>
-              <dt>Approved</dt>
+              <dt>Confirmed</dt>
               <dd>{stamp(item.approved_at)}</dd>
             </>
           )}
@@ -137,7 +136,7 @@ function RequestCard({ item }) {
       <div className="request-card-footer">
         {phone.length >= 8 && (
           <a className="flow-outline" href={`tel:${phone}`}>
-            Call center
+            Call the facility
           </a>
         )}
         <a
@@ -151,7 +150,7 @@ function RequestCard({ item }) {
   );
 }
 export default function UserDashboard({ account }) {
-  const [tab, setTab] = useState("overview"),
+  const [tab, setTab] = useState("all"),
     [page, setPage] = useState(1),
     [value, setValue] = useState(null),
     [error, setError] = useState(""),
@@ -251,11 +250,11 @@ export default function UserDashboard({ account }) {
               <p className="eyebrow">MYSELFPAY ACCOUNT</p>
               <h1>{tab === "profile" ? "My profile" : "My requests"}</h1>
               <p className="muted">
-                Your profile and appointment requests, in one place.
+                Your requests and their status, in one place.
               </p>
             </div>
             <a className="dashboard-search" href="#search">
-              Find imaging centers <span aria-hidden="true">→</span>
+              Find facilities <span aria-hidden="true">→</span>
             </a>
           </div>
 
@@ -274,28 +273,6 @@ export default function UserDashboard({ account }) {
           )}
           {value && (
             <>
-              {tab === "overview" && (
-                <div className="dashboard-metrics">
-                  {[
-                    ["Total requests", total, "all"],
-                    ["Open requests", open, "open"],
-                    ["Approved", stats.scheduled || 0, "approved"],
-                  ].map(([label, count, target]) => (
-                    <button
-                      type="button"
-                      key={label}
-                      aria-label={`View ${label.toLowerCase()}`}
-                      onClick={() => select(target)}
-                    >
-                      <span>{label}</span>
-                      <strong>{count}</strong>
-                      <small>
-                        View requests <span aria-hidden="true">→</span>
-                      </small>
-                    </button>
-                  ))}
-                </div>
-              )}
               {tab === "profile" ? (
                 <section className="dashboard-profile">
                   <div className="profile-heading">
@@ -312,18 +289,10 @@ export default function UserDashboard({ account }) {
                       ...(value.profile.name
                         ? [["Name", value.profile.name]]
                         : []),
-                      ...(value.profile.phone || value.profile.username
-                        ? [
-                            [
-                              "Username",
-                              value.profile.phone || value.profile.username,
-                            ],
-                          ]
-                        : []),
                       ["Mobile number", value.profile.phone || "Not provided"],
-                      ["ZIP code", value.profile.zip_code || "Not provided"],
+                      ["Home ZIP (so results start near you)", value.profile.zip_code || "Not provided"],
                       [
-                        "Member since",
+                        "Joined",
                         new Date(
                           value.profile.created * 1000,
                         ).toLocaleDateString(),
@@ -341,7 +310,7 @@ export default function UserDashboard({ account }) {
                   <div className="dashboard-request-heading">
                     <div>
                       <h2>
-                        {tab === "overview" ? "Recent requests" : "Requests"}
+                        Requests
                       </h2>
                       <p>
                         {value.total}{" "}
@@ -364,6 +333,7 @@ export default function UserDashboard({ account }) {
                       approved: stats.scheduled || 0,
                     }}
                     onChange={select}
+                    confirmedLabel="Time confirmed"
                     disabled={loading}
                   />
                   {!value.requests.length && (
@@ -375,14 +345,14 @@ export default function UserDashboard({ account }) {
                         {tab === "open"
                           ? "No open requests"
                           : tab === "approved"
-                            ? "No approved requests"
+                            ? "No confirmed requests"
                             : "No requests yet"}
                       </h3>
                       <p>
                         Your appointment requests and updates will appear here.
                       </p>
                       <a className="dashboard-search" href="#search">
-                        Browse imaging centers
+                        Browse facilities
                       </a>
                     </div>
                   )}
@@ -413,8 +383,8 @@ export default function UserDashboard({ account }) {
                     </div>
                   )}
                   <p className="dashboard-refresh-note">
-                    Statuses refresh automatically. The center confirms your
-                    appointment directly.
+                    Statuses refresh automatically. The facility confirms your
+                    time when it calls.
                   </p>
                 </section>
               )}

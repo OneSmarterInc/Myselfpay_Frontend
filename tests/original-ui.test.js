@@ -177,8 +177,8 @@ it("sorts GPS cards by actual miles, displays decimals and keeps missing distanc
   expect(
     [...html.matchAll(/<h3>([^<]+)<\/h3>/g)].map((match) => match[1]),
   ).toEqual(["Near", "Far complete", "Unknown"]);
-  expect(html).toContain("about 9.4 miles away");
-  expect(html).toContain("about 9,200.1 miles away");
+  expect(html).toContain("9.4 miles away");
+  expect(html).toContain("9,200.1 miles away");
   expect(html).toContain("Distance unavailable");
 });
 

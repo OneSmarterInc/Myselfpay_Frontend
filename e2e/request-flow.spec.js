@@ -24,13 +24,13 @@ test("a returning member who taps Create account is logged in with a code", asyn
   await page.locator("#location").fill("Ohio");
   await page.getByRole("button", { name: "Find options", exact: true }).click();
   await page.locator("article.card [data-appointment]").first().click();
-  await page.getByRole("button", { name: "Create account and continue", exact: true }).click();
+  await page.getByRole("button", { name: "Continue with my phone", exact: true }).click();
   await page.locator("#accountName").fill("Synthetic Patient");
   await page.locator("#accountPhone").fill("6145550123");
   await page.locator("#accountSubmit").click();
   await expect(page.locator(".mobile-account")).toContainText("already has an account");
   await expect(page.getByRole("alert")).toHaveCount(0);
-  await expect(page.locator("#accountSubmit")).toHaveText(/Verify and log in/);
+  await expect(page.locator("#accountSubmit")).toHaveText(/Verify and (log in|request a time)/);
   expect(intents).toEqual(["register", "login"]);
 });
 
@@ -84,7 +84,7 @@ test("the request carries the exam of the listing that was picked", async ({
   await page.locator("#location").fill("Ohio");
   await page.getByRole("button", { name: "Find options", exact: true }).click();
   await page.locator("article.card [data-appointment]").first().click();
-  await page.getByRole("button", { name: "Create account and continue", exact: true }).click();
+  await page.getByRole("button", { name: "Continue with my phone", exact: true }).click();
   await page.locator("#accountName").fill("Sam");
   await page.locator("#accountPhone").fill("6145550123");
   await page.locator("#accountSubmit").click();
