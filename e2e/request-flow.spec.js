@@ -90,7 +90,7 @@ test("the request carries the exam of the listing that was picked", async ({
   await page.locator("#accountSubmit").click();
   await page.locator("#registrationOTP").fill("123456");
   await page.locator("#accountSubmit").click();
-  await page.getByRole("button", { name: "Afternoon" }).first().click();
+  await page.locator("button:not([disabled])", { hasText: "Afternoon" }).first().click();
   await page.locator("#bookingConsent").check();
   await page.locator("#bookingSubmit").click();
   await expect.poll(() => payload?.service).toMatch(/^(MRI|CT)$/);
