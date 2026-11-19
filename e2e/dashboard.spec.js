@@ -10,10 +10,10 @@ test("signed-in dashboard shows profile, request status and request links", asyn
   await completeMobileRegistration(page);
   expect(
     await page
-      .getByRole("link", { name: "Dashboard", exact: true })
+      .getByRole("link", { name: "My requests", exact: true })
       .evaluate((el) => el.nextElementSibling?.id),
   ).toBe("profile");
-  await page.getByRole("link", { name: "Dashboard", exact: true }).click();
+  await page.getByRole("link", { name: "My requests", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "My requests", exact: true }),
   ).toBeVisible();
@@ -73,10 +73,10 @@ test("signed-in dashboard shows profile, request status and request links", asyn
   await expect(
     page
       .getByRole("navigation", { name: "Dashboard sections" })
-      .getByRole("button", { name: "Approved requests", exact: true }),
+      .getByRole("button", { name: "Time confirmed", exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByText("Awaiting center confirmation", { exact: true }),
+    page.getByText("Waiting for the facility to call", { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Open secure chat" })).toHaveCount(0);
   await expect(

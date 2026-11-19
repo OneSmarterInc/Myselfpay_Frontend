@@ -41,7 +41,7 @@ test("account creation from time requests supports country selection",async({pag
  await page.locator('#location').fill('Ohio');
  await page.getByRole('button',{name:'Find options',exact:true}).click();
  await page.locator('article.card [data-appointment]').first().click();
- await page.getByRole('button',{name:'Create account and continue',exact:true}).click();
+ await page.getByRole('button',{name:'Continue with my phone',exact:true}).click();
  await page.locator('#accountName').fill('Synthetic Patient');
  await page.getByRole('combobox',{name:'Country code'}).selectOption('IN');
  const requestPhone='98765'+String(Date.now()).slice(-5);

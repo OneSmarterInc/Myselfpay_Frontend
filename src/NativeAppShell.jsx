@@ -151,7 +151,7 @@ export function NativeAppHeader({
           )}
           {member ? (
             <a href="#dashboard" onClick={close}>
-              Dashboard
+              My requests
             </a>
           ) : (
             <>

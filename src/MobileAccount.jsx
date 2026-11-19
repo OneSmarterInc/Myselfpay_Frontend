@@ -4,11 +4,18 @@ import { OTPInput } from "./BookingControls.jsx";
 import { CALLING_CODES, phoneInput } from "./phone-country.js";
 import "./mobile-account.css";
 
+const prettyPhone = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  const us = digits.length === 11 && digits[0] === "1" ? digits.slice(1) : digits.length === 10 ? digits : "";
+  return us ? `(${us.slice(0, 3)}) ${us.slice(3, 6)}-${us.slice(6)}` : value;
+};
+
 export default function MobileAccount({
   signup,
   account,
   onDone,
   requestOnly = false,
+  facility = "",
 }) {
   const [name, setName] = useState("");
   const [nameFocused, setNameFocused] = useState(false);
@@ -88,24 +95,26 @@ export default function MobileAccount({
       }
     >
       <Heading id={requestOnly ? "dialogTitle" : undefined}>
-        {challenge
-          ? "Verify your mobile number"
-          : requestOnly
-            ? "Verify your phone to request a time"
-            : signup
-              ? "Create an account"
-              : "Welcome back"}
+        {facility && !requestOnly
+          ? `Request a time at ${facility}`
+          : challenge
+            ? "Verify your mobile number"
+            : requestOnly
+              ? "Verify your phone to request a time"
+              : signup
+                ? "Create an account"
+                : "Welcome back"}
       </Heading>
       <p>
         {challenge
           ? existing
-            ? `This number already has an account. Enter the six-digit code we texted to ${challenge.phone || phone} to log in.`
-            : `Enter the six-digit SMS code sent to ${challenge.phone || phone}.`
+            ? `This number already has an account. Enter the 6-digit code we texted to ${prettyPhone(challenge.phone || phone)}.`
+            : `Enter the 6-digit code we texted to ${prettyPhone(challenge.phone || phone)}.`
           : requestOnly
-            ? "Select your country code and enter a phone number that can receive an SMS verification code. Your selected center will be kept."
+            ? "Enter your mobile number and we text you a code. No password."
             : signup
-              ? "Enter your first name and mobile number to get started."
-              : "Enter your registered mobile number. We’ll send you a login code."}
+              ? "Enter your first name and mobile number. We text you a code."
+              : "Enter your mobile number. We text you a code."}
       </p>
       <form onSubmit={submit}>
         <fieldset disabled={busy}>
@@ -174,7 +183,7 @@ export default function MobileAccount({
               />
               <div className="mobile-otp-actions">
                 <button type="button" onClick={() => void run(send)}>
-                  Resend code
+                  Send a new code
                 </button>
                 <button
                   type="button"
@@ -185,7 +194,7 @@ export default function MobileAccount({
                     setError("");
                   }}
                 >
-                  Change mobile number
+                  Use a different number
                 </button>
               </div>
             </section>
@@ -206,15 +215,18 @@ export default function MobileAccount({
                 ? requestOnly
                   ? "Verify and continue"
                   : creating
-                    ? "Verify and create account"
-                    : "Verify and log in"
-                : requestOnly
-                  ? "Send verification code"
-                  : "Send mobile OTP"}
+                    ? facility ? `Verify and request a time at ${facility}` : "Verify and create account"
+                    : facility ? `Verify and request a time at ${facility}` : "Verify and log in"
+                : "Text me a code"}
           </button>
+          {!challenge && (
+            <p className="small muted mobile-consent-note">
+              Message and data rates may apply. We use your number only for this request. <a href="/privacy-terms">Terms &amp; Privacy</a>
+            </p>
+          )}
         </fieldset>
       </form>
-      {!requestOnly && (
+      {!requestOnly && !challenge && (
         <p>
           {signup ? (
             <>

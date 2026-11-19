@@ -190,3 +190,12 @@ button.guest-signout{display:inline-flex;align-items:center;justify-content:cent
 .native-app .native-center-title .price.compact-service-prices{flex:none;width:100%;min-width:0;max-width:100%;margin-top:0;box-sizing:border-box}
 
 .faq{margin:6px 0 26px}.faq h2{font-size:24px;margin-bottom:12px}.faq-group{background:white;border:1px solid #dedfe1;border-radius:14px;padding:6px 22px;margin-bottom:10px}.faq-group summary{cursor:pointer;font-weight:700;font-size:18px;padding:14px 0}.faq-group h3{font-size:16px;margin:14px 0 4px}.faq-group p{margin:0 0 12px;color:#5b6168;line-height:1.6}
+/* PR 1: walkthrough fixes */
+.card-actions button[data-appointment]{background:#1e2226;border-color:#1e2226;color:#fff}.card-actions button[data-appointment]:hover{background:#000;border-color:#000}
+header nav a.center-door{border:1px solid #b01b23;border-radius:9px;padding:8px 14px;color:#b01b23;font-weight:650}header nav a.center-door:hover{background:#b01b23;color:#fff}
+.text-link{border:0;background:none;color:#b01b23;text-decoration:underline;padding:11px 8px}.text-link:hover{background:none;color:#7e1218}
+.mobile-otp-actions button{border:0;background:none;color:#b01b23;text-decoration:underline;padding:8px 4px;min-height:44px}.mobile-otp-actions button:hover{background:none;color:#7e1218}
+.mobile-consent-note{margin-top:12px}
+.center-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:0;margin:18px 0;counter-reset:s;list-style:none}.center-steps li{counter-increment:s;background:#f6f6f5;border-radius:10px;padding:12px;font-weight:650;font-size:15px}.center-steps li::before{content:counter(s);display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#f7e8e9;color:#b01b23;margin-right:8px}
+.sample-listing{margin:14px 0;max-width:520px}
+@media(max-width:600px){.center-steps{grid-template-columns:1fr 1fr}}

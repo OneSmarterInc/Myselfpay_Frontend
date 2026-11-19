@@ -31,7 +31,7 @@ test("Android theme matches reference and core search actions work",async({page}
  await page.locator("[data-detail]").first().click();
  await expect(page.locator(".facility-reference h1")).toBeVisible();
  await page.locator("[data-appointment]").first().click();
- await expect(page.getByRole("heading",{name:"Log in to request a time",exact:true})).toBeVisible();
+ await expect(page.getByRole("heading",{name:/^Request a time at /})).toBeVisible();
  await page.getByRole("button",{name:"Close dialog",exact:true}).click();
  await page.getByRole("button",{name:"Search imaging centers",exact:true}).click();
  await expect(page.locator("#searchForm")).toBeVisible();
@@ -52,7 +52,7 @@ test("Android menu exposes dashboard for registered members",async({page})=>{
  await completeMobileRegistration(page);
  await expect(page.getByRole("heading",{name:"Search & filters",exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Open navigation",exact:true}).click();
- await page.getByRole("link",{name:"Dashboard",exact:true}).click();
+ await page.getByRole("link",{name:"My requests",exact:true}).click();
  await expect(page.getByRole("heading",{name:"My requests",exact:true})).toBeVisible();
  await expect(page.locator(".site-footer")).toBeHidden();
  await page.getByRole("button",{name:"Open navigation",exact:true}).click();

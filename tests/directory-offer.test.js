@@ -35,8 +35,8 @@ it("renders directory centers with the standard card, comparison and real bookin
   const html = ui.search();
   expect(html).toContain('type="checkbox"');
   expect(html).toContain("Price on request");
-  expect(html).toContain("Price includes");
-  expect(html).toContain("Order requirements");
+  expect(html).not.toContain("Price includes");
+  expect(html).toContain("Order required. Ask how to send it");
   expect(html).toContain('data-appointment="real-center-id"');
   expect(html).not.toContain('href="tel:');
   expect(html).not.toContain("Facilities to contact for a quote");

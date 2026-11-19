@@ -140,8 +140,8 @@ export default function OriginalBooking({
               <p>{draft.price_text}</p>
               {options.notification_target === "support" && (
                 <p className="flow-help">
-                  MySelfPay Patient Care will receive this request and follow up
-                  with the center. The center must confirm your appointment.
+                  MySelfPay Patient Care receives this request and follows up
+                  with the facility. The facility confirms your time.
                 </p>
               )}
             </section>
@@ -153,8 +153,8 @@ export default function OriginalBooking({
               onSlots={(slots) => change("slots", slots)}
             />
             <p className="flow-help flow-time-note">
-              {zoneNames[draft.timezone]} time · Preferred times; the center
-              confirms availability.
+              These are your preferred windows. The facility calls to confirm
+              the exact time. Times are {zoneNames[draft.timezone]}.
             </p>
             <section className="flow-card flow-contact">
               <label className="flow-label">
@@ -181,10 +181,15 @@ export default function OriginalBooking({
                   onChange={(e) => change("consent", e.target.checked)}
                 />
                 <span>
-                  {draft.clinic_name} may call or text me at {draft.phone} about
-                  this appointment request.
+                  {draft.clinic_name} may call me at {draft.phone} about this
+                  request. (Required)
                 </span>
               </label>
+              <p className="flow-help">
+                The facility receives your first name, phone number and chosen
+                times. Most MRI and CT scans need an order. After you send, you
+                get a reference code. Give it to the facility with your order.
+              </p>
             </section>
             <p id="bookingError" className="flow-error" role="alert">
               {error}
@@ -196,7 +201,7 @@ export default function OriginalBooking({
               className="flow-primary"
               disabled={busy || options.delivery === "unavailable"}
             >
-              {busy ? "Sending request…" : "Send request"}
+              {busy ? "Sending request…" : `Send request to ${draft.clinic_name}`}
             </button>
           </div>
         </form>
