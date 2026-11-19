@@ -19,11 +19,17 @@ export default function MobileAccount({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const phone = phoneInput(country, national).phone;
-  const intent = requestOnly ? "request" : signup ? "register" : "login";
+  const [existing, setExisting] = useState(false);
+  const intent = requestOnly
+    ? "request"
+    : signup && !existing
+      ? "register"
+      : "login";
+  const creating = intent === "register";
   const payload = {
     intent,
     phone,
-    ...(signup && !requestOnly ? { name } : {}),
+    ...(creating ? { name } : {}),
   };
   const Heading = requestOnly ? "h2" : "h1";
   function changePhone(nextCountry, value) {
@@ -31,11 +37,23 @@ export default function MobileAccount({
     setCountry(parsed.country);
     setNational(parsed.national);
     setChallenge(null);
+    setExisting(false);
     setCode("");
     setError("");
   }
   async function send() {
-    setChallenge(await api("/auth/mobile/code", payload));
+    try {
+      setChallenge(await api("/auth/mobile/code", payload));
+    } catch (e) {
+      // A returning member who chose "Create account" is logged in with the
+      // same number instead of being sent back to start over.
+      if (creating && e.status === 409 && /already registered/i.test(e.message)) {
+        setExisting(true);
+        setChallenge(
+          await api("/auth/mobile/code", { intent: "login", phone }),
+        );
+      } else throw e;
+    }
     setCode("");
   }
   async function run(action) {
@@ -80,7 +98,9 @@ export default function MobileAccount({
       </Heading>
       <p>
         {challenge
-          ? `Enter the six-digit SMS code sent to ${challenge.phone || phone}.`
+          ? existing
+            ? `This number already has an account. Enter the six-digit code we texted to ${challenge.phone || phone} to log in.`
+            : `Enter the six-digit SMS code sent to ${challenge.phone || phone}.`
           : requestOnly
             ? "Select your country code and enter a phone number that can receive an SMS verification code. Your selected center will be kept."
             : signup
@@ -160,6 +180,7 @@ export default function MobileAccount({
                   type="button"
                   onClick={() => {
                     setChallenge(null);
+                    setExisting(false);
                     setCode("");
                     setError("");
                   }}
@@ -184,7 +205,7 @@ export default function MobileAccount({
               : challenge
                 ? requestOnly
                   ? "Verify and continue"
-                  : signup
+                  : creating
                     ? "Verify and create account"
                     : "Verify and log in"
                 : requestOnly
