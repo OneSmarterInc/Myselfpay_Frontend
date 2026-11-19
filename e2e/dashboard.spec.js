@@ -140,6 +140,6 @@ test("signed-in dashboard shows profile, request status and request links", asyn
     .screenshot({ path: "../tmp/user-dashboard-mobile.png" });
   await page.getByRole("button", { name: "My profile", exact: true }).click();
   await expect(page.locator(".dashboard-profile")).toContainText(
-    "Username",
+    "Mobile number",
   );
 });

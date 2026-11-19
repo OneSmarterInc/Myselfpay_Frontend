@@ -16,5 +16,5 @@ test("patient dashboard prominently shows the center-approved alternative",async
  await page.route("**/api/dashboard?*",r=>r.fulfill({json:{profile:{name:"Synthetic Patient",phone:"+16145550142"},stats:{scheduled:1},total:1,page:1,pages:1,requests:[item]}}));
  await page.getByRole("link",{name:"My requests",exact:true}).click();
  await expect(page.locator(".dashboard-request .approved-appointment")).toContainText("2:30 PM");
- await expect(page.locator(".dashboard-request .approved-appointment")).toContainText("alternative");
+ await expect(page.locator(".dashboard-request .approved-appointment")).toContainText("different time");
 });

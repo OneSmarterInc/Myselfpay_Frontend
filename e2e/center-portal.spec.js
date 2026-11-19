@@ -67,8 +67,7 @@ test("center login, support message, email OTP and scoped request approval", asy
       },
     });
   });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Center login", exact: true }).click();
+  await page.goto("/center-login");
   await page
     .getByLabel("Center email", { exact: true })
     .fill("missing@example.test");
