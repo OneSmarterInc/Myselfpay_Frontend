@@ -141,6 +141,15 @@ const slotLine = (slots = []) =>
       return `${d.toLocaleDateString(undefined, { weekday: "short" })} ${d.getDate()} ${slot.period === "morning" ? "AM" : "PM"}`;
     })
     .join(" · ");
+const waitWords = (seconds) => {
+  if (seconds === null || seconds === undefined) return "";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${Math.max(1, minutes)} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+  const days = Math.round(hours / 24);
+  return `${days} days`;
+};
 const ago = (stamp) => {
   if (!stamp) return "";
   const days = Math.floor((Date.now() / 1000 - stamp) / 86400);
@@ -1034,7 +1043,70 @@ function Profile({
     </div>
   );
 }
-function RequestDetail({ request, busy, onBack, onAction }) {
+function Records({ request, busy, onSave }) {
+  const [note, setNote] = useState(request.note || ""),
+    [order, setOrder] = useState(!!request.order_received),
+    [done, setDone] = useState(request.exam_completed || "");
+  useEffect(() => {
+    setNote(request.note || "");
+    setOrder(!!request.order_received);
+    setDone(request.exam_completed || "");
+  }, [request.id, request.note, request.order_received, request.exam_completed]);
+  const changed =
+    note !== (request.note || "") ||
+    order !== !!request.order_received ||
+    done !== (request.exam_completed || "");
+  return (
+    <section className="cw-records" aria-labelledby="recordsTitle">
+      <h3 id="recordsTitle">Your records</h3>
+      <p className="cw-subtle">Only your staff see these. Patients do not.</p>
+      <label className="cw-check">
+        <input
+          type="checkbox"
+          checked={order}
+          disabled={busy}
+          onChange={(e) => setOrder(e.target.checked)}
+        />
+        Order received <span className="cw-subtle">({request.id})</span>
+      </label>
+      <label htmlFor="centerNote">Note</label>
+      <textarea
+        id="centerNote"
+        rows={3}
+        maxLength={500}
+        value={note}
+        disabled={busy}
+        onChange={(e) => setNote(e.target.value)}
+      />
+      {request.status === "scheduled" && (
+        <>
+          <label htmlFor="examDone">Exam completed on</label>
+          <input
+            id="examDone"
+            type="date"
+            value={done}
+            disabled={busy}
+            onChange={(e) => setDone(e.target.value)}
+          />
+        </>
+      )}
+      <button
+        type="button"
+        disabled={busy || !changed}
+        onClick={() =>
+          onSave(request.id, {
+            note,
+            order_received: order,
+            ...(done && done !== (request.exam_completed || "") ? { exam_completed: done } : {}),
+          })
+        }
+      >
+        Save records
+      </button>
+    </section>
+  );
+}
+function RequestDetail({ request, busy, onBack, onAction, onSave }) {
   const [appointment, setAppointment] = useState(null),
     [reason, setReason] = useState("no_openings"),
     [declining, setDeclining] = useState(false);
@@ -1151,6 +1223,9 @@ function RequestDetail({ request, busy, onBack, onAction }) {
           )}
         </aside>
       </div>
+      {request.status !== "expired" && (
+        <Records request={request} busy={busy} onSave={onSave} />
+      )}
       {!request.contact_hidden && (
         <section className="cw-decision">
           <div>
@@ -1310,6 +1385,24 @@ export default function CenterWorkspace({ onLogin }) {
           setRequest(null);
         }
       }
+    } finally {
+      if (seq === sequence.current) setBusy(false);
+    }
+  }
+  async function save(id, fields) {
+    const seq = ++sequence.current;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const detail = await call("request", { id, ...fields });
+      if (seq !== sequence.current) return;
+      setRequest(detail);
+      setMessage("Saved.");
+      setData(await call("dashboard"));
+      setUpdated(new Date());
+    } catch (e) {
+      if (seq === sequence.current) setError(e.message);
     } finally {
       if (seq === sequence.current) setBusy(false);
     }
@@ -1519,6 +1612,7 @@ export default function CenterWorkspace({ onLogin }) {
                 setMessage("");
               }}
               onAction={open}
+              onSave={save}
             />
           </div>
         ) : tab === "prices" ? (
@@ -1565,6 +1659,13 @@ export default function CenterWorkspace({ onLogin }) {
                 </div>
               </div>
             )}
+            {data.median_response_seconds !== null &&
+              data.median_response_seconds !== undefined && (
+                <p className="cw-median">
+                  Your median response time:{" "}
+                  <strong>{waitWords(data.median_response_seconds)}</strong>
+                </p>
+              )}
             <div className="cw-counts" role="group" aria-label="Request status">
               {[
                 ["open", "New", openCount],
