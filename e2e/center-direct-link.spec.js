@@ -12,9 +12,9 @@ test('direct email portal link opens center login and verifies before dashboard 
  await expect(page.getByRole('heading',{name:'Find self-pay MRI and CT near you.'})).toHaveCount(0);
  for(const width of [390,1280]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
  await page.locator('#centerEmail').fill('center@example.test');
- await page.getByRole('button',{name:'Send email code',exact:true}).click();
+ await page.getByRole('button',{name:'Email me a code',exact:true}).click();
  await page.locator('#centerOTP').fill('123456');
- await page.getByRole('button',{name:'Verify and open dashboard',exact:true}).click();
+ await page.getByRole('button',{name:'Verify and open inbox',exact:true}).click();
  await expect(page).toHaveURL(/#center$/);
- await expect(page.getByRole('heading',{name:'Center dashboard',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Inbox',exact:true})).toBeVisible();
 });

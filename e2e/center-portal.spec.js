@@ -71,16 +71,16 @@ test("center login, support message, email OTP and scoped request approval", asy
   await page
     .getByLabel("Center email", { exact: true })
     .fill("missing@example.test");
-  await page.getByRole("button", { name: "Send email code" }).click();
+  await page.getByRole("button", { name: "Email me a code" }).click();
   await expect(page.getByRole("alert")).toContainText("contact support");
   await page
     .getByLabel("Center email", { exact: true })
     .fill("center@example.test");
-  await page.getByRole("button", { name: "Send email code" }).click();
+  await page.getByRole("button", { name: "Email me a code" }).click();
   await page.locator("#centerOTP").fill("123456");
-  await page.getByRole("button", { name: "Verify and open dashboard" }).click();
+  await page.getByRole("button", { name: "Verify and open inbox" }).click();
   await expect(
-    page.getByRole("heading", { name: "Center dashboard" }),
+    page.getByRole("heading", { name: "Inbox" }),
   ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect
@@ -92,14 +92,14 @@ test("center login, support message, email OTP and scoped request approval", asy
     path: "../tmp/center-portal-mobile.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Open request", exact: true }).click();
+  await page.getByRole("button", { name: "View and respond", exact: true }).click();
   await expect(
     page.getByRole("link", { name: "patient@example.test" }),
   ).toHaveCount(0);
-  await expect(page.getByRole("button",{name:"Approve request",exact:true})).toBeDisabled();
+  await expect(page.getByRole("button",{name:"Confirm time",exact:true})).toBeDisabled();
   await page.locator('.appointment-choice input[type=radio]').first().check();
   await page
-    .getByRole("button", { name: "Approve request", exact: true })
+    .getByRole("button", { name: "Confirm time", exact: true })
     .click();
   await expect(
     page.getByText("Request closed. Patient contact details are hidden."),

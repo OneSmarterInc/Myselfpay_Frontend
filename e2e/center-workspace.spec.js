@@ -56,8 +56,12 @@ test("center workspace navigation, filters, pagination and responsive request de
   await mock(page);
   await page.goto("/#center");
   await expect(
-    page.getByRole("heading", { name: "Center dashboard", exact: true }),
+    page.getByRole("heading", { name: "Inbox", exact: true }),
   ).toBeVisible();
+  await page
+    .getByRole("group", { name: "Request status" })
+    .getByRole("button", { name: /^Total/ })
+    .click();
   const table = page.getByRole("table", { name: "Appointment requests" });
   await expect(table.getByRole("row")).toHaveCount(11);
   await expect(
@@ -85,24 +89,24 @@ test("center workspace navigation, filters, pagination and responsive request de
   await page
     .getByLabel("Filter by center", { exact: true })
     .selectOption(centers[1].name);
-  await expect(
-    page.getByText("Showing 1–7 of 7", { exact: true }),
-  ).toBeVisible();
+  await expect(table.getByRole("row")).toHaveCount(8);
+  await expect(page.getByText(/^Showing /)).toHaveCount(0);
   await page
     .getByLabel("Filter by center", { exact: true })
     .selectOption("all");
   await page
-    .getByRole("button", { name: "Approved requests", exact: true })
+    .getByRole("group", { name: "Request status" })
+    .getByRole("button", { name: /^Time confirmed/ })
     .click();
   await expect(
     page
       .getByRole("group", { name: "Request status" })
-      .getByRole("button", { name: "Approved requests", exact: true }),
+      .getByRole("button", { name: /^Time confirmed/ }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(
     page
       .getByRole("navigation", { name: "Center dashboard sections" })
-      .getByRole("button", { name: "Requests", exact: true }),
+      .getByRole("button", { name: "Inbox", exact: true }),
   ).toHaveAttribute("aria-current", "page");
   await expect(
     page
@@ -124,7 +128,14 @@ test("center workspace navigation, filters, pagination and responsive request de
     path: "../tmp/center-workspace-profile-mobile.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Center dashboard sections" })
+    .getByRole("button", { name: "Inbox", exact: true })
+    .click();
+  await page
+    .getByRole("group", { name: "Request status" })
+    .getByRole("button", { name: /^Total/ })
+    .click();
   for (const width of [320, 390, 768, 1024]) {
     await page.setViewportSize({ width, height: 900 });
     await expect
@@ -139,7 +150,7 @@ test("center workspace navigation, filters, pagination and responsive request de
     fullPage: true,
   });
   await page
-    .getByRole("button", { name: "Open request", exact: true })
+    .getByRole("button", { name: "View and respond", exact: true })
     .first()
     .click();
   await expect(
@@ -155,10 +166,10 @@ test("center workspace navigation, filters, pagination and responsive request de
     fullPage: true,
   });
   await page
-    .getByRole("button", { name: "Back to requests", exact: true })
+    .getByRole("button", { name: "Back to inbox", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Center dashboard", exact: true }),
+    page.getByRole("heading", { name: "Inbox", exact: true }),
   ).toBeVisible();
   await expect(
     page
@@ -203,7 +214,7 @@ test.describe("Android center workspace", () => {
     await mock(page);
     await page.goto("/#center");
     await expect(
-      page.getByRole("heading", { name: "Center dashboard", exact: true }),
+      page.getByRole("heading", { name: "Inbox", exact: true }),
     ).toBeVisible();
     await expect(page.locator(".site-footer")).toBeHidden();
     await expect
@@ -211,13 +222,10 @@ test.describe("Android center workspace", () => {
         page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       )
       .toBe(true);
-    await page
-      .getByRole("button", { name: "Open requests", exact: true })
-      .click();
     await expect(
       page
         .getByRole("group", { name: "Request status" })
-        .getByRole("button", { name: "Open requests", exact: true }),
+        .getByRole("button", { name: /^New/ }),
     ).toHaveAttribute("aria-pressed", "true");
   });
 });
