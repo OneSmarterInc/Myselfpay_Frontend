@@ -71,11 +71,20 @@ for (const scenario of [
     await expect(page.getByRole("tooltip")).toContainText("Complete details");
     await info.focus();
     await expect(page.getByRole("tooltip")).toBeVisible();
-    const miles = await page.locator("article.card").evaluateAll(cards => cards.map(card => {
+    const cards = await page.locator("article.card").evaluateAll(items => items.map(card => {
       const match = card.textContent.match(/about ([\d,]+\.\d) miles away/);
-      return match ? Number(match[1].replaceAll(",", "")) : Infinity;
+      return {
+        miles: match ? Number(match[1].replaceAll(",", "")) : Infinity,
+        onRequest: /Price on request|Quote required/.test(card.textContent),
+      };
     }));
-    expect(miles).toEqual([...miles].sort((a,b)=>a-b));
+    // Priced listings come first, then price-on-request listings; each group is nearest first.
+    const firstOnRequest = cards.findIndex(card => card.onRequest);
+    if (firstOnRequest >= 0) expect(cards.slice(firstOnRequest).every(card => card.onRequest)).toBe(true);
+    for (const group of [cards.filter(card => !card.onRequest), cards.filter(card => card.onRequest)]) {
+      const miles = group.map(card => card.miles).filter(Number.isFinite);
+      expect(miles).toEqual([...miles].sort((a,b)=>a-b));
+    }
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-checked", "false");
     expect(JSON.stringify(requests)).not.toContain(String(scenario.latitude));

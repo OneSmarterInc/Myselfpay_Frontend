@@ -185,7 +185,7 @@ test("expired cookies clear signed-in UI and permit sign-out", async ({
   await expect(page.locator("#profile")).toHaveAttribute("aria-label", "Sign out of guest session");
   await context.clearCookies();
   await page.locator("#profile").click();
-  await expect(page.locator("#profile")).toHaveText("Sign in as guest");
+  await expect(page.locator("#profile")).toBeHidden();
   await expect(
     page.getByRole("heading", { name: "Find self-pay MRI and CT near you." }),
   ).toBeVisible();

@@ -188,3 +188,5 @@ button.guest-signout{display:inline-flex;align-items:center;justify-content:cent
 .native-app .native-center-title:has(.compact-service-prices){display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
 .native-app .native-center-title:has(.compact-service-prices)>h3{width:100%;min-width:0;max-width:none;flex:none;white-space:normal;word-break:normal;overflow-wrap:break-word}
 .native-app .native-center-title .price.compact-service-prices{flex:none;width:100%;min-width:0;max-width:100%;margin-top:0;box-sizing:border-box}
+
+.faq{margin:6px 0 26px}.faq h2{font-size:24px;margin-bottom:12px}.faq-group{background:white;border:1px solid #dedfe1;border-radius:14px;padding:6px 22px;margin-bottom:10px}.faq-group summary{cursor:pointer;font-weight:700;font-size:18px;padding:14px 0}.faq-group h3{font-size:16px;margin:14px 0 4px}.faq-group p{margin:0 0 12px;color:#5b6168;line-height:1.6}
