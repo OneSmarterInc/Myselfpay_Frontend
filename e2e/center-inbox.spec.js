@@ -22,6 +22,7 @@ const requests = [
 
 async function mock(page) {
   let posted = null;
+  let saved = null;
   await page.route("**/api/center/dashboard", (r) =>
     r.fulfill({
       json: {
@@ -29,6 +30,7 @@ async function mock(page) {
         center_csrf: "c",
         centers: [{ id: "x", name: "Synthetic Imaging", area: "Dayton", email: "center@example.test" }],
         requests,
+        median_response_seconds: 7200,
         price_submissions: [],
         live_prices: [],
         contact_history: [],
@@ -40,9 +42,10 @@ async function mock(page) {
   await page.route("**/api/center/request", (r) => {
     const body = r.request().postDataJSON();
     if (body.status) posted = body;
-    return r.fulfill({ json: { ...requests[0], first_name: "Sam", phone: "+18177146241", ...(body.status ? { status: "unable" } : {}) } });
+    else if (body.note !== undefined) saved = body;
+    return r.fulfill({ json: { ...requests[0], first_name: "Sam", phone: "+18177146241", ...(body.status ? { status: "unable" } : {}), ...(saved || {}) } });
   });
-  return () => posted;
+  return Object.assign(() => posted, { saved: () => saved });
 }
 
 test("the inbox opens on New with plain counts and status words", async ({ page }) => {
@@ -86,4 +89,18 @@ test("center login explains the code without revealing which emails are listed",
   await expect(page.getByRole("button", { name: /Send a new code/ })).toBeDisabled();
   await page.getByRole("button", { name: "Use a different email" }).click();
   await expect(page.getByRole("button", { name: "Email me a code" })).toBeVisible();
+});
+
+test("staff keep a note, mark the order received and see the median response time", async ({ page }) => {
+  const posted = await mock(page);
+  await page.goto("/#center");
+  await expect(page.getByText("Your median response time:")).toContainText("2 hours");
+  await expect(page.getByText("Sam", { exact: true })).toBeVisible();
+  await expect(page.getByText("(817) 714-6241").first()).toBeVisible();
+  await page.getByRole("button", { name: "View and respond" }).click();
+  await page.getByLabel(/Order received/).check();
+  await page.getByLabel("Note").fill("Left a message at 2 pm");
+  await page.getByRole("button", { name: "Save records" }).click();
+  await expect.poll(() => posted.saved()).toEqual({ id: "MSP-NEW", note: "Left a message at 2 pm", order_received: true });
+  await expect(page.getByText("Saved.")).toBeVisible();
 });
