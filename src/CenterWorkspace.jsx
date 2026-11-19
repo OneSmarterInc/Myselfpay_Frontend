@@ -873,6 +873,136 @@ function Prices({ centers, submissions = [], live = [], onSaved }) {
   );
 }
 
+function RequestInbox({ current, login, onChanged }) {
+  const [step, setStep] = useState("view"),
+    [address, setAddress] = useState(""),
+    [ident, setIdent] = useState(""),
+    [code, setCode] = useState(""),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  function reset() {
+    setStep("view");
+    setAddress("");
+    setCode("");
+    setError("");
+  }
+  async function run(action, body, done) {
+    setBusy(true);
+    setError("");
+    try {
+      done(await call(action, body));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const send = (event) => {
+    event.preventDefault();
+    run("inbox", { address: address.trim() }, (result) => {
+      setIdent(result.verification_id);
+      setCode("");
+      setStep("code");
+    });
+  };
+  const confirm = (event) => {
+    event.preventDefault();
+    run("inbox-verify", { verification_id: ident, code: code.trim() }, () => {
+      reset();
+      onChanged?.("Requests now arrive at " + address.trim() + ".");
+    });
+  };
+  const remove = () =>
+    run("inbox-remove", {}, () => {
+      reset();
+      onChanged?.("Requests arrive at " + login + " again.");
+    });
+  return (
+    <article className="cw-profile-card cw-account-card">
+      <h3>Where should patient requests go?</h3>
+      {step === "view" ? (
+        <>
+          <p>
+            New requests arrive at <strong>{current || login}</strong>. Choose a
+            shared inbox, such as your scheduling desk, and we send it a test
+            message first.
+          </p>
+          {error && (
+            <p className="center-error" role="alert">
+              {error}
+            </p>
+          )}
+          <span className="cw-contact-actions">
+            <button type="button" onClick={() => setStep("edit")}>
+              {current ? "Change inbox" : "Choose an inbox"}
+            </button>
+            {current && (
+              <button type="button" disabled={busy} onClick={remove}>
+                Use {login}
+              </button>
+            )}
+          </span>
+        </>
+      ) : (
+        <form
+          className="cw-contact-form"
+          onSubmit={step === "edit" ? send : confirm}
+        >
+          {step === "edit" ? (
+            <label>
+              Request inbox email
+              <input
+                type="email"
+                value={address}
+                disabled={busy}
+                autoComplete="email"
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </label>
+          ) : (
+            <>
+              <label>
+                Code from the test message sent to {address.trim()}
+                <input
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={code}
+                  disabled={busy}
+                  autoComplete="one-time-code"
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                />
+              </label>
+              <p>Open the test message and enter the 6-digit code.</p>
+            </>
+          )}
+          {error && (
+            <p className="center-error" role="alert">
+              {error}
+            </p>
+          )}
+          <span className="cw-contact-actions">
+            <button
+              className="primary"
+              disabled={
+                busy || (step === "edit" ? !address.trim() : code.length !== 6)
+              }
+            >
+              {busy
+                ? "Please wait…"
+                : step === "edit"
+                  ? "Send a test"
+                  : "Confirm inbox"}
+            </button>
+            <button type="button" disabled={busy} onClick={reset}>
+              Cancel
+            </button>
+          </span>
+        </form>
+      )}
+    </article>
+  );
+}
+
 function Profile({
   centers,
   email,
@@ -880,6 +1010,7 @@ function Profile({
   live = [],
   contact = [],
   profile = [],
+  inbox = "",
   onSaved,
   onEmailChanged,
   onOpenPrices,
@@ -929,6 +1060,14 @@ function Profile({
         </p>
         <ContactEditor field="email" current={email} onDone={onEmailChanged} />
       </article>
+      <RequestInbox
+        current={inbox}
+        login={email}
+        onChanged={(text) => {
+          setNote(text);
+          onSaved?.();
+        }}
+      />
       {centers.map((center) => (
         <article key={center.id} className="cw-profile-card">
           <div className="cw-profile-heading">
@@ -1629,6 +1768,7 @@ export default function CenterWorkspace({ onLogin }) {
             submissions={data.price_submissions || []}
             live={data.live_prices || []}
             contact={data.contact_history || []}
+            inbox={data.request_inbox || ""}
             profile={data.profile_edits || []}
             activity={data.activity || []}
             onOpenPrices={() => select("prices")}
