@@ -401,6 +401,13 @@ export default function App() {
         return;
       }
       setView(next);
+      if (next === "search") {
+        try {
+          sessionStorage.removeItem("msp-back");
+        } catch {
+          /* storage can be unavailable */
+        }
+      }
       if (next === "search" && searchScroll.current > 0) {
         const y = searchScroll.current;
         setTimeout(() => window.scrollTo({ top: y, behavior: "instant" }), 80);
@@ -1377,7 +1384,7 @@ export default function App() {
   dialogHTML = dialogHTML.replace("<h2>", '<h2 id="dialogTitle">');
   const linkedBooking = /^(booking|request|clinic)\//.test(view);
   return (
-    <div onClick={click} onSubmit={submit} ref={form} className={(nativeApp ? "native-app " : "") + (view === "center" ? "center-dashboard-active" : view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : "")}>
+    <div onClick={click} onSubmit={submit} ref={form} className={"app-root " + (nativeApp ? "native-app " : "") + (view === "center" ? "center-dashboard-active" : view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : "")}>
       {nativeApp ? <NativeAppHeader account={account} view={view} busy={busy||boot} onSearch={()=>openNativeSearch()} onHome={()=>navigate("home")} onDirectory={()=>setDialog({type:"directory"})} onSignOut={logout}/> : (
       <header className="site-header">
         <a

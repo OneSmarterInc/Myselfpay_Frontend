@@ -247,8 +247,11 @@ header nav a.center-door{border:1px solid #b01b23;border-radius:9px;padding:8px 
 .request-cancel-row .request-cancel-link{min-height:44px;padding:0 8px}
 
 /* Batch I: My requests and My profile */
-.dashboard-content{max-width:880px}
-.dashboard-profile{max-width:640px}
+.dashboard-content{max-width:none}
+.dashboard-content>*{max-width:880px;margin-left:auto;margin-right:auto}
+.request-code .request-id{max-width:none;overflow-wrap:normal;font-size:12px}
+@media(max-width:700px){.dashboard-content>*{max-width:none}}
+.dashboard-profile{max-width:880px}
 .dashboard-profile dl{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 28px}
 .dashboard-request-heading{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin:0 0 6px}
 .dashboard-updated{font-size:13px;color:#59626c}
@@ -266,3 +269,25 @@ header nav a.center-door{border:1px solid #b01b23;border-radius:9px;padding:8px 
 .request-card-footer .request-cancel-link{min-height:44px;margin-left:auto;padding:0 8px}
 .forget-me .flow-outline{display:inline-flex;align-items:center;justify-content:center;width:auto;min-height:44px;padding:10px 20px;border-radius:12px;color:#b01b23;border-color:#d9a7ab;font-weight:650}
 .request-status-tabs{flex-wrap:wrap}
+
+/* Batch I2: one back-link rule */
+.page-back{display:flex;align-items:center;width:fit-content;align-self:flex-start;margin:0 auto 12px 0;min-height:44px;padding:0;background:transparent;border:0;font:inherit;font-size:15px;font-weight:700;color:#1e2226;text-decoration:underline;text-underline-offset:3px;cursor:pointer;text-align:left}
+.page-back:hover{color:#a31621}
+.app-root{min-height:100dvh;display:flex;flex-direction:column}
+.app-root>main{flex:1 0 auto;width:100%}
+.app-root>.site-footer{margin-top:auto}
+.footer-links .link-button{color:#fff;font:inherit;text-decoration:underline;padding:0}
+.footer-links .link-button:hover{color:#f3dadb}
+.card-actions button[data-appointment]{background:#b01b23;border-color:#b01b23;color:#fff}
+.card-actions button[data-appointment]:hover{background:#7e1218;border-color:#7e1218}
+.card-actions a.call{background:#fff;border-color:#c9cbce;color:#1e2226}
+.card-actions a.call:hover{background:#efefee}
+.dashboard-active>header{padding-left:22px;padding-right:22px}
+.profile-edit-row{display:flex;align-items:center;gap:14px;margin:18px 0 6px}
+.profile-edit-row [role=status]{color:#21623a;font-size:14px}
+.profile-edit-form{display:grid;gap:8px;margin:18px 0 6px;max-width:420px}
+.profile-edit-form label{font-size:13px;color:#59626c;margin-top:6px}
+.profile-edit-form input{min-height:44px;padding:10px 12px;border:1px solid #c9cbce;border-radius:10px;font:inherit}
+.profile-edit-actions{display:flex;gap:10px;margin-top:10px}
+.profile-edit-error{color:#8e3030;margin:4px 0 0}
+.facility-reference{padding-bottom:88px}
