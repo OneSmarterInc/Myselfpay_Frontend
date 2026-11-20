@@ -46,9 +46,9 @@ it("renders directory centers with the standard card, comparison and real bookin
   expect(ui.detail(offer.id)).not.toContain("Listing unavailable");
   const directory = ui.directoryRows([entry]);
   expect(directory).toContain('<details class="lead">');
-  expect(directory).toContain("<summary>Synthetic Center");
-  expect(directory).toContain("Other imaging:");
-  expect(directory).toContain("Location / coverage:");
+  expect(directory).toContain("<strong>Synthetic Center</strong>");
+  expect(directory).toContain("See prices");
+  expect(directory).toContain("Directions");
   expect(directory).toContain("Provider source");
 });
 
