@@ -52,3 +52,11 @@ test("Back to results returns to the same results and scroll position", async ({
   await expect(page.locator("article.card h3").first()).toHaveText(first);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before - 40);
 });
+
+test("request page links back to My requests when opened from the dashboard", async ({ page }) => {
+  await page.addInitScript(() => sessionStorage.setItem("msp-back", "requests"));
+  await open(page, request);
+  const back = page.locator(".flow-back-top");
+  await expect(back).toHaveText("← My requests");
+  await expect(back).toHaveAttribute("href", "#dashboard");
+});

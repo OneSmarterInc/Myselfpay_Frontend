@@ -175,6 +175,13 @@ function RequestCard({ item, onChanged }) {
       <div className="request-card-footer">
         <a
           className="flow-dark request-open"
+          onClick={() => {
+            try {
+              sessionStorage.setItem("msp-back", "requests");
+            } catch {
+              /* storage can be unavailable; the link then says Back to results */
+            }
+          }}
           href={`#request/${encodeURIComponent(item.id)}/${encodeURIComponent(item.tracking_token)}`}
         >
           Open request
@@ -211,6 +218,59 @@ function RequestCard({ item, onChanged }) {
     </article>
   );
 }
+function ProfileEdit({ profile, onSaved }) {
+  const [editing, setEditing] = useState(false),
+    [name, setName] = useState(""),
+    [zip, setZip] = useState(""),
+    [busy, setBusy] = useState(false),
+    [problem, setProblem] = useState(""),
+    [saved, setSaved] = useState(false);
+  function open() {
+    setName(profile.name || "");
+    setZip(profile.zip_code || "");
+    setProblem("");
+    setSaved(false);
+    setEditing(true);
+  }
+  async function save(event) {
+    event.preventDefault();
+    setBusy(true);
+    setProblem("");
+    try {
+      const done = await api("/account/profile", { name, zip_code: zip.trim() });
+      onSaved(done);
+      setEditing(false);
+      setSaved(true);
+    } catch (error) {
+      setProblem(error.message || "We could not save your changes.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (!editing)
+    return (
+      <div className="profile-edit-row">
+        <button type="button" className="flow-outline" onClick={open}>
+          Edit name and ZIP
+        </button>
+        {saved && <span role="status">Saved.</span>}
+      </div>
+    );
+  return (
+    <form className="profile-edit-form" onSubmit={save} noValidate>
+      <label htmlFor="profileName">Name</label>
+      <input id="profileName" value={name} maxLength={100} autoComplete="name" onChange={(e) => setName(e.target.value)} />
+      <label htmlFor="profileZip">Home ZIP (so results start near you)</label>
+      <input id="profileZip" value={zip} inputMode="numeric" maxLength={5} autoComplete="postal-code" onChange={(e) => setZip(e.target.value.replace(/\D/g, ""))} />
+      {problem && <p role="alert" className="profile-edit-error">{problem}</p>}
+      <div className="profile-edit-actions">
+        <button type="submit" className="flow-dark" disabled={busy}>{busy ? "Saving…" : "Save"}</button>
+        <button type="button" className="flow-outline" disabled={busy} onClick={() => setEditing(false)}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
 function ForgetMe({ onForgotten }) {
   const [step, setStep] = useState("idle"),
     [challenge, setChallenge] = useState(""),
@@ -415,15 +475,6 @@ export default function UserDashboard({ account, onForgotten }) {
             <>
               {tab === "profile" ? (
                 <section className="dashboard-profile">
-                  <div className="profile-heading">
-                    <span className="dashboard-avatar" aria-hidden="true">
-                      {initials}
-                    </span>
-                    <div>
-                      <h2>{firstName || "Your account"}</h2>
-                      <p>Verified mobile number</p>
-                    </div>
-                  </div>
                   <dl>
                     {[
                       ...(value.profile.name
@@ -431,6 +482,7 @@ export default function UserDashboard({ account, onForgotten }) {
                         : []),
                       ["Mobile number", value.profile.phone ? formatPhone(value.profile.phone) : "Not provided"],
                       ["Home ZIP (so results start near you)", value.profile.zip_code || "Not provided"],
+                      ["Texts", "Request texts: On. Reply STOP to turn them off."],
                       [
                         "Joined",
                         new Date(
@@ -444,6 +496,12 @@ export default function UserDashboard({ account, onForgotten }) {
                       </div>
                     ))}
                   </dl>
+                  <ProfileEdit
+                    profile={value.profile}
+                    onSaved={(done) =>
+                      setValue((old) => ({ ...old, profile: { ...old.profile, ...done } }))
+                    }
+                  />
                   <ForgetMe onForgotten={onForgotten} />
                 </section>
               ) : (
