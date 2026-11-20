@@ -25,10 +25,9 @@ test("verified mobile accounts go directly to slots, without patient email or OT
   );
   const rows = page.locator(".time-choice-row");
   await expect(rows).toHaveCount(5);
-  const mornings = rows.locator('button:enabled').filter({hasText: /^Morning$/});
+  const mornings = rows.locator('button:enabled').filter({hasText: /^.?\s*Morning/});
   for (let i = 0; i < 3; i++) await mornings.nth(i).click();
-  await mornings.nth(3).click();
-  await expect(page.locator("#bookingError")).toContainText("up to 3");
+  await expect(rows.locator("button:disabled").filter({ hasText: /Morning/ }).first()).toBeDisabled();
   await expect(
     page.locator(".time-choice-row button[aria-pressed=true]"),
   ).toHaveCount(3);

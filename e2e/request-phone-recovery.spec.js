@@ -42,18 +42,17 @@ test("booking phone errors recover into OTP and the dashboard identifies the use
   await page.locator("#bookingName").clear();
   await page
     .locator(".time-choice-row button:enabled")
-    .filter({ hasText: /^Morning$/ })
+    .filter({ hasText: /Morning/ })
     .first()
     .click();
   await page.locator("#bookingConsent").check();
   await page.locator("#bookingSubmit").click();
   await expect(page.locator(".flow-reference-id")).toBeVisible();
   await chooseFromAccountMenu(page, "My requests");
-  await expect(page.locator(".dashboard-account-mini strong")).toHaveText(
-    "+1" + phone,
-  );
+  const shown = `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+  await expect(page.locator(".dashboard-account-mini")).toContainText(shown);
   await expect(page.locator(".dashboard-request")).toHaveCount(1);
   await page.getByRole("button", { name: "My profile", exact: true }).click();
   await expect(page.locator(".dashboard-profile")).toContainText("Home ZIP");
-  await expect(page.locator(".dashboard-profile")).toContainText("+1" + phone);
+  await expect(page.locator(".dashboard-profile")).toContainText(shown);
 });

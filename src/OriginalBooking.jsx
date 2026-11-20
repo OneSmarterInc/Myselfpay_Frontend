@@ -5,7 +5,15 @@ import { OriginalHTML } from "./App.jsx";
 import { deliveryMessage } from "./booking-messages.js";
 import ApprovalSlotPicker from "./ApprovalSlotPicker.jsx";
 import { approvalReady } from "./approved-slot.js";
+import { formatPhone } from "./center-phone.js";
 const call = (action, data) => api("/booking/" + action, data);
+const contrastWords = { without: "without contrast", with: "with contrast", both: "without and with contrast" };
+export function examLabel(draft) {
+  const service = draft.service && !/^please contact me$/i.test(draft.service) ? draft.service : "";
+  const words = [service, draft.exam].filter(Boolean).join(" ");
+  const contrast = contrastWords[draft.contrast] || "";
+  return [words, contrast].filter(Boolean).join(" ");
+}
 const zoneNames = {
   "America/New_York": "Eastern",
   "America/Chicago": "Central",
@@ -84,6 +92,8 @@ export default function OriginalBooking({
     event.stopPropagation();
     if (!draft.slots.length)
       return setError("Select at least one preferred time.");
+    if (!draft.consent)
+      return setError("Tick the box so the facility can reach you.");
     setBusy(true);
     setError("");
     try {
@@ -106,7 +116,7 @@ export default function OriginalBooking({
           aria-label="Back to results"
           onClick={onClose}
         >
-          ‹
+          <span aria-hidden="true">←</span> Back to results
         </button>
         <h2 id="dialogTitle">Request a Time</h2>
         <button
@@ -133,10 +143,11 @@ export default function OriginalBooking({
           </section>
         </div>
       ) : (
-        <form className="flow-form" id="bookingSlots" onSubmit={submit}>
+        <form className="flow-form" id="bookingSlots" onSubmit={submit} noValidate>
           <div className="flow-content">
             <section className="flow-card flow-clinic">
               <h3>{draft.clinic_name}</h3>
+              {examLabel(draft) && <p className="flow-exam">{examLabel(draft)}</p>}
               <p>{draft.price_text}</p>
               {options.notification_target === "support" && (
                 <p className="flow-help">
@@ -169,19 +180,18 @@ export default function OriginalBooking({
                 />
               </label>
               <p className="flow-verified">
-                Verified mobile number: <strong>{draft.phone}</strong>
+                Verified mobile number: <strong>{formatPhone(draft.phone)}</strong>
               </p>
               <label className="flow-consent">
                 <input
                   id="bookingConsent"
                   type="checkbox"
-                  required
                   disabled={busy}
                   checked={draft.consent}
                   onChange={(e) => change("consent", e.target.checked)}
                 />
                 <span>
-                  {draft.clinic_name} may call me at {draft.phone} about this
+                  {draft.clinic_name} may call me at {formatPhone(draft.phone)} about this
                   request. (Required)
                 </span>
               </label>
@@ -199,10 +209,11 @@ export default function OriginalBooking({
             <button
               id="bookingSubmit"
               className="flow-primary"
-              disabled={busy || options.delivery === "unavailable"}
+              disabled={busy || options.delivery === "unavailable" || !draft.slots.length}
             >
               {busy ? "Sending request…" : `Send request to ${draft.clinic_name}`}
             </button>
+            {!draft.slots.length && <p className="flow-send-hint">Pick at least 1 time</p>}
           </div>
         </form>
       )}
@@ -329,6 +340,13 @@ export function OriginalBookingLink({ route, ui }) {
   function click(event) {
     const button = event.target.closest("button");
     if (!button) return;
+    if (button.id === "copyBookingCode") {
+      event.preventDefault();
+      void navigator.clipboard
+        .writeText(button.dataset.code || "")
+        .then(() => setMessage("Reference code copied."))
+        .catch(() => setMessage("Select the code and copy it."));
+    }
     if (button.id === "copyBookingLink") {
       event.preventDefault();
       void navigator.clipboard
@@ -539,9 +557,12 @@ function ReceiptCancel({ id, facility, confirmed, onCancelled }) {
           </div>
         </>
       ) : (
-        <button type="button" className="link-button" onClick={() => setAsking(true)}>
-          {confirmed ? "Cancel this appointment" : "Cancel request"}
-        </button>
+        <div className="request-cancel-row">
+          <a className="flow-outline request-find-another" href="#search">Find another facility</a>
+          <button type="button" className="link-button request-cancel-link" onClick={() => setAsking(true)}>
+            {confirmed ? "Cancel this appointment" : "Cancel request"}
+          </button>
+        </div>
       )}
       {problem && <p role="alert" className="flow-error">{problem}</p>}
     </div>

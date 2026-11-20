@@ -87,7 +87,8 @@ const payload = (state) =>
   Object.fromEntries(filterNames.map((key) => [key, state[key]]));
 const route = () => {
   const path = location.pathname.replace(/\/+$/, "");
-  return decodeURIComponent(location.hash.slice(1) || (path === "/center-login" ? "center-login" : path === "/center-portal" ? "center" : "home"));
+  const next = decodeURIComponent(location.hash.slice(1) || (path === "/center-login" ? "center-login" : path === "/center-portal" ? "center" : "home"));
+  return next === "faq" ? "home" : next;
 };
 
 export function OriginalHTML({ html, onInput, replace, disabled = false }) {
@@ -433,6 +434,11 @@ export default function App() {
       window.removeEventListener("hashchange", change);
       window.removeEventListener("selfpay:session-expired", expired);
     };
+  }, []);
+  useEffect(() => {
+    if (location.hash !== "#faq") return undefined;
+    const timers = [350, 900, 1800].map((ms) => setTimeout(() => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" }), ms));
+    return () => timers.forEach(clearTimeout);
   }, []);
   useEffect(() => {
     if (!toast) return;
@@ -1458,10 +1464,12 @@ export default function App() {
           MySelfPay by One Smarter, Inc. · Dayton, Ohio
         </span>
         <span className="footer-links">
-          {isMember && <button id="faqLinkFooter" type="button" className="footer-phone-only link-button">FAQ</button>}
+          <button id="faqLinkFooter" type="button" className="link-button">FAQ</button>
           {isMember && <button id="directoryFooter" type="button" className="footer-phone-only link-button">Directory</button>}
           <a href="/about">About</a>
           <a href="/contact">Contact</a>
+          <a href="/for-imaging-centers">For imaging centers</a>
+          <a href="/center-login">Center login</a>
           <a href="/privacy-terms">Terms &amp; Privacy</a>
         </span>
       </footer>
