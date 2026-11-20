@@ -12,8 +12,8 @@ test("directory opens as an accordion and sample and National reset restrictive 
   await expect(page.locator("#dirRows details.lead")).toHaveCount(10);
   await page.locator("#dirRows summary").first().click();
   const expanded = page.locator("#dirRows details[open]");
-  await expect(expanded).toContainText("Other imaging:");
-  await expect(expanded).toContainText("Location / coverage:");
+  await expect(expanded).toContainText("See prices");
+  await expect(expanded).toContainText("Directions");
   await page.getByRole("button", { name: "Close dialog" }).click();
   await page.locator("#budget").fill("1");
   await page.locator("#type").selectOption("fixed");

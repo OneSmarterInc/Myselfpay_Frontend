@@ -43,8 +43,8 @@ test("National lists directory centers with ten results per page", async ({
   await page.locator("#directory").click();
   await expect(page.locator("#dirRows details.lead")).toHaveCount(10);
   await page.locator("#dirRows summary").first().click();
-  await expect(page.locator("#dirRows details[open]")).toContainText("MRI:");
-  await expect(page.locator("#dirRows details[open]")).toContainText("CT:");
+  await expect(page.locator("#dirRows details[open]")).toContainText("See prices");
+  await expect(page.locator("#dirRows details[open]")).toContainText(/CT:|No published price/);
   await expect(
     page
       .locator("#dirRows details[open]")
@@ -142,10 +142,10 @@ test("original search, comparison and directory work with the DRF backend", asyn
   await page.getByRole("button", { name: "Close dialog" }).click();
   await page.locator("#directory").click();
   await expect(
-    page.getByRole("heading", { name: /Research directory/ }),
+    page.getByRole("heading", { name: /All imaging facilities/ }),
   ).toBeVisible();
   await page.locator("#dirSearch").fill("Ohio");
-  await expect(page.locator("#dirCount")).toContainText(/matches|match/);
+  await expect(page.locator("#dirCount")).toContainText(/Showing|No facilities/);
   await page.getByRole("button", { name: "Close dialog" }).click();
   await page.locator("#profile").click();
   await expect(

@@ -17,6 +17,11 @@ import NativeLoading from "./NativeLoading.jsx";
 import useNativeKeyboard from './useNativeKeyboard.js';
 import UserDashboard from "./UserDashboard.jsx";
 import CenterPortal, { CenterLogin } from "./CenterPortal.jsx";
+import {
+  filterDirectory,
+  sortDirectory,
+  directoryCountLine,
+} from "./directory-list.js";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
 
 const nativeApp = /MySelfPayAndroid\//.test(globalThis.navigator?.userAgent || "");
@@ -50,6 +55,8 @@ const initialState = () => ({
   resultsHeading: "",
   directoryQuery: "",
   directoryPage: 0,
+  directoryPriced: false,
+  directoryExam: "",
   resultsPage: 0,
   detailsOpen: false,
   searched: false,
@@ -624,6 +631,16 @@ export default function App() {
       }));
       return;
     }
+    if (id === "dirPriced" || id === "dirExam") {
+      setState((old) => ({
+        ...old,
+        directoryPriced:
+          id === "dirPriced" ? element.checked : old.directoryPriced,
+        directoryExam: id === "dirExam" ? element.value : old.directoryExam,
+        directoryPage: 0,
+      }));
+      return;
+    }
     if (id === "sort") {
       setState((old) => ({ ...old, nearToMe: false }));
       void search({ sort: element.value, nearToMe: false });
@@ -1016,11 +1033,12 @@ export default function App() {
       return;
     }
   }
-  const matches = catalog.entries.filter((entry) =>
-    [entry.name, entry.area, entry.states]
-      .join(" ")
-      .toLowerCase()
-      .includes(state.directoryQuery.trim().toLowerCase()),
+  const matches = sortDirectory(
+    filterDirectory(catalog.entries, {
+      query: state.directoryQuery,
+      priced: state.directoryPriced,
+      exam: state.directoryExam,
+    }),
   );
   const pages = Math.max(1, Math.ceil(matches.length / 10)),
     directoryPage = Math.min(state.directoryPage, pages - 1);
@@ -1184,13 +1202,11 @@ export default function App() {
     if (id === "dirCount")
       return (
         <p id="dirCount" role="status">
-          {matches.length
-            ? `Showing ${directoryPage * 10 + 1}–${Math.min(directoryPage * 10 + 10, matches.length)} of ${matches.length} matches`
-            : "No directory entries match."}
+          {directoryCountLine(matches.length, directoryPage)}
         </p>
       );
     if (id === "dirPrev" || id === "dirNext")
-      return (
+      return pages <= 1 ? null : (
         <button
           type="button"
           id={id}
@@ -1201,11 +1217,28 @@ export default function App() {
           {id === "dirPrev" ? "Previous" : "Next"}
         </button>
       );
+    if (id === "dirPriced")
+      return (
+        <input
+          type="checkbox"
+          id="dirPriced"
+          checked={state.directoryPriced}
+          onChange={input}
+        />
+      );
+    if (id === "dirExam")
+      return (
+        <select id="dirExam" value={state.directoryExam} onChange={input}>
+          <option value="">MRI or CT</option>
+          <option value="MRI">MRI</option>
+          <option value="CT">CT</option>
+        </select>
+      );
     if (id === "dirSearch")
       return (
         <input
           id="dirSearch"
-          placeholder="e.g. Tellica, OH, Vermont"
+          placeholder="e.g. Dayton, OH"
           value={state.directoryQuery}
           onChange={input}
         />
