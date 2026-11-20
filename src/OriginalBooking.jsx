@@ -388,6 +388,17 @@ export function OriginalBookingLink({ route, ui }) {
   }
   const replace = (node) => {
     const name = node.attribs.id;
+    if (name === "receiptCancel" && value)
+      return (
+        <ReceiptCancel
+          id={value.id}
+          facility={node.attribs["data-facility"]}
+          confirmed={!!node.attribs["data-confirmed"]}
+          onCancelled={() =>
+            setValue({ ...value, status: "cancelled", closed_reason: "patient_cancelled" })
+          }
+        />
+      );
     if (name === "clinicAppointment" && value)
       return (
         <ApprovalSlotPicker
@@ -489,6 +500,50 @@ export function OriginalBookingLink({ route, ui }) {
     <div onClick={click} onSubmit={submit}>
       <OriginalHTML html={html} replace={replace} disabled={busy} />
       {kind !== "clinic" && error && <p role="alert">{error}</p>}
+    </div>
+  );
+}
+
+function ReceiptCancel({ id, facility, confirmed, onCancelled }) {
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState("");
+  async function cancel() {
+    setBusy(true);
+    setProblem("");
+    try {
+      await api("/booking/cancel", { id });
+      onCancelled();
+    } catch (e) {
+      setProblem(
+        e.status === 401
+          ? `Sign in to cancel here, or call ${facility}.`
+          : e.message || "We could not cancel this request. Please try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="request-cancel">
+      {asking ? (
+        <>
+          <p>Cancel your request with {facility}? They will be told.</p>
+          <div className="request-cancel-actions">
+            <button type="button" className="flow-dark" disabled={busy} onClick={cancel}>
+              Yes, cancel
+            </button>
+            <button type="button" className="flow-outline" disabled={busy} onClick={() => setAsking(false)}>
+              Keep it
+            </button>
+          </div>
+        </>
+      ) : (
+        <button type="button" className="link-button" onClick={() => setAsking(true)}>
+          {confirmed ? "Cancel this appointment" : "Cancel request"}
+        </button>
+      )}
+      {problem && <p role="alert" className="flow-error">{problem}</p>}
     </div>
   );
 }
