@@ -23,6 +23,7 @@ import {
   directoryCountLine,
 } from "./directory-list.js";
 import AccountMenu from "./AccountMenu.jsx";
+import { readLastSearch, saveLastSearch } from "./last-search.js";
 import {
   memberLabel,
   readCenterSession,
@@ -399,6 +400,14 @@ export default function App() {
         return;
       }
       setView(next);
+      if (next === "search" && searchScroll.current > 0) {
+        const y = searchScroll.current;
+        setTimeout(() => window.scrollTo({ top: y, behavior: "instant" }), 80);
+      }
+      if (next === "search" && !stateRef.current.searched) {
+        const saved = readLastSearch();
+        if (saved) void searchRef.current(saved);
+      }
       if (next === "search" || next === "agent")
         setState((old) => ({
           ...old,
@@ -406,8 +415,13 @@ export default function App() {
         }));
       setDialog(null);
       setMap(null);
-      window.scrollTo({ top: 0, behavior: "instant" });
+      if (!(next === "search" && searchScroll.current > 0))
+        window.scrollTo({ top: 0, behavior: "instant" });
     };
+    const rememberScroll = () => {
+      if (route() === "search") searchScroll.current = window.scrollY;
+    };
+    window.addEventListener("scroll", rememberScroll, { passive: true });
     const expired = () => {
       clear();
       setToast("Your session expired. Start a new search or log in again.");
@@ -415,6 +429,7 @@ export default function App() {
     window.addEventListener("hashchange", change);
     window.addEventListener("selfpay:session-expired", expired);
     return () => {
+      window.removeEventListener("scroll", rememberScroll);
       window.removeEventListener("hashchange", change);
       window.removeEventListener("selfpay:session-expired", expired);
     };
@@ -511,6 +526,11 @@ export default function App() {
       navigate(kind === "agent" ? "agent" : "search");
     });
   }
+  const searchScroll = useRef(0);
+  const stateRef = useRef(state);
+  const searchRef = useRef(null);
+  stateRef.current = state;
+  searchRef.current = search;
   const isMember = !!account && account.tenant !== "guest";
   const [centerSession, setCenterSession] = useState(readCenterSession);
   useEffect(() => {
@@ -561,6 +581,7 @@ export default function App() {
   function acceptResults(data) {
     data = visibleDirectoryData(data);
     if(nativeApp) {setNativeFiltersOpen(!!(data.location_suggestions?.length || (data.resolved_location === null && data.search?.location?.toLowerCase() !== "national")));window.scrollTo(0,0);}
+    saveLastSearch(data.search);
     setResults(data.offers || []);
     setState((old) => ({
       ...old,
