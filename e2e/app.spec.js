@@ -1,3 +1,4 @@
+import { chooseFromAccountMenu } from "./account-menu.js";
 import { completeMobileRegistration, completeMobileLogin } from "./mobile-account.js";
 import { test, expect } from "@playwright/test";
 
@@ -164,7 +165,7 @@ test("original signup and login forms retain verified DRF sessions", async ({
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
   await completeMobileRegistration(page);
   await expect(page.locator("#accountMenuButton")).toBeVisible({ timeout: 15000 });
-  await page.locator("#profile").click();
+  await chooseFromAccountMenu(page, "Sign out");
   await page.locator("#accountLogin").click();
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
   await completeMobileLogin(page);
