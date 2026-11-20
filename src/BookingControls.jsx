@@ -86,6 +86,7 @@ export function TimeSlotPicker({ draft, options, onSlots, onError, disabled }) {
     hourCycle: "h23",
   }).formatToParts(new Date());
   const hour = Number(parts.find((p) => p.type === "hour")?.value || 0);
+  const full = draft.slots.length >= 3;
   function toggle(day, period) {
     const selected = draft.slots.some(
       (s) => s.date === day && s.period === period,
@@ -112,9 +113,13 @@ export function TimeSlotPicker({ draft, options, onSlots, onError, disabled }) {
         <span role="status">· {draft.slots.length} selected</span>
       </h3>
       <p className="small muted">
-        Preferred times only; the center will confirm availability. Morning: 8
-        am–12 pm. Afternoon: 12–5 pm.
+        Preferred times only; the facility confirms availability.
       </p>
+      {full && (
+        <p className="small time-choice-full" role="status">
+          You picked 3. Remove one to pick another.
+        </p>
+      )}
       <div className="time-choice-rows">
         {days.map((day) => (
           <div className="time-choice-row" key={day}>
@@ -130,18 +135,18 @@ export function TimeSlotPicker({ draft, options, onSlots, onError, disabled }) {
               const selected = draft.slots.some(
                 (s) => s.date === day && s.period === period,
               );
+              const passed = day === today && hour >= (period === "morning" ? 8 : 12);
+              const hours = period === "morning" ? "8 to noon" : "noon to 5";
               return (
                 <button
                   key={period}
                   type="button"
                   aria-pressed={selected}
-                  disabled={
-                    disabled ||
-                    (day === today && hour >= (period === "morning" ? 8 : 12))
-                  }
+                  disabled={disabled || passed || (full && !selected)}
                   onClick={() => toggle(day, period)}
                 >
-                  {period === "morning" ? "Morning" : "Afternoon"}
+                  <span>{selected ? "✓ " : ""}{period === "morning" ? "Morning" : "Afternoon"}</span>
+                  <small>{passed ? "Passed" : hours}</small>
                 </button>
               );
             })}

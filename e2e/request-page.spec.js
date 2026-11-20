@@ -18,7 +18,7 @@ async function open(page, value) {
 
 test("request page names the facility, marks the step and cancels with a confirm", async ({ page }) => {
   await open(page, request);
-  await expect(page.locator(".flow-facility-line")).toHaveText("Synthetic Imaging · MRI knee · (555) 555-0100");
+  await expect(page.locator(".flow-facility-line")).toHaveText("Synthetic Imaging · MRI knee without contrast · (555) 555-0100");
   await expect(page.locator(".flow-progress li[aria-current=step]")).toContainText("Facility calls you");
   await expect(page.getByRole("link", { name: "← Back to results" })).toHaveCount(1);
   await page.getByRole("button", { name: "Cancel request" }).click();

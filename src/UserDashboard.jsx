@@ -3,12 +3,29 @@ import { api } from "./api.js";
 import RequestStatusTabs from "./RequestStatusTabs.jsx";
 import { approvedSlotLabel } from "./approved-slot.js";
 import { canCancel, statusLabel } from "./request-status.js";
+import { formatPhone } from "./center-phone.js";
+import { groupCode } from "./request-code.js";
 import "./approval-slots.css";
 
 const tabs = [
-  ["profile", "My profile"],
   ["all", "Requests"],
+  ["profile", "My profile"],
 ];
+const contrastWords = { without: "without contrast", with: "with contrast", both: "without and with contrast" };
+const examLine = (item) => {
+  const service = item.service && !/^please contact me$/i.test(item.service) ? item.service : "";
+  return [[service, item.exam].filter(Boolean).join(" "), contrastWords[item.contrast] || ""].filter(Boolean).join(" ") || "Exam not listed";
+};
+const slotText = (slot) =>
+  new Date(slot.date + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) +
+  " " + slot.period;
+const timeOf = (value) => new Date(value * 1000).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+const ago = (value) => {
+  const days = Math.floor((Date.now() / 1000 - value) / 86400);
+  if (days >= 1) return days === 1 ? "1 day ago" : `${days} days ago`;
+  const hours = Math.floor((Date.now() / 1000 - value) / 3600);
+  return hours >= 1 ? (hours === 1 ? "1 hour ago" : `${hours} hours ago`) : "just now";
+};
 const zones = {
   "America/New_York": "Eastern",
   "America/Chicago": "Central",
@@ -70,16 +87,28 @@ function RequestCard({ item, onChanged }) {
     <article className="dashboard-request reference-dashboard-request">
       <div className="reference-dashboard-title">
         <h3>{item.clinic_name}</h3>
-        <span className="request-id">{item.id}</span>
+        <span className="request-code">
+          <span className="request-id">{groupCode(item.id)}</span>
+          <button type="button" className="link-button request-copy" aria-label={`Copy reference code ${item.id}`} onClick={() => navigator.clipboard?.writeText(item.id)}>
+            Copy
+          </button>
+        </span>
       </div>
-      <p className="reference-dashboard-exam">
-        {[item.service, item.exam].filter(Boolean).join(" · ")}
-        {item.price_text ? ` · ${item.price_text}` : ""}
+      <p className="reference-dashboard-exam">{examLine(item)}</p>
+      {item.price_text && <p className="reference-dashboard-price">{item.price_text}</p>}
+      <p className="reference-dashboard-slots">
+        {item.slots.map(slotText).join(" · ")}
       </p>
       <span className={`request-status status-${item.status}`}>
         <span aria-hidden="true" className="status-dot" />
         {statusLabel(item)}
       </span>
+      <p className="reference-dashboard-sent">
+        Sent {stamp(item.created)} ({ago(item.created)})
+        {["requested", "voicemail"].includes(item.status) && Date.now() / 1000 - item.created > 4 * 86400 && (
+          <> · No answer yet. <a href="#search">Find another facility</a></>
+        )}
+      </p>
       {item.status === "scheduled" && (
         <div className="approved-appointment">
           <strong>Time confirmed</strong>
@@ -119,7 +148,7 @@ function RequestCard({ item, onChanged }) {
           <dt>Patient</dt>
           <dd>{item.contact_name || "—"}</dd>
           <dt>Mobile</dt>
-          <dd>{item.contact_phone || "Not provided"}</dd>
+          <dd>{item.contact_phone ? formatPhone(item.contact_phone) : "Not provided"}</dd>
           <dt>Contrast</dt>
           <dd>
             {{
@@ -144,21 +173,26 @@ function RequestCard({ item, onChanged }) {
         </dl>
       </details>
       <div className="request-card-footer">
+        <a
+          className="flow-dark request-open"
+          href={`#request/${encodeURIComponent(item.id)}/${encodeURIComponent(item.tracking_token)}`}
+        >
+          Open request
+        </a>
         {phone.length >= 8 && (
           <a className="flow-outline" href={`tel:${phone}`}>
             Call the facility
           </a>
         )}
-        <a
-          className="flow-outline"
-          href={`#request/${encodeURIComponent(item.id)}/${encodeURIComponent(item.tracking_token)}`}
-        >
-          Open request
-        </a>
+        {canCancel(item) && !asking && (
+          <button type="button" className="link-button request-cancel-link" onClick={() => setAsking(true)}>
+            Cancel request
+          </button>
+        )}
       </div>
-      {canCancel(item) && (
+      {canCancel(item) && (asking || problem) && (
         <div className="request-cancel">
-          {asking ? (
+          {asking && (
             <>
               <p>Cancel this request? {item.clinic_name} is told it is closed.</p>
               <div className="request-cancel-actions">
@@ -170,10 +204,6 @@ function RequestCard({ item, onChanged }) {
                 </button>
               </div>
             </>
-          ) : (
-            <button type="button" className="link-button" onClick={() => setAsking(true)}>
-              Cancel request
-            </button>
           )}
           {problem && <p role="alert" className="flow-error">{problem}</p>}
         </div>
@@ -267,7 +297,8 @@ export default function UserDashboard({ account, onForgotten }) {
     [value, setValue] = useState(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
-    [refresh, setRefresh] = useState(0);
+    [refresh, setRefresh] = useState(0),
+    [updated, setUpdated] = useState(null);
   useEffect(() => {
     const pick = () => setTab(takeRequestedTab());
     window.addEventListener("msp-dashboard-tab", pick);
@@ -280,11 +311,12 @@ export default function UserDashboard({ account, onForgotten }) {
     const load = async () => {
       try {
         const next = await api(
-          `/dashboard?page=${page}&filter=${tab === "open" ? "open" : tab === "approved" ? "approved" : "all"}`,
+          `/dashboard?page=${page}&filter=${["open", "approved", "closed"].includes(tab) ? tab : "all"}`,
         );
         if (active) {
           setValue(next);
           setError("");
+          setUpdated(new Date());
         }
       } catch (e) {
         if (active) setError(e.message);
@@ -294,7 +326,7 @@ export default function UserDashboard({ account, onForgotten }) {
     };
     setLoading(true);
     void load();
-    const timer = setInterval(load, 30000);
+    const timer = setInterval(load, 60000);
     return () => {
       active = false;
       clearInterval(timer);
@@ -318,16 +350,9 @@ export default function UserDashboard({ account, onForgotten }) {
     open = (stats.requested || 0) + (stats.voicemail || 0),
     total = Object.values(stats).reduce((a, b) => a + b, 0);
   const phoneIdentity = value?.profile.phone || account.phone;
-  const name =
-    phoneIdentity || value?.profile.name || account.name || "Your account";
-  const initials = phoneIdentity
-    ? phoneIdentity.slice(-2)
-    : name
-        ?.split(/\s+/)
-        .map((part) => part[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase();
+  const firstName = String(value?.profile.name || account.name || "").trim().split(/\s+/)[0] || "";
+  const name = firstName || (phoneIdentity ? formatPhone(phoneIdentity) : "Your account");
+  const initials = /^[A-Za-z]/.test(firstName) ? firstName[0].toUpperCase() : "A";
   return (
     <section className="user-dashboard" aria-busy={loading}>
       <div className="dashboard-layout">
@@ -338,7 +363,7 @@ export default function UserDashboard({ account, onForgotten }) {
             </span>
             <div>
               <strong>{name}</strong>
-              <span>{phoneIdentity ? "Verified phone" : "Personal account"}</span>
+              <span>{phoneIdentity ? `${firstName ? formatPhone(phoneIdentity) + " · " : ""}Verified` : "Personal account"}</span>
             </div>
           </div>
           <nav className="dashboard-tabs" aria-label="Dashboard sections">
@@ -366,9 +391,7 @@ export default function UserDashboard({ account, onForgotten }) {
             <div>
               <p className="eyebrow">MYSELFPAY ACCOUNT</p>
               <h1>{tab === "profile" ? "My profile" : "My requests"}</h1>
-              <p className="muted">
-                Your requests and their status, in one place.
-              </p>
+              {tab === "profile" && <p className="muted">Your saved account information</p>}
             </div>
             <a className="dashboard-search" href="#search">
               Find facilities <span aria-hidden="true">→</span>
@@ -397,8 +420,8 @@ export default function UserDashboard({ account, onForgotten }) {
                       {initials}
                     </span>
                     <div>
-                      <h2>My profile</h2>
-                      <p>Your saved account information</p>
+                      <h2>{firstName || "Your account"}</h2>
+                      <p>Verified mobile number</p>
                     </div>
                   </div>
                   <dl>
@@ -406,13 +429,13 @@ export default function UserDashboard({ account, onForgotten }) {
                       ...(value.profile.name
                         ? [["Name", value.profile.name]]
                         : []),
-                      ["Mobile number", value.profile.phone || "Not provided"],
+                      ["Mobile number", value.profile.phone ? formatPhone(value.profile.phone) : "Not provided"],
                       ["Home ZIP (so results start near you)", value.profile.zip_code || "Not provided"],
                       [
                         "Joined",
                         new Date(
                           value.profile.created * 1000,
-                        ).toLocaleDateString(),
+                        ).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
                       ],
                     ].map(([label, text]) => (
                       <div key={label}>
@@ -426,21 +449,16 @@ export default function UserDashboard({ account, onForgotten }) {
               ) : (
                 <section className="dashboard-requests">
                   <div className="dashboard-request-heading">
-                    <div>
-                      <h2>
-                        Requests
-                      </h2>
-                      <p>
-                        {value.total}{" "}
-                        {value.total === 1 ? "request" : "requests"}
-                      </p>
-                    </div>
+                    <span className="dashboard-updated" role="status">
+                      {updated ? `Updated ${updated.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` : ""}
+                    </span>
                     <button
                       type="button"
+                      className="link-button"
                       disabled={loading}
                       onClick={() => setRefresh((n) => n + 1)}
                     >
-                      Refresh status
+                      Refresh
                     </button>
                   </div>
                   <RequestStatusTabs
@@ -449,6 +467,7 @@ export default function UserDashboard({ account, onForgotten }) {
                       all: total,
                       open,
                       approved: stats.scheduled || 0,
+                      closed: Math.max(0, total - open - (stats.scheduled || 0)),
                     }}
                     onChange={select}
                     confirmedLabel="Time confirmed"
@@ -464,7 +483,9 @@ export default function UserDashboard({ account, onForgotten }) {
                           ? "No open requests"
                           : tab === "approved"
                             ? "No confirmed requests"
-                            : "No requests yet"}
+                            : tab === "closed"
+                              ? "No closed requests"
+                              : "No requests yet"}
                       </h3>
                       <p>
                         Your appointment requests and updates will appear here.
@@ -501,8 +522,7 @@ export default function UserDashboard({ account, onForgotten }) {
                     </div>
                   )}
                   <p className="dashboard-refresh-note">
-                    Statuses refresh automatically. The facility confirms your
-                    time when it calls.
+                    The facility confirms your time when it calls.
                   </p>
                 </section>
               )}

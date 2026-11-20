@@ -22,7 +22,7 @@ const base = {
 describe("request page", () => {
   it("names the facility, exam and phone under the code", () => {
     const html = ui.receipt(base, "t");
-    expect(html).toContain('flow-facility-line">Synthetic Imaging · MRI knee · (555) 555-0100');
+    expect(html).toContain('flow-facility-line">Synthetic Imaging · MRI knee without contrast · (555) 555-0100');
   });
   it("marks the current step and stamps the sent step", () => {
     const html = ui.receipt(base, "t");
@@ -39,7 +39,7 @@ describe("request page", () => {
   it("shows the confirmed time with Directions, Call, Add to calendar and the order line", () => {
     const html = ui.receipt({ ...base, status: "scheduled", approved_slot: { date: "2026-12-02", time: "09:30", timezone: "America/New_York" } }, "t");
     expect(html).toContain("<h1>Time confirmed</h1>");
-    expect(html).toContain("Synthetic Imaging set your MRI knee for");
+    expect(html).toContain("Synthetic Imaging set your MRI knee without contrast for");
     expect(html).toContain("To change the time, call Synthetic Imaging.");
     expect(html).toContain("Bring your imaging order and your reference code. The facility tells you anything else when it calls.");
     expect(html).toContain(">Directions<");

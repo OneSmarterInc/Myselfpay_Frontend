@@ -1,3 +1,13 @@
+function usFormat(ten) {
+  return "(" + ten.slice(0, 3) + ") " + ten.slice(3, 6) + "-" + ten.slice(6);
+}
+
+// Show a US number the way people read it: (817) 714-6241. Anything else is shown as given.
+export function formatPhone(value) {
+  const parsed = parsePhone(value);
+  return parsed ? parsed.display : String(value ?? "");
+}
+
 function parsePhone(value) {
   if (value === null || value === undefined) return null;
   const text = String(value).trim();
@@ -7,7 +17,7 @@ function parsePhone(value) {
   if (/^\+[\d\s().-]+$/.test(main)) {
     digits = main.replace(/\D/g, "");
     if (digits.length < 10 || digits.length > 15) return null;
-    display = "+" + digits;
+    display = digits.length === 11 && digits[0] === "1" ? usFormat(digits.slice(1)) : "+" + digits;
   } else {
     const match = main.match(
       /(?:\+?1[\s.-]*)?(?:\((\d{3})\)|(\d{3}))[\s.-]*(\d{3})[\s.-]*(\d{4})(?!\d)/,
@@ -16,7 +26,7 @@ function parsePhone(value) {
       return null;
     const area = match[1] || match[2];
     digits = "1" + area + match[3] + match[4];
-    display = area + "-" + match[3] + "-" + match[4];
+    display = usFormat(area + match[3] + match[4]);
   }
   return {
     display: display + (extension ? " ext. " + extension[1] : ""),
