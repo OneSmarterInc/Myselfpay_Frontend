@@ -163,12 +163,12 @@ test("original signup and login forms retain verified DRF sessions", async ({
   await page.locator("#accountName").fill("Synthetic UI Test");
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
   await completeMobileRegistration(page);
-  await expect(page.getByRole("link", { name: "My requests", exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(page.locator("#accountMenuButton")).toBeVisible({ timeout: 15000 });
   await page.locator("#profile").click();
   await page.locator("#accountLogin").click();
   if (await page.locator("#accountZip").count()) await page.locator("#accountZip").fill("45202");
   await completeMobileLogin(page);
-  await expect(page.getByRole("link", { name: "My requests", exact: true })).toBeVisible();
+  await expect(page.locator("#accountMenuButton")).toBeVisible();
   const session = await page.request.get("/api/me");
   expect(session.ok()).toBe(true);
   expect((await session.json()).member.mobile_verified).toBe(true);

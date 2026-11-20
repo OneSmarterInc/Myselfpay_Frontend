@@ -1,3 +1,4 @@
+import { chooseFromAccountMenu } from "./account-menu.js";
 import { completeMobileRegistration } from "./mobile-account.js";
 import { test, expect } from "@playwright/test";
 test("signed-in dashboard shows profile, request status and request links", async ({
@@ -8,12 +9,8 @@ test("signed-in dashboard shows profile, request status and request links", asyn
   const email = `dashboard-${Date.now()}@example.com`;
   await page.locator("#accountName").fill("Dashboard Test User");
   await completeMobileRegistration(page);
-  expect(
-    await page
-      .getByRole("link", { name: "My requests", exact: true })
-      .evaluate((el) => el.nextElementSibling?.id),
-  ).toBe("profile");
-  await page.getByRole("link", { name: "My requests", exact: true }).click();
+  await expect(page.locator("#accountMenuButton")).toBeVisible();
+  await chooseFromAccountMenu(page, "My requests");
   await expect(
     page.getByRole("heading", { name: "My requests", exact: true }),
   ).toBeVisible();

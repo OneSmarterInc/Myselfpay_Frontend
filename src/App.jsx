@@ -22,6 +22,13 @@ import {
   sortDirectory,
   directoryCountLine,
 } from "./directory-list.js";
+import AccountMenu from "./AccountMenu.jsx";
+import {
+  memberLabel,
+  readCenterSession,
+  writeCenterSession,
+} from "./account-menu.js";
+import { centerAPI } from "./center-api.js";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
 
 const nativeApp = /MySelfPayAndroid\//.test(globalThis.navigator?.userAgent || "");
@@ -504,6 +511,42 @@ export default function App() {
       navigate(kind === "agent" ? "agent" : "search");
     });
   }
+  const isMember = !!account && account.tenant !== "guest";
+  const [centerSession, setCenterSession] = useState(readCenterSession);
+  useEffect(() => {
+    const sync = () => setCenterSession(readCenterSession());
+    window.addEventListener("msp-center-session", sync);
+    window.addEventListener("storage", sync);
+    if (readCenterSession()) {
+      centerAPI("dashboard").catch((error) => {
+        if ([401, 403].includes(error.status)) writeCenterSession(null);
+      });
+    }
+    return () => {
+      window.removeEventListener("msp-center-session", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+  function openDashboard(tab) {
+    try {
+      sessionStorage.setItem("msp-dashboard-tab", tab);
+    } catch {
+      /* the dashboard then opens on My requests */
+    }
+    if (view === "dashboard") window.dispatchEvent(new Event("msp-dashboard-tab"));
+    else navigate("dashboard");
+  }
+  async function centerLogout() {
+    await run(async () => {
+      try {
+        await centerAPI("logout", {});
+      } catch (error) {
+        if (error.status !== 401) throw error;
+      }
+      writeCenterSession(null);
+      navigate("home");
+    });
+  }
   async function logout() {
     await run(async () => {
       try {
@@ -792,7 +835,7 @@ export default function App() {
       navigate("login");
       return;
     }
-    if (id === "faqLink") {
+    if (id === "faqLink" || id === "faqLinkFooter") {
       event.preventDefault();
       const jump = () => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" });
       if (view !== "home") {
@@ -801,7 +844,7 @@ export default function App() {
       } else jump();
       return;
     }
-    if (id === "directory" || id === "browseDirectory" || id === "leads") {
+    if (id === "directory" || id === "directoryFooter" || id === "browseDirectory" || id === "leads") {
       event.preventDefault();
       if (catalog.metadata_only || !catalogReady) {
         void run(async () => {
@@ -1328,11 +1371,11 @@ export default function App() {
         </a>
         <nav>
           <a className="center-door" href="/for-imaging-centers">For imaging centers</a>
-          <button id="faqLink" type="button">FAQ</button>
+          <button id="faqLink" type="button" className={isMember ? "hide-on-phone" : undefined}>FAQ</button>
           <button id="history" hidden>
             Saved conversations
           </button>
-          <button id="directory" hidden={!account}>
+          <button id="directory" hidden={!account} className={isMember ? "hide-on-phone" : undefined}>
             Directory
           </button>
           <button
@@ -1341,8 +1384,30 @@ export default function App() {
           >
             Log in
           </button>
-          {account && account.tenant !== "guest" && <a className="button" href="#dashboard" aria-current={view === "dashboard" ? "page" : undefined}>My requests</a>}
-          <button id="profile" hidden={!account} disabled={busy || boot}
+          {isMember && (
+            <AccountMenu
+              initial={memberLabel(account).initial}
+              label={memberLabel(account).text}
+              busy={busy || boot}
+              items={[
+                { label: "My requests", onSelect: () => openDashboard("all") },
+                { label: "Profile", onSelect: () => openDashboard("profile") },
+                { label: "Sign out", onSelect: logout },
+              ]}
+            />
+          )}
+          {!isMember && centerSession && (
+            <AccountMenu
+              initial={(centerSession.name || "C")[0].toUpperCase()}
+              label={centerSession.name}
+              busy={busy || boot}
+              items={[
+                { label: "Center dashboard", onSelect: () => navigate("center") },
+                { label: "Sign out", onSelect: centerLogout },
+              ]}
+            />
+          )}
+          <button id="profile" hidden={!account || isMember} disabled={busy || boot}
             aria-label={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
             title={account?.tenant === "guest" ? "Sign out of guest session" : undefined}
             className={account?.tenant === "guest" ? "guest-signout" : undefined}>
@@ -1368,6 +1433,8 @@ export default function App() {
           MySelfPay by One Smarter, Inc. · Dayton, Ohio
         </span>
         <span className="footer-links">
+          {isMember && <button id="faqLinkFooter" type="button" className="footer-phone-only link-button">FAQ</button>}
+          {isMember && <button id="directoryFooter" type="button" className="footer-phone-only link-button">Directory</button>}
           <a href="/about">About</a>
           <a href="/contact">Contact</a>
           <a href="/privacy-terms">Terms &amp; Privacy</a>

@@ -171,10 +171,16 @@ test("center workspace navigation, filters, pagination and responsive request de
   await expect(
     page.getByRole("heading", { name: "Inbox", exact: true }),
   ).toBeVisible();
+  await expect(page.locator("#accountMenuButton")).toBeVisible();
   await expect(
-    page
-      .getByRole("button", { name: "Sign out of center", exact: true })
-      .first(),
+    page.getByRole("button", { name: "Sign out of center" }),
+  ).toHaveCount(0);
+  await page.locator("#accountMenuButton").click();
+  await expect(
+    page.getByRole("menuitem", { name: "Center dashboard", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("menuitem", { name: "Sign out", exact: true }),
   ).toBeVisible();
 });
 test("empty workspace and expired center sessions are actionable", async ({
