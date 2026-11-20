@@ -234,5 +234,5 @@ test("request a time offers account choices and preserves the center", async ({ 
   await expect(page.locator(".time-choice-panel")).toBeVisible();
   await expect(page.locator("#bookingName")).not.toHaveAttribute("required", "");
   await expect(page.locator("#bookingEmail")).toHaveCount(0);
-  await expect(page.locator(".flow-verified")).toContainText("+1"+requestPhone);
+  await expect(page.locator(".flow-verified")).toContainText(`(${requestPhone.slice(0,3)}) ${requestPhone.slice(3,6)}-${requestPhone.slice(6)}`);
 });

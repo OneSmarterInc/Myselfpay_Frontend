@@ -42,7 +42,7 @@ test("booking phone errors recover into OTP and the dashboard identifies the use
   await page.locator("#bookingName").clear();
   await page
     .locator(".time-choice-row button:enabled")
-    .filter({ hasText: /^Morning$/ })
+    .filter({ hasText: /Morning/ })
     .first()
     .click();
   await page.locator("#bookingConsent").check();
