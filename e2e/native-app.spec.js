@@ -15,7 +15,7 @@ test("Android theme matches reference and core search actions work",async({page}
  await expect(page.locator("#mod")).toHaveValue("MRI");
  await expect(page.getByRole("heading",{name:"Search & filters",exact:true})).toBeVisible();
  await expect(page.locator("#radius")).toBeHidden();
- await expect(page.getByRole("button",{name:"Ask MySelfPay",exact:true})).toBeVisible();
+ await expect(page.getByRole("button",{name:"Quick searches",exact:true})).toBeVisible();
  await page.screenshot({path:"../tmp/native-search-390.png"});
  await page.locator("#location").fill("Ohio");
  await page.getByRole("button",{name:"Find options",exact:true}).click();
@@ -35,8 +35,8 @@ test("Android theme matches reference and core search actions work",async({page}
  await page.getByRole("button",{name:"Close dialog",exact:true}).click();
  await page.getByRole("button",{name:"Search imaging centers",exact:true}).click();
  await expect(page.locator("#searchForm")).toBeVisible();
- await page.getByRole("button",{name:"Ask MySelfPay",exact:true}).click();
- await expect(page.getByRole("heading",{name:"Ask MySelfPay",exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"Quick searches",exact:true}).click();
+ await expect(page.getByRole("heading",{name:"Quick searches",exact:true})).toBeVisible();
  await expect(page.locator(".site-footer")).toBeHidden();
  await page.getByRole("button",{name:"Open navigation",exact:true}).click();
  await expect(page.getByRole("dialog",{name:"App navigation"})).toBeVisible();

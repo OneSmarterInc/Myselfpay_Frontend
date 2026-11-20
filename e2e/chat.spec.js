@@ -10,7 +10,7 @@ test("predefined chat keeps the reference layout and updates real directory sear
     .click();
   await page.locator("#agent").click();
   await expect(
-    page.getByRole("heading", { name: "Ask MySelfPay", exact: true }),
+    page.getByRole("heading", { name: "Quick searches", exact: true }),
   ).toBeVisible();
   const questions = [
     ["Knee MRI near Cincinnati under $500", "Cincinnati, OH", 500],
@@ -57,36 +57,26 @@ test("predefined chat keeps the reference layout and updates real directory sear
     }
   }
   expect(requests).toBe(3);
-  await page.locator("#message").fill("Diagnose a headache");
-  await page
-    .locator("#chatForm")
-    .getByRole("button", { name: "Send", exact: true })
-    .click();
-  await expect(page.locator("#toast")).toContainText(
-    "Choose one of the predefined questions",
-  );
-  expect(requests).toBe(3);
-  await page.getByRole("button", { name: "Voice demo", exact: true }).click();
-  await expect(page.locator("#transcript")).toHaveJSProperty(
-    "tagName",
-    "SELECT",
-  );
-  await page.locator("#transcript").selectOption("Knee MRI near Dayton");
-  await page.locator("#useTranscript").click();
-  await expect(page.locator("#chat .message.user")).toHaveCount(4);
-  await page.locator("#message").fill("Knee MRI near Dayton");
-  await page
-    .locator("#chatForm")
-    .getByRole("button", { name: "Send", exact: true })
-    .click();
+  await expect(page.locator("#message")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Voice demo" })).toHaveCount(0);
+  for (const count of [4, 5]) {
+    await page
+      .getByRole("button", { name: "Knee MRI near Dayton", exact: true })
+      .click();
+    await expect(page.locator("#chat .message.user")).toHaveCount(count);
+  }
   await expect(page.locator("#chat .message.user")).toHaveCount(5);
-  await expect(page.locator("#message")).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Knee MRI near Dayton", exact: true }),
+  ).toBeDisabled();
   await page.locator("#newGuestChat").click();
-  await expect(page.locator("#message")).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Knee MRI near Dayton", exact: true }),
+  ).toBeEnabled();
   await expect(page.locator("#chat .message.user")).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(
-    page.getByRole("heading", { name: "Ask MySelfPay", exact: true }),
+    page.getByRole("heading", { name: "Quick searches", exact: true }),
   ).toBeVisible();
   expect(
     await page.evaluate(

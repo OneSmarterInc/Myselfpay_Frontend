@@ -1272,7 +1272,7 @@ export default function App() {
   return (
     <div onClick={click} onSubmit={submit} ref={form} className={(nativeApp ? "native-app " : "") + (view === "center" ? "center-dashboard-active" : view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : "")}>
       {nativeApp ? <NativeAppHeader account={account} view={view} busy={busy||boot} onSearch={()=>openNativeSearch()} onHome={()=>navigate("home")} onDirectory={()=>setDialog({type:"directory"})} onSignOut={logout}/> : (
-      <header>
+      <header className="site-header">
         <a
           className="brand"
           id="brandHome"
@@ -1327,7 +1327,7 @@ export default function App() {
           <OriginalHTML html={markup} onInput={input} replace={replace} />
         )}
       </main>
-      {nativeApp && account && (view==="search"||view==="agent") && state.mode!=="agent" && !dialog && <button type="button" className="native-chat-fab" aria-label="Ask MySelfPay" onClick={()=>{setState(old=>({...old,mode:"agent"}));navigate("agent");window.scrollTo(0,0);}}><AppIcon name="chat"/><span>Ask MySelfPay</span></button>}
+      {nativeApp && account && (view==="search"||view==="agent") && state.mode!=="agent" && !dialog && <button type="button" className="native-chat-fab" aria-label="Quick searches" onClick={()=>{setState(old=>({...old,mode:"agent"}));navigate("agent");window.scrollTo(0,0);}}><AppIcon name="chat"/><span>Quick searches</span></button>}
       {nativeApp && <NativeLoading waiting={view === "search" && state.spatialLoading}/> }
       <footer className="site-footer" hidden={nativeApp}>
         <span className="footer-brand">

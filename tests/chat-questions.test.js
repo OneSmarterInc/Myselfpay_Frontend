@@ -36,6 +36,6 @@ it("offers the same questions to guests and registered users and restricts the v
       expect(ui.voice()).toContain(`<option value="${question}">`);
     }
     expect(ui.voice()).not.toContain("<textarea");
-    expect(ui.search()).toContain("Free-text questions are not supported");
+    expect(ui.search()).toContain("Pick a question and we show matching facilities.");
   }
 });

@@ -23,7 +23,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await expect(page.locator("#location")).toBeEditable();
     await expect(page.locator("#mod")).toBeEnabled();
     await expect(page.getByRole("button", { name: "Find options", exact: true })).toBeVisible();
-    await expect(page.getByRole("switch", { name: "Near to me", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("switch", { name: "Near me", exact: true })).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `../tmp/search-layout-${viewport.width}.png`, fullPage: true });
   });
