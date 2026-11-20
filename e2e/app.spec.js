@@ -35,7 +35,7 @@ test("National lists directory centers with ten results per page", async ({
   await page.locator("article.card [data-select]").first().check();
   await page.locator("#compare").click();
   await expect(page.locator(".comparison-table thead th")).toHaveCount(3);
-  await expect(page.locator(".comparison-table")).toContainText("Published price");
+  await expect(page.locator(".comparison-table")).toContainText("Price");
   await page.getByRole("button", { name: "Close dialog" }).click();
   await page.locator("article.card [data-detail]").first().click();
   await expect(page.locator(".facility-reference h1")).toBeVisible();
@@ -137,7 +137,7 @@ test("original search, comparison and directory work with the DRF backend", asyn
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Compare selected options" }),
+    page.getByRole("heading", { name: "Compare facilities" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Close dialog" }).click();
   await page.locator("#directory").click();
