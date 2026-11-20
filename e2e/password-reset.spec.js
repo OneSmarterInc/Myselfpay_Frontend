@@ -1,3 +1,4 @@
+import { chooseFromAccountMenu } from "./account-menu.js";
 import { test, expect } from "@playwright/test";
 import { completeMobileRegistration } from "./mobile-account.js";
 for (const width of [360, 1280]) {
@@ -8,7 +9,7 @@ for (const width of [360, 1280]) {
     await expect(page.locator("#accountUsername,#accountPassword,#accountConfirm,#accountZip")).toHaveCount(0);
     const phone=await completeMobileRegistration(page);
     const first=await (await page.request.get("/api/me")).json();
-    await page.locator("#profile").click();
+    await chooseFromAccountMenu(page,"Sign out");
     await expect(page.locator("#accountLogin")).toBeVisible();
     await page.goto("/#login");
     await expect(page.getByRole("link",{name:"Forgot password?"})).toHaveCount(0);

@@ -1,3 +1,4 @@
+import { chooseFromAccountMenu } from "./account-menu.js";
 import { test, expect } from "@playwright/test";
 import { completeMobileRegistration } from "./mobile-account.js";
 
@@ -47,7 +48,7 @@ test("booking phone errors recover into OTP and the dashboard identifies the use
   await page.locator("#bookingConsent").check();
   await page.locator("#bookingSubmit").click();
   await expect(page.locator(".flow-reference-id")).toBeVisible();
-  await page.getByRole("navigation").getByRole("link", { name: "My requests", exact: true }).click();
+  await chooseFromAccountMenu(page, "My requests");
   await expect(page.locator(".dashboard-account-mini strong")).toHaveText(
     "+1" + phone,
   );

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { writeCenterSession } from "./account-menu.js";
 import { centerAPI as call } from "./center-api.js";
 import "./center-workspace.css";
 import ApprovalSlotPicker from "./ApprovalSlotPicker.jsx";
@@ -1470,6 +1471,7 @@ export default function CenterWorkspace({ onLogin }) {
       if ([401, 403].includes(e.status)) {
         setData(null);
         setRequest(null);
+        writeCenterSession(null);
       }
     } finally {
       if (seq === sequence.current) setBusy(false);
@@ -1546,20 +1548,6 @@ export default function CenterWorkspace({ onLogin }) {
       if (seq === sequence.current) setBusy(false);
     }
   }
-  async function logout() {
-    setBusy(true);
-    setError("");
-    try {
-      await call("logout", {});
-      setData(null);
-      setRequest(null);
-      location.hash = "home";
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
   const all = data?.requests || [],
     centers = data?.centers || [],
     openCount = all.filter(isOpen).length,
@@ -1602,6 +1590,9 @@ export default function CenterWorkspace({ onLogin }) {
       .slice(0, 2)
       .join("")
       .toUpperCase();
+  useEffect(() => {
+    if (data) writeCenterSession({ name });
+  }, [data, name]);
   return (
     <section
       className="center-workspace"
@@ -1641,26 +1632,12 @@ export default function CenterWorkspace({ onLogin }) {
                 {count !== null && <small>{count}</small>}
               </button>
             ))}
-            <button
-              type="button"
-              className="cw-mobile-logout"
-              aria-label="Sign out of center"
-              disabled={busy}
-              onClick={logout}
-            >
-              <Icon name="exit" />
-              <span>Sign out</span>
-            </button>
           </nav>
           <div className="cw-sidebar-bottom">
             <a href="/contact">
               <Icon name="help" />
               Help &amp; support
             </a>
-            <button type="button" disabled={busy} onClick={logout}>
-              <Icon name="exit" />
-              Sign out of center
-            </button>
             <p>{data.email}</p>
           </div>
         </aside>

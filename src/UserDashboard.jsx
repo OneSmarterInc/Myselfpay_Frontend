@@ -252,13 +252,27 @@ function ForgetMe({ onForgotten }) {
     </section>
   );
 }
+function takeRequestedTab() {
+  try {
+    const wanted = sessionStorage.getItem("msp-dashboard-tab");
+    sessionStorage.removeItem("msp-dashboard-tab");
+    return wanted === "profile" ? "profile" : "all";
+  } catch {
+    return "all";
+  }
+}
 export default function UserDashboard({ account, onForgotten }) {
-  const [tab, setTab] = useState("all"),
+  const [tab, setTab] = useState(() => takeRequestedTab()),
     [page, setPage] = useState(1),
     [value, setValue] = useState(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [refresh, setRefresh] = useState(0);
+  useEffect(() => {
+    const pick = () => setTab(takeRequestedTab());
+    window.addEventListener("msp-dashboard-tab", pick);
+    return () => window.removeEventListener("msp-dashboard-tab", pick);
+  }, []);
   const signedIn = account && account.tenant !== "guest";
   useEffect(() => {
     if (!signedIn) return;
