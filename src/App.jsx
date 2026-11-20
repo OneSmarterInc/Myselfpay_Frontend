@@ -16,7 +16,7 @@ import NativeInfoPage, {isNativeInfo} from "./NativeInfoPage.jsx";
 import NativeLoading from "./NativeLoading.jsx";
 import useNativeKeyboard from './useNativeKeyboard.js';
 import UserDashboard from "./UserDashboard.jsx";
-import CenterPortal, { CenterLogin } from "./CenterPortal.jsx";
+import CenterPortal, { CenterFaq, CenterLogin } from "./CenterPortal.jsx";
 import {
   filterDirectory,
   sortDirectory,
@@ -858,6 +858,10 @@ export default function App() {
     }
     if (id === "faqLink" || id === "faqLinkFooter") {
       event.preventDefault();
+      if (view === "center" || view === "center-login") {
+        setDialog({ type: "center-faq" });
+        return;
+      }
       const jump = () => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" });
       if (view !== "home") {
         navigate("home");
@@ -1471,7 +1475,7 @@ export default function App() {
               <button className="primary" onClick={()=>navigate("signup")}>Continue with my phone</button>
               <button className="text-link" onClick={close}>Cancel</button>
             </div>
-          </section> : dialog.type === "center-login" ? <CenterLogin onDone={()=>{setDialog(null);if(view==="center") location.reload();else navigate("center");}}/> : dialog.type === "booking" ? (
+          </section> : dialog.type === "center-faq" ? <CenterFaq /> : dialog.type === "center-login" ? <CenterLogin onDone={()=>{setDialog(null);if(view==="center") location.reload();else navigate("center");}}/> : dialog.type === "booking" ? (
             <OriginalBooking
               entry={dialog.entry}
               account={account}
