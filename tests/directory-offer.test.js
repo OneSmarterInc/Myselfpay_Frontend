@@ -86,6 +86,9 @@ it("shows stored service prices with protocol and screening restrictions intact"
   expect(ui.search()).not.toContain("Ultrasound from $115");
   expect(ui.detail(offer.id)).toContain("Ultrasound from $115");
   expect(ui.compare()).toContain("noncontrast scan/body region");
+  expect(ui.compare()).toContain("Compare facilities");
+  expect(ui.compare()).toContain("MRI: $399");
+  expect(ui.compare()).toContain("Ask the facility");
   expect(storedPrices(entry, "MRI")).toEqual([
     { service: "MRI", text: entry.mri },
   ]);
