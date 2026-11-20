@@ -9,7 +9,7 @@ for (const width of [320,390,760]) {
   await page.locator("#location").fill("Ohio");
   await page.getByRole("button",{name:"Find options",exact:true}).click();
   await expect(page.locator("article.card").first()).toBeVisible();
-  await page.getByRole("switch",{name:"Near to me",exact:true}).click();
+  await page.getByRole("switch",{name:"Near me",exact:true}).click();
   const info=page.getByRole("button",{name:"About nearest results"});
   await info.click();
   const tip=page.getByRole("tooltip");

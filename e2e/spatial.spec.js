@@ -23,7 +23,7 @@ test("current-location search loads the whole selected state and recalculates ov
   await page.getByRole("button",{name:"Find options",exact:true}).click();
   await expect(page.locator("article.card").first()).toBeVisible();
   await page
-    .getByRole("button", { name: "Ask MySelfPay", exact: true })
+    .getByRole("button", { name: "Quick searches", exact: true })
     .click();
   const loaded = page.waitForResponse(
     (response) =>
@@ -31,7 +31,7 @@ test("current-location search loads the whole selected state and recalculates ov
       response.request().method() === "POST",
   );
   await page
-    .getByRole("switch", { name: "Near to me", exact: true })
+    .getByRole("switch", { name: "Near me", exact: true })
     .click();
   const data = await (await loaded).json();
   expect(data.resolved_location.state).toBe("OH");
@@ -56,7 +56,7 @@ test("current-location search loads the whole selected state and recalculates ov
   expect(requests).toHaveLength(2);
   await page.bringToFront();
   const resume = page.getByRole("switch", {
-    name: "Near to me",
+    name: "Near me",
     exact: true,
   });
   if ((await resume.getAttribute("aria-checked")) !== "true") await resume.click();
@@ -96,9 +96,9 @@ test("current-location search loads the whole selected state and recalculates ov
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(
     "19.076",
   );
-  await page.getByRole("switch", { name: "Near to me", exact:true }).click();
+  await page.getByRole("switch", { name: "Near me", exact:true }).click();
   await expect(
-    page.getByRole("switch", { name: "Near to me", exact: true }),
+    page.getByRole("switch", { name: "Near me", exact: true }),
   ).toBeVisible();
 });
 
@@ -131,7 +131,7 @@ test("denied location permission provides a usable manual-search fallback", asyn
   await page.getByRole("button",{name:"Find options",exact:true}).click();
   await expect(page.locator("article.card").first()).toBeVisible();
   await page
-    .getByRole("switch", { name: "Near to me", exact: true })
+    .getByRole("switch", { name: "Near me", exact: true })
     .click();
   await expect(
     page.getByText("Location permission was denied.", { exact: false }),

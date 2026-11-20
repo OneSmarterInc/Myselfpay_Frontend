@@ -61,15 +61,15 @@ describe("original SelfPay presentation contracts", () => {
       results: [offer],
       catalogReady: true,
     };
-    expect(originalUI(context).search()).toContain("4 matching listings");
+    expect(originalUI(context).search()).toContain("4 facilities");
     context.state.resultsPage = 1;
-    expect(originalUI(context).search()).toContain("4 matching listings");
+    expect(originalUI(context).search()).toContain("4 facilities");
     context.results = [];
     context.state.nearbyUnpriced = [];
     context.state.programEntries = [];
-    expect(originalUI(context).search()).toContain("0 matching listings");
+    expect(originalUI(context).search()).toContain("0 facilities");
     context.results = [offer];
-    expect(originalUI(context).search()).toContain("1 matching listing</h2>");
+    expect(originalUI(context).search()).toContain("1 facility</h2>");
   });
   it("retains the original homepage sections and search controls", () => {
     expect(ui.home()).toContain("Find self-pay MRI and CT near you.");

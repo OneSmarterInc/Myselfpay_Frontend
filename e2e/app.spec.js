@@ -81,7 +81,7 @@ test("state-only search works and optional filters apply independently", async (
     all.program_entries.length;
   await expect(
     page.getByRole("heading", {
-      name: `${total} matching listing${total === 1 ? "" : "s"}`,
+      name: `${total} facilit${total === 1 ? "y" : "ies"}`,
       exact: true,
     }),
   ).toBeVisible();
