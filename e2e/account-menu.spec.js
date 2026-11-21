@@ -53,3 +53,20 @@ test("a signed-in center sees its name in the menu on the home page", async ({ p
   await chooseFromAccountMenu(page, "Sign out");
   await expect(page.locator("#accountMenuButton")).toHaveCount(0);
 });
+
+test("a center sign-in ends the member session on that device", async ({ page }) => {
+  await signedIn(page);
+  let memberLogouts = 0;
+  await page.route("**/api/logout", (route) => {
+    memberLogouts += 1;
+    return route.fulfill({ json: { ok: true } });
+  });
+  await page.route("**/api/center/dashboard", (route) =>
+    route.fulfill({ json: { email: "desk@example.com", centers: [{ id: "c1", name: "Synthetic Imaging" }], requests: [], center_csrf: "t" } }),
+  );
+  await page.addInitScript(() => localStorage.setItem("msp-center-session", JSON.stringify({ name: "Synthetic Imaging" })));
+  await page.goto("/#center");
+  await expect(page.locator("#accountMenuButton")).toContainText("Synthetic Imaging");
+  await expect.poll(() => memberLogouts).toBeGreaterThan(0);
+  await expect(page.getByRole("navigation", { name: "Center dashboard sections" }).getByRole("button", { name: "Inbox" })).toBeVisible();
+});

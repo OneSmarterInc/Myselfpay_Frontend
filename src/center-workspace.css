@@ -1652,3 +1652,21 @@
 .cw-call{display:inline-flex;align-items:center;gap:8px;background:#a91d2b;color:#fff!important;border-radius:10px;padding:12px 16px;font-weight:650;text-decoration:none}.cw-preview{background:#f4f8f5;border-radius:10px;padding:10px 12px;font-size:14px;margin:10px 0}.cw-reason{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap}.cw-received small{display:block;color:#747d86}.cw-reference span{display:block;font-size:12px;color:#747d86}
 
 .cw-records{display:grid;gap:8px;margin:18px 0;padding:18px;border:1px solid #e0e2e4;border-radius:14px;background:#fff;max-width:560px}.cw-records h3{margin:0}.cw-records textarea,.cw-records input[type=date]{border:1px solid #c9ccd0;border-radius:10px;padding:10px 12px;font:inherit}.cw-check{display:flex;gap:10px;align-items:center}.cw-median{margin:0 0 10px;font-size:14px;color:#59626c}
+
+.center-workspace.center-workspace{grid-template-columns:260px minmax(0,1fr)}
+.center-workspace.center-workspace:has(.cw-content-solo){grid-template-columns:1fr}
+.center-workspace .member-sidebar{top:var(--cw-header-height);height:calc(100dvh - var(--cw-header-height));align-self:start}
+@media(min-width:1440px){.center-workspace.center-workspace{grid-template-columns:280px minmax(0,1fr)}}
+@media(max-width:900px){.center-workspace.center-workspace{grid-template-columns:220px minmax(0,1fr)}}
+@media(max-width:700px){.center-workspace.center-workspace{display:block}.center-workspace .member-sidebar{top:0;height:100dvh}}
+
+.center-workspace .cw-table-head{font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.center-workspace .cw-reference h3{font-size:16px}
+.center-workspace .cw-reference>span{font-size:14px}
+.center-workspace .cw-preferences strong{font-size:16px}
+.center-workspace .cw-preferences span{font-size:14px;line-height:1.4}
+.center-workspace .cw-received{font-size:14px}
+.center-workspace .cw-received small{font-size:12px}
+.center-workspace .cw-row-action button{min-height:44px;font-size:14px;padding:0 16px}
+.center-workspace .cw-badge,.center-workspace .cw-table-row [role=cell] .cw-status{font-size:12px}
+.center-workspace .cw-row-action{display:flex;justify-content:flex-end}.center-workspace .cw-row-action button{display:inline-flex;align-items:center;gap:8px;width:max-content;min-width:0;max-width:none;flex:0 0 auto;white-space:nowrap;padding:0 18px}

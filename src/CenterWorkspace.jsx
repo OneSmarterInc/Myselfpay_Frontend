@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { writeCenterSession } from "./account-menu.js";
+import MemberSidebar, { centerGroups } from "./MemberSidebar.jsx";
 import { centerAPI as call } from "./center-api.js";
 import "./center-workspace.css";
 import ApprovalSlotPicker from "./ApprovalSlotPicker.jsx";
@@ -139,9 +140,16 @@ const slotLine = (slots = []) =>
   slots
     .map((slot) => {
       const d = new Date(`${slot.date}T12:00:00`);
-      return `${d.toLocaleDateString(undefined, { weekday: "short" })} ${d.getDate()} ${slot.period === "morning" ? "AM" : "PM"}`;
+      return `${d.toLocaleDateString(undefined, { weekday: "short" })} ${d.toLocaleDateString(undefined, { month: "short" })} ${d.getDate()} ${slot.period === "morning" ? "morning" : "afternoon"}`;
     })
     .join(" · ");
+const examName = (item) => {
+  const service = String(item.service || "").trim();
+  const exam = String(item.exam || "").trim();
+  if (/^please contact me/i.test(service) || (!service && !exam)) return "Exam not listed";
+  if (exam && service && exam.toLowerCase().startsWith(service.toLowerCase())) return exam;
+  return [service, exam].filter(Boolean).join(" ");
+};
 const waitWords = (seconds) => {
   if (seconds === null || seconds === undefined) return "";
   const minutes = Math.round(seconds / 60);
@@ -1441,6 +1449,12 @@ function RequestDetail({ request, busy, onBack, onAction, onSave }) {
   );
 }
 export default function CenterWorkspace({ onLogin }) {
+  const [sideOpen, setSideOpen] = useState(false);
+  useEffect(() => {
+    const flip = () => setSideOpen((open) => !open);
+    window.addEventListener("msp-side-toggle", flip);
+    return () => window.removeEventListener("msp-side-toggle", flip);
+  }, []);
   const [data, setData] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(true),
@@ -1600,47 +1614,28 @@ export default function CenterWorkspace({ onLogin }) {
       onSubmit={(e) => e.stopPropagation()}
     >
       {data && (
-        <aside className="cw-sidebar">
-          <div className="cw-account">
-            <span className="cw-avatar">{initials}</span>
-            <div>
-              <strong>{name}</strong>
-              <span>
-                <i />
-                Verified center account
-              </span>
-            </div>
-          </div>
-          <p className="cw-nav-caption">WORKSPACE</p>
-          <nav className="cw-navigation" aria-label="Center dashboard sections">
-            {nav.map(([key, label, icon, count, level]) => (
-              <button
-                type="button"
-                className={level === "sub" ? "cw-nav-sub" : undefined}
-                key={key}
-                aria-label={label}
-                disabled={busy}
-                aria-current={
-                  tab === key || (key === "open" && inboxTabs.includes(tab))
-                    ? "page"
-                    : undefined
-                }
-                onClick={() => select(key)}
-              >
-                <Icon name={icon} />
-                <span>{label}</span>
-                {count !== null && <small>{count}</small>}
-              </button>
-            ))}
-          </nav>
-          <div className="cw-sidebar-bottom">
-            <a href="/contact">
-              <Icon name="help" />
-              Help &amp; support
-            </a>
-            <p>{data.email}</p>
-          </div>
-        </aside>
+        <>
+        {sideOpen && <div className="side-scrim" onClick={() => setSideOpen(false)} />}
+        <MemberSidebar
+          open={sideOpen}
+          onClose={() => setSideOpen(false)}
+          groups={centerGroups}
+          label="Center menu"
+          navLabel="Center dashboard sections"
+          initials={initials}
+          name={name}
+          detail="Verified center account"
+          current={inboxTabs.includes(tab) ? `inbox:${tab}` : tab}
+          total={{ inbox: openCount, profile: centers.length }}
+          onGo={(key) => {
+            if (key.startsWith("inbox:")) return select(key.slice(6));
+            if (key === "faq") return void document.getElementById("faqLink")?.click();
+            if (key === "contact") return void (location.href = "/contact");
+            if (key === "signout") return void window.dispatchEvent(new Event("msp-center-signout"));
+            select(key);
+          }}
+        />
+        </>
       )}
       <div className={`cw-content${!data ? " cw-content-solo" : ""}`}>
         <header className="cw-page-heading">
@@ -1925,7 +1920,7 @@ export default function CenterWorkspace({ onLogin }) {
                             <Icon name="calendar" />
                             <div>
                               <strong>
-                                {[item.service, item.exam].filter(Boolean).join(" ") || "Exam not specified"}
+                                {examName(item)}
                               </strong>
                               {item.status === "scheduled" ? (
                                 <span>{approvedSlotLabel(item.approved_slot)}</span>

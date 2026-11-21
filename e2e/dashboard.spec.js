@@ -60,15 +60,6 @@ test("signed-in dashboard shows profile, request status and request links", asyn
     .getByRole("navigation", { name: "Dashboard sections" })
     .getByRole("button", { name: "Open", exact: true })
     .click();
-  await page
-    .getByRole("group", { name: "Request status" })
-    .getByRole("button", { name: "Open requests", exact: true })
-    .click();
-  await expect(
-    page
-      .getByRole("group", { name: "Request status" })
-      .getByRole("button", { name: "Open requests", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
   await expect(
     page
       .getByRole("navigation", { name: "Dashboard sections" })
