@@ -31,6 +31,8 @@ import {
 } from "./account-menu.js";
 import { centerAPI } from "./center-api.js";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
+import { formatPhone } from "./center-phone.js";
+import MemberSidebar, { currentKey } from "./MemberSidebar.jsx";
 
 const nativeApp = /MySelfPayAndroid\//.test(globalThis.navigator?.userAgent || "");
 
@@ -546,6 +548,29 @@ export default function App() {
   searchRef.current = search;
   const isMember = !!account && account.tenant !== "guest";
   const [centerSession, setCenterSession] = useState(readCenterSession);
+  const [dashTab, setDashTab] = useState("all");
+  const [sideOpen, setSideOpen] = useState(false);
+  useEffect(() => {
+    const note = (event) => setDashTab(event.detail?.tab || "all");
+    window.addEventListener("msp-dashboard-current", note);
+    return () => window.removeEventListener("msp-dashboard-current", note);
+  }, []);
+  useEffect(() => setSideOpen(false), [view]);
+  function sidebarGo(key) {
+    if (key.startsWith("requests:")) return openDashboard(key.slice(9));
+    if (key === "profile") return openDashboard("profile");
+    if (key === "search") return navigate("search");
+    if (key === "agent") {
+      setState((old) => ({ ...old, mode: "agent" }));
+      return navigate("agent");
+    }
+    if (key === "directory") return document.getElementById("directory")?.click();
+    if (key === "compare") return document.getElementById("compare")?.click() || setDialog({ type: "compare" });
+    if (key === "faq") return document.getElementById("faqLink")?.click();
+    if (key === "about") return void (location.href = "/about");
+    if (key === "contact") return void (location.href = "/contact");
+    if (key === "signout") return void logout();
+  }
   useEffect(() => {
     const sync = () => setCenterSession(readCenterSession());
     window.addEventListener("msp-center-session", sync);
@@ -1383,10 +1408,13 @@ export default function App() {
         .join("");
   dialogHTML = dialogHTML.replace("<h2>", '<h2 id="dialogTitle">');
   const linkedBooking = /^(booking|request|clinic)\//.test(view);
+  const memberFrame =
+    isMember && !nativeApp && !["center", "center-login", "login", "signup", "reset-password", "home"].includes(view) && !/^(booking|clinic)\//.test(view);
   return (
     <div onClick={click} onSubmit={submit} ref={form} className={"app-root " + (nativeApp ? "native-app " : "") + (view === "center" ? "center-dashboard-active" : view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : "")}>
       {nativeApp ? <NativeAppHeader account={account} view={view} busy={busy||boot} onSearch={()=>openNativeSearch()} onHome={()=>navigate("home")} onDirectory={()=>setDialog({type:"directory"})} onSignOut={logout}/> : (
       <header className="site-header">
+        {memberFrame && <button type="button" className="side-toggle" aria-label="Open menu" aria-expanded={sideOpen} onClick={()=>setSideOpen(o=>!o)}>☰</button>}
         <a
           className="brand"
           id="brandHome"
@@ -1409,11 +1437,11 @@ export default function App() {
         </a>
         <nav>
           <a className="center-door" href="/for-imaging-centers">For imaging centers</a>
-          <button id="faqLink" type="button" className={isMember ? "hide-on-phone" : undefined}>FAQ</button>
+          <button id="faqLink" type="button" hidden={isMember}>FAQ</button>
           <button id="history" hidden>
             Saved conversations
           </button>
-          <button id="directory" hidden={!account} className={isMember ? "hide-on-phone" : undefined}>
+          <button id="directory" hidden={!account || isMember}>
             Directory
           </button>
           <button
@@ -1455,6 +1483,9 @@ export default function App() {
       </header>
       )}
 
+      <div className={memberFrame ? "member-frame" : "plain-frame"}>
+        {memberFrame && sideOpen && <div className="side-scrim" onClick={()=>setSideOpen(false)}/>}
+      {memberFrame && <MemberSidebar initials={memberLabel(account).initial} name={String(account.name || "").trim().split(/\s+/)[0] || memberLabel(account).text} detail={account.phone ? formatPhone(account.phone) + " · Verified" : "Personal account"} current={currentKey(view, dashTab)} onGo={sidebarGo} open={sideOpen} onClose={()=>setSideOpen(false)}/>}
       <main className={"shell" + (view === "center" ? " center-shell" : view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
         {account?.setup_required && view !== "login" && view !== "signup" && <p className="panel" role="status">Complete your account setup to request a time. <a href="#login">Verify your mobile number</a></p>}
         {view === "center-login" ? <section className="panel center-direct-login"><CenterLogin onDone={()=>navigate("center")}/></section> : view === "reset-password" ? <PasswordReset onReset={clear}/> : (view === "login" || view === "signup") ? <MobileAccount key={view} signup={view === "signup"} facility={pendingBooking?.entry?.name} account={account} onDone={async member=>{setAccount(member);navigate("search");setToast("You are signed in.");if(member.zip_code && !pendingBooking) await search({...initialState(),location:member.zip_code,sort:"distance"});}}/> : nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} onForgotten={()=>{clear();navigate("home");setToast("Your account and requests are deleted.");}} /> : linkedBooking ? (
@@ -1463,6 +1494,7 @@ export default function App() {
           <OriginalHTML html={markup} onInput={input} replace={replace} />
         )}
       </main>
+      </div>
       {nativeApp && account && (view==="search"||view==="agent") && state.mode!=="agent" && !dialog && <button type="button" className="native-chat-fab" aria-label="Quick searches" onClick={()=>{setState(old=>({...old,mode:"agent"}));navigate("agent");window.scrollTo(0,0);}}><AppIcon name="chat"/><span>Quick searches</span></button>}
       {nativeApp && <NativeLoading waiting={view === "search" && state.spatialLoading}/> }
       <footer className="site-footer" hidden={nativeApp}>

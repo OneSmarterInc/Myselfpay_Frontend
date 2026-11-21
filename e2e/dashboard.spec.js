@@ -52,7 +52,14 @@ test("signed-in dashboard shows profile, request status and request links", asyn
       },
     }),
   );
-  await page.getByRole("button", { name: "Requests", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Dashboard sections" })
+    .getByRole("button", { name: /^My requests/ })
+    .click();
+  await page
+    .getByRole("navigation", { name: "Dashboard sections" })
+    .getByRole("button", { name: "Open", exact: true })
+    .click();
   await page
     .getByRole("group", { name: "Request status" })
     .getByRole("button", { name: "Open requests", exact: true })
@@ -65,13 +72,13 @@ test("signed-in dashboard shows profile, request status and request links", asyn
   await expect(
     page
       .getByRole("navigation", { name: "Dashboard sections" })
-      .getByRole("button", { name: "Requests", exact: true }),
+      .getByRole("button", { name: "Open", exact: true }),
   ).toHaveAttribute("aria-current", "page");
   await expect(
     page
       .getByRole("navigation", { name: "Dashboard sections" })
       .getByRole("button", { name: "Time confirmed", exact: true }),
-  ).toHaveCount(0);
+  ).toHaveCount(1);
   await expect(
     page.getByText("Waiting for the facility to call", { exact: true }),
   ).toBeVisible();
@@ -135,6 +142,7 @@ test("signed-in dashboard shows profile, request status and request links", asyn
   await page
     .locator(".user-dashboard")
     .screenshot({ path: "../tmp/user-dashboard-mobile.png" });
+  await page.getByRole("button", { name: "Open menu" }).click();
   await page.getByRole("button", { name: "My profile", exact: true }).click();
   await expect(page.locator(".dashboard-profile")).toContainText(
     "Mobile number",
