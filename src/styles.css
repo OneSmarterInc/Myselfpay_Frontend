@@ -318,3 +318,4 @@ header nav a.center-door{border:1px solid #b01b23;border-radius:9px;padding:8px 
 .side-scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:29}
 }
 @media(max-width:700px){.member-sidebar .dashboard-account-mini{display:flex}.member-sidebar .dashboard-tabs{display:flex;flex-direction:column;flex-wrap:nowrap;overflow:visible;padding:14px;max-width:none}.member-sidebar .dashboard-tabs button{flex:none;min-height:44px;font-size:14px}.member-sidebar .side-sub button{font-size:13px}.member-sidebar{border-right:0}}
+.member-sidebar .dashboard-tabs{overflow:visible;flex:0 0 auto}.member-sidebar .side-signout{margin-top:auto}

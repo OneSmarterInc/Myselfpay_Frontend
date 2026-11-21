@@ -50,7 +50,7 @@ function groupOf(key) {
 export default function MemberSidebar({ initials, name, detail, current, onGo, open, onClose, total }) {
   const [opened, setOpened] = useState({});
   const active = groupOf(current);
-  const isOpen = (group) => (group.key in opened ? opened[group.key] : group.key === active || group.key === "find");
+  const isOpen = (group) => (group.key in opened ? opened[group.key] : group.key === active);
   const go = (key) => {
     onGo(key);
     onClose?.();
