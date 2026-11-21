@@ -31,6 +31,7 @@ import {
 } from "./account-menu.js";
 import { centerAPI } from "./center-api.js";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
+import { formatPhone } from "./center-phone.js";
 import MemberSidebar, { currentKey } from "./MemberSidebar.jsx";
 
 const nativeApp = /MySelfPayAndroid\//.test(globalThis.navigator?.userAgent || "");
@@ -1484,7 +1485,7 @@ export default function App() {
 
       <div className={memberFrame ? "member-frame" : "plain-frame"}>
         {memberFrame && sideOpen && <div className="side-scrim" onClick={()=>setSideOpen(false)}/>}
-      {memberFrame && <MemberSidebar initials={memberLabel(account).initial} name={String(account.name || "").trim().split(/\s+/)[0] || memberLabel(account).text} detail={account.phone ? "Verified" : "Personal account"} current={currentKey(view, dashTab)} onGo={sidebarGo} open={sideOpen} onClose={()=>setSideOpen(false)}/>}
+      {memberFrame && <MemberSidebar initials={memberLabel(account).initial} name={String(account.name || "").trim().split(/\s+/)[0] || memberLabel(account).text} detail={account.phone ? formatPhone(account.phone) + " · Verified" : "Personal account"} current={currentKey(view, dashTab)} onGo={sidebarGo} open={sideOpen} onClose={()=>setSideOpen(false)}/>}
       <main className={"shell" + (view === "center" ? " center-shell" : view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
         {account?.setup_required && view !== "login" && view !== "signup" && <p className="panel" role="status">Complete your account setup to request a time. <a href="#login">Verify your mobile number</a></p>}
         {view === "center-login" ? <section className="panel center-direct-login"><CenterLogin onDone={()=>navigate("center")}/></section> : view === "reset-password" ? <PasswordReset onReset={clear}/> : (view === "login" || view === "signup") ? <MobileAccount key={view} signup={view === "signup"} facility={pendingBooking?.entry?.name} account={account} onDone={async member=>{setAccount(member);navigate("search");setToast("You are signed in.");if(member.zip_code && !pendingBooking) await search({...initialState(),location:member.zip_code,sort:"distance"});}}/> : nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} onForgotten={()=>{clear();navigate("home");setToast("Your account and requests are deleted.");}} /> : linkedBooking ? (

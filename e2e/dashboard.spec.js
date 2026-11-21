@@ -52,7 +52,10 @@ test("signed-in dashboard shows profile, request status and request links", asyn
       },
     }),
   );
-  await page.getByRole("button", { name: "Requests", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Dashboard sections" })
+    .getByRole("button", { name: "Open", exact: true })
+    .click();
   await page
     .getByRole("group", { name: "Request status" })
     .getByRole("button", { name: "Open requests", exact: true })
