@@ -86,7 +86,14 @@ export default function MemberSidebar({ initials, name, detail, current, onGo, o
                 className="side-parent"
                 aria-expanded={isOpen(group)}
                 aria-current={group.key === active ? "true" : undefined}
-                onClick={() => setOpened((old) => ({ ...old, [group.key]: !isOpen(group) }))}
+                onClick={() => {
+                  if (group.key !== active) {
+                    setOpened((old) => ({ ...old, [group.key]: true }));
+                    if (group.key === "requests") go(group.items[0][0]);
+                    return;
+                  }
+                  setOpened((old) => ({ ...old, [group.key]: !isOpen(group) }));
+                }}
               >
                 {group.label}
                 {group.key === "requests" && typeof total === "number" && <span>{total}</span>}
