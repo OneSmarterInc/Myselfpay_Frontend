@@ -14,7 +14,7 @@ const tabs = [
 const contrastWords = { without: "without contrast", with: "with contrast", both: "without and with contrast" };
 const examLine = (item) => {
   const service = item.service && !/^please contact me$/i.test(item.service) ? item.service : "";
-  return [[service, item.exam].filter(Boolean).join(" "), contrastWords[item.contrast] || ""].filter(Boolean).join(" ") || "Exam not listed";
+  return [[service && item.exam && item.exam.toLowerCase().startsWith(service.toLowerCase()) ? "" : service, item.exam].filter(Boolean).join(" "), contrastWords[item.contrast] || ""].filter(Boolean).join(" ") || "Exam not listed";
 };
 const slotText = (slot) =>
   new Date(slot.date + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) +
@@ -346,7 +346,7 @@ function takeRequestedTab() {
   try {
     const wanted = sessionStorage.getItem("msp-dashboard-tab");
     sessionStorage.removeItem("msp-dashboard-tab");
-    return wanted === "profile" ? "profile" : "all";
+    return ["profile", "open", "approved", "closed"].includes(wanted) ? wanted : "all";
   } catch {
     return "all";
   }
@@ -364,6 +364,9 @@ export default function UserDashboard({ account, onForgotten }) {
     window.addEventListener("msp-dashboard-tab", pick);
     return () => window.removeEventListener("msp-dashboard-tab", pick);
   }, []);
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("msp-dashboard-current", { detail: { tab } }));
+  }, [tab]);
   const signedIn = account && account.tenant !== "guest";
   useEffect(() => {
     if (!signedIn) return;
@@ -415,38 +418,8 @@ export default function UserDashboard({ account, onForgotten }) {
   const initials = /^[A-Za-z]/.test(firstName) ? firstName[0].toUpperCase() : "A";
   return (
     <section className="user-dashboard" aria-busy={loading}>
-      <div className="dashboard-layout">
-        <aside className="dashboard-sidebar">
-          <div className="dashboard-account-mini">
-            <span className="dashboard-avatar" aria-hidden="true">
-              {initials}
-            </span>
-            <div>
-              <strong>{name}</strong>
-              <span>{phoneIdentity ? `${firstName ? formatPhone(phoneIdentity) + " · " : ""}Verified` : "Personal account"}</span>
-            </div>
-          </div>
-          <nav className="dashboard-tabs" aria-label="Dashboard sections">
-            {tabs.map(([key, label]) => (
-              <button
-                type="button"
-                key={key}
-                aria-label={label}
-                aria-current={
-                  tab === key ||
-                  (key === "all" && ["open", "approved"].includes(tab))
-                    ? "page"
-                    : undefined
-                }
-                onClick={() => select(key)}
-              >
-                {label}
-                {key === "all" && <span>{total}</span>}
-              </button>
-            ))}
-          </nav>
-        </aside>
-        <div className="dashboard-content">
+      <div className="dashboard-content">
+          <div className="dashboard-column">
           <div className="dashboard-heading dashboard-welcome">
             <div>
               <p className="eyebrow">MYSELFPAY ACCOUNT</p>
@@ -586,7 +559,7 @@ export default function UserDashboard({ account, onForgotten }) {
               )}
             </>
           )}
-        </div>
+          </div>
       </div>
     </section>
   );
