@@ -1670,3 +1670,4 @@
 .center-workspace .cw-row-action button{min-height:44px;font-size:14px;padding:0 16px}
 .center-workspace .cw-badge,.center-workspace .cw-table-row [role=cell] .cw-status{font-size:12px}
 .center-workspace .cw-row-action{display:flex;justify-content:flex-end}.center-workspace .cw-row-action button{display:inline-flex;align-items:center;gap:8px;width:max-content;min-width:0;max-width:none;flex:0 0 auto;white-space:nowrap;padding:0 18px}
+.cw-slot-lines{display:flex;flex-direction:column;gap:2px}.cw-slot-lines span{display:block}

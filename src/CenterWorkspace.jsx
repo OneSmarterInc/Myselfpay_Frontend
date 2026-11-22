@@ -142,7 +142,7 @@ const slotLine = (slots = []) =>
       const d = new Date(`${slot.date}T12:00:00`);
       return `${d.toLocaleDateString(undefined, { weekday: "short" })} ${d.toLocaleDateString(undefined, { month: "short" })} ${d.getDate()} ${slot.period === "morning" ? "morning" : "afternoon"}`;
     })
-    .join(" · ");
+    .filter(Boolean);
 const examName = (item) => {
   const service = String(item.service || "").trim();
   const exam = String(item.exam || "").trim();
@@ -1925,7 +1925,7 @@ export default function CenterWorkspace({ onLogin }) {
                               {item.status === "scheduled" ? (
                                 <span>{approvedSlotLabel(item.approved_slot)}</span>
                               ) : item.slots?.length ? (
-                                <span>{slotLine(item.slots)}</span>
+                                <span className="cw-slot-lines">{slotLine(item.slots).map((line) => <span key={line}>{line}</span>)}</span>
                               ) : (
                                 <span>Times not provided</span>
                               )}

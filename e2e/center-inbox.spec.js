@@ -58,7 +58,8 @@ test("the inbox opens on New with plain counts and status words", async ({ page 
   await expect(counts.getByRole("button", { name: "Closed 2" })).toBeVisible();
   await expect(counts.getByRole("button", { name: "Total 4" })).toBeVisible();
   await expect(page.getByText("Received 2 days ago")).toBeVisible();
-  await expect(page.getByText("Thu Dec 10 morning · Fri Dec 11 afternoon")).toBeVisible();
+  await expect(page.getByText("Thu Dec 10 morning")).toBeVisible();
+  await expect(page.getByText("Fri Dec 11 afternoon")).toBeVisible();
   await expect(page.getByText(/^Showing /)).toHaveCount(0);
   await counts.getByRole("button", { name: /^Closed/ }).click();
   await expect(page.getByText("Closed: patient scheduled elsewhere")).toBeVisible();
