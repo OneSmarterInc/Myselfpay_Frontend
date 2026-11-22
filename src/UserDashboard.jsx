@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
-import RequestStatusTabs from "./RequestStatusTabs.jsx";
 import { approvedSlotLabel } from "./approved-slot.js";
 import { canCancel, statusLabel } from "./request-status.js";
 import { formatPhone } from "./center-phone.js";
@@ -492,18 +491,6 @@ export default function UserDashboard({ account, onForgotten }) {
                       Refresh
                     </button>
                   </div>
-                  <RequestStatusTabs
-                    value={tab}
-                    counts={{
-                      all: total,
-                      open,
-                      approved: stats.scheduled || 0,
-                      closed: Math.max(0, total - open - (stats.scheduled || 0)),
-                    }}
-                    onChange={select}
-                    confirmedLabel="Time confirmed"
-                    disabled={loading}
-                  />
                   {!value.requests.length && (
                     <div className="dashboard-empty">
                       <span className="dashboard-empty-icon" aria-hidden="true">

@@ -585,6 +585,15 @@ export default function App() {
       window.removeEventListener("storage", sync);
     };
   }, []);
+  useEffect(() => {
+    const out = () => centerLogout();
+    window.addEventListener("msp-center-signout", out);
+    return () => window.removeEventListener("msp-center-signout", out);
+  });
+  useEffect(() => {
+    if (view !== "center" || !centerSession || !isMember) return;
+    api("/logout", {}).catch(() => {}).finally(() => clear());
+  }, [view, centerSession, isMember]);
   function openDashboard(tab) {
     try {
       sessionStorage.setItem("msp-dashboard-tab", tab);
@@ -1414,7 +1423,7 @@ export default function App() {
     <div onClick={click} onSubmit={submit} ref={form} className={"app-root " + (nativeApp ? "native-app " : "") + (view === "center" ? "center-dashboard-active" : view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : "")}>
       {nativeApp ? <NativeAppHeader account={account} view={view} busy={busy||boot} onSearch={()=>openNativeSearch()} onHome={()=>navigate("home")} onDirectory={()=>setDialog({type:"directory"})} onSignOut={logout}/> : (
       <header className="site-header">
-        {memberFrame && <button type="button" className="side-toggle" aria-label="Open menu" aria-expanded={sideOpen} onClick={()=>setSideOpen(o=>!o)}>☰</button>}
+        {(memberFrame || (view === "center" && centerSession)) && <button type="button" className="side-toggle" aria-label="Open menu" aria-expanded={sideOpen} onClick={()=>view === "center" ? window.dispatchEvent(new Event("msp-side-toggle")) : setSideOpen(o=>!o)}>☰</button>}
         <a
           className="brand"
           id="brandHome"

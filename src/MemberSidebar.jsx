@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const groups = [
+export const memberGroups = [
   {
     key: "find",
     label: "Find facilities",
@@ -40,23 +40,44 @@ export function currentKey(view, tab) {
   return "";
 }
 
-function groupOf(key) {
-  if (key.startsWith("requests:")) return "requests";
-  if (key === "profile") return "profile";
-  if (["search", "agent"].includes(key)) return "find";
-  return "";
+export const centerGroups = [
+  {
+    key: "inbox",
+    label: "Inbox",
+    items: [
+      ["inbox:open", "New"],
+      ["inbox:approved", "Time confirmed"],
+      ["inbox:closed", "Closed"],
+      ["inbox:all", "All"],
+    ],
+  },
+  { key: "prices", label: "Self-pay prices", items: [] },
+  { key: "profile", label: "Center profiles", items: [] },
+  {
+    key: "help",
+    label: "Help",
+    items: [
+      ["faq", "FAQ"],
+      ["contact", "Contact"],
+    ],
+  },
+];
+
+function groupOf(groups, key) {
+  const hit = groups.find((group) => group.key === key || group.items.some(([item]) => item === key));
+  return hit ? hit.key : "";
 }
 
-export default function MemberSidebar({ initials, name, detail, current, onGo, open, onClose, total }) {
+export default function MemberSidebar({ initials, name, detail, current, onGo, open, onClose, total, groups = memberGroups, label = "Account menu", navLabel = "Dashboard sections" }) {
   const [opened, setOpened] = useState({});
-  const active = groupOf(current);
+  const active = groupOf(groups, current);
   const isOpen = (group) => (group.key in opened ? opened[group.key] : group.key === active);
   const go = (key) => {
     onGo(key);
     onClose?.();
   };
   return (
-    <aside className={"dashboard-sidebar member-sidebar" + (open ? " is-open" : "")} aria-label="Account menu">
+    <aside className={"dashboard-sidebar member-sidebar" + (open ? " is-open" : "")} aria-label={label}>
       <div className="dashboard-account-mini">
         <span className="dashboard-avatar" aria-hidden="true">
           {initials}
@@ -66,7 +87,7 @@ export default function MemberSidebar({ initials, name, detail, current, onGo, o
           <span>{detail}</span>
         </div>
       </div>
-      <nav className="dashboard-tabs" aria-label="Dashboard sections">
+      <nav className="dashboard-tabs" aria-label={navLabel}>
         {groups.map((group) =>
           group.items.length === 0 ? (
             <button
@@ -84,19 +105,20 @@ export default function MemberSidebar({ initials, name, detail, current, onGo, o
               <button
                 type="button"
                 className="side-parent"
+                aria-label={group.label}
                 aria-expanded={isOpen(group)}
                 aria-current={group.key === active ? "true" : undefined}
                 onClick={() => {
                   if (group.key !== active) {
                     setOpened((old) => ({ ...old, [group.key]: true }));
-                    if (group.key === "requests") go(group.items[0][0]);
+                    if (group.items.length && ["requests", "inbox"].includes(group.key)) go(group.items[0][0]);
                     return;
                   }
                   setOpened((old) => ({ ...old, [group.key]: !isOpen(group) }));
                 }}
               >
                 {group.label}
-                {group.key === "requests" && typeof total === "number" && <span>{total}</span>}
+                {typeof total?.[group.key] === "number" && <span>{total[group.key]}</span>}
                 <i aria-hidden="true">{isOpen(group) ? "–" : "+"}</i>
               </button>
               {isOpen(group) && (

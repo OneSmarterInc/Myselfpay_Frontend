@@ -107,7 +107,7 @@ test("center workspace navigation, filters, pagination and responsive request de
     page
       .getByRole("navigation", { name: "Center dashboard sections" })
       .getByRole("button", { name: "Inbox", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+  ).toHaveAttribute("aria-current", "true");
   await expect(
     page
       .getByRole("navigation", { name: "Center dashboard sections" })
@@ -128,6 +128,7 @@ test("center workspace navigation, filters, pagination and responsive request de
     path: "../tmp/center-workspace-profile-mobile.png",
     fullPage: true,
   });
+  await page.getByRole("button", { name: "Open menu" }).click();
   await page
     .getByRole("navigation", { name: "Center dashboard sections" })
     .getByRole("button", { name: "Inbox", exact: true })
