@@ -1446,7 +1446,7 @@ export default function App() {
         </a>
         <nav>
           <a className="center-door" href="/for-imaging-centers">For imaging centers</a>
-          <button id="faqLink" type="button" hidden={isMember}>FAQ</button>
+          <button id="faqLink" type="button" hidden={isMember || (view === "center" && !!centerSession)}>FAQ</button>
           <button id="history" hidden>
             Saved conversations
           </button>
