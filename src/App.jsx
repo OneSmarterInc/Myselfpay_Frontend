@@ -33,6 +33,7 @@ import { centerAPI } from "./center-api.js";
 import OriginalBooking, { OriginalBookingLink } from "./OriginalBooking.jsx";
 import { formatPhone } from "./center-phone.js";
 import MemberSidebar, { currentKey } from "./MemberSidebar.jsx";
+import HospitalRates from "./HospitalRates.jsx";
 
 const nativeApp = /MySelfPayAndroid\//.test(globalThis.navigator?.userAgent || "");
 
@@ -1165,6 +1166,8 @@ export default function App() {
   );
   function replace(node, options) {
     const id = node.attribs.id;
+    if (node.attribs["data-hospital-rates"] !== undefined)
+      return <HospitalRates zip={node.attribs["data-zip"]} modality={node.attribs["data-modality"]} prices={node.attribs["data-prices"]} />;
     if (id === "locationPicker")
       return (
         <div
