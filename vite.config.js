@@ -36,6 +36,13 @@ export default defineConfig({
   ],
   build: { rollupOptions: { output: { manualChunks: { h3: ["h3-js"] } } } },
   server: {
-    proxy: Object.fromEntries(["/api", "/admin", "/admin-assets"].map(path => [path, process.env.DEV_API_TARGET || "http://127.0.0.1:8000"])),
+    proxy: {
+      "/imaging-prices": {
+        target: "https://myselfpayheathdata.onesmarter.com",
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/imaging-prices/, ""),
+      },
+      ...Object.fromEntries(["/api", "/admin", "/admin-assets"].map(path => [path, process.env.DEV_API_TARGET || "http://127.0.0.1:8000"])),
+    },
   },
 });

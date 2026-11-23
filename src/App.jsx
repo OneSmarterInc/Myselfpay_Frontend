@@ -1,3 +1,5 @@
+import CHRIndex from "./CHRIndex.jsx";
+import HospitalComparison from "./HospitalComparison.jsx";
 import PasswordReset from "./PasswordReset.jsx";
 import MobileAccount from "./MobileAccount.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -152,7 +154,7 @@ export function OriginalHTML({ html, onInput, replace, disabled = false }) {
   return parse(html, options);
 }
 
-function Dialog({ children, onClose, booking = false }) {
+function Dialog({ children, onClose, booking = false, chr = false }) {
   const ref = useRef(null);
   useEffect(() => {
     ref.current?.showModal();
@@ -161,7 +163,7 @@ function Dialog({ children, onClose, booking = false }) {
   return (
     <dialog
       id="modal"
-      className={booking ? "booking-flow-dialog" : undefined}
+      className={booking ? "booking-flow-dialog" : chr ? "chr-index-dialog" : undefined}
       ref={ref}
       aria-labelledby="dialogTitle"
       onCancel={(event) => {
@@ -175,7 +177,7 @@ function Dialog({ children, onClose, booking = false }) {
           Close
         </button>
       </div>
-      <div className="modal-body" id="modalBody">
+      <div className="modal-body" id="modalBody" tabIndex={chr ? 0 : undefined} role={chr ? "region" : undefined} aria-label={chr ? "CHR comparison content" : undefined}>
         {children}
       </div>
     </dialog>
@@ -1024,6 +1026,12 @@ export default function App() {
       document.getElementById("location")?.scrollIntoView({ block: "center" });
       return;
     }
+    if (target.dataset.chr) {
+      event.preventDefault();
+      const offer = allOffers.find(item => item.id === target.dataset.chr);
+      if (offer) setDialog({type:"chr-index",offer});
+      return;
+    }
     if (target.dataset.detail) {
       event.preventDefault();
       navigate("facility/" + encodeURIComponent(target.dataset.detail));
@@ -1525,8 +1533,8 @@ export default function App() {
         </span>
       </footer>
       {dialog && (
-        <Dialog onClose={close} booking={dialog.type === "booking"}>
-          {dialog.type === "booking-login" ? <section className="booking-account-choice">
+        <Dialog onClose={close} booking={dialog.type === "booking"} chr={dialog.type === "chr-index"}>
+          {dialog.type === "chr-index" ? <CHRIndex offer={dialog.offer}/> : dialog.type === "booking-login" ? <section className="booking-account-choice">
             <h2 id="dialogTitle">{pendingBooking?.entry?.name ? `Request a time at ${pendingBooking.entry.name}` : "Request a time"}</h2>
             <p>Enter your mobile number and we text you a code. No password.</p>
             {pendingBooking?.entry?.name && <p>We’ll hold your spot with {pendingBooking.entry.name}.</p>}
