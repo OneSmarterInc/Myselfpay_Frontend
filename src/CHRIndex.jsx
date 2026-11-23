@@ -13,6 +13,11 @@ function listed(offer,modality){
 function sourceOf(row){for(const value of [row.price_file_url,row.price_page_url]){try{const url=new URL(value);if(['https:','http:'].includes(url.protocol))return url.href;}catch{}}return null;}
 export default function CHRIndex({offer}){
   const zip=initialZip(offer.entry);
+  const state=String(offer.entry.states||'').trim().toUpperCase();
+  const ohio=['OH','OHIO'].includes(state);
+  const location=offer.entry.locations?.find(item=>Number.isFinite(item.latitude)&&Number.isFinite(item.longitude));
+  const latitude=location?.latitude,longitude=location?.longitude;
+  const city=String(location?.city||offer.entry.area||'').split(',')[0].trim();
   const mri=listed(offer,'MRI')||'0';
   const ct=listed(offer,'CT')||'0';
   const [busy,setBusy]=useState(false);
@@ -24,12 +29,13 @@ export default function CHRIndex({offer}){
   const sequence=useRef(0);
   useEffect(()=>{const media=matchMedia('(max-width:600px)');const change=()=>setPhone(media.matches);media.addEventListener('change',change);return()=>{media.removeEventListener('change',change);sequence.current++;};},[]);
   useEffect(()=>{
-    if(!validZip(zip)){setError('This center has no saved five-digit ZIP code. Hospital comparison is unavailable.');return;}
+    if(!validZip(zip)&&!(ohio&&!zip)){setError('This center has no saved five-digit ZIP code. Hospital comparison is unavailable.');return;}
     const request=++sequence.current;setBusy(true);setError('');
     const params=new URLSearchParams({zip,mri,ct});
+    if(!zip&&ohio){params.set('state','OH');params.set('city',city);if(latitude!==undefined&&longitude!==undefined){params.set('latitude',latitude);params.set('longitude',longitude);}}
     api('/chr-index?'+params).then(data=>{if(request!==sequence.current)return;setResult(data);setModality(data.matches.MRI?'MRI':'CT');setExpanded(false);}).catch(error=>{if(request===sequence.current)setError(error.message);}).finally(()=>{if(request===sequence.current)setBusy(false);});
     return()=>{sequence.current++;};
-  },[zip,mri,ct]);
+  },[zip,mri,ct,ohio,city,latitude,longitude]);
   const rows=(result?.hospitals||[]).filter(row=>row.prices[modality]);
   const threshold=result?.thresholds[modality];
   const ranges=hospitalRanges(rows.map(row=>({...row.prices[modality],self_pay_median:row.prices[modality].cash_price})));
@@ -38,6 +44,7 @@ export default function CHRIndex({offer}){
   return <section className="chr-screen">
     <section className="hospital-comparison" aria-labelledby="dialogTitle">
       <div className="hc-heading"><div><h2 id="dialogTitle">Hospitals near you publish</h2><p>{result?`${result.hospital_count} hospital${result.hospital_count===1?'':'s'} within 50 miles of ZIP ${result.zip} have a lowest MRI or CT cash price above this center’s saved price.`:'Comparing hospital prices using this center’s saved ZIP code and prices.'}</p></div></div>
+      {result?.zip_fallback&&<p className="hc-help">Using ZIP {result.zip}: {result.zip_basis}. The center has no saved ZIP code.</p>}
       {error&&<p role="alert" className="hc-error">{error}</p>}
       {busy&&<div className="hc-loading" role="status"><span className="hc-spinner" aria-hidden="true"/>Checking hospital prices…</div>}
       {!busy&&result&&<><div className="chr-tabs" role="group" aria-label="Compare imaging service">{['MRI','CT'].map(value=><button key={value} type="button" aria-pressed={modality===value} disabled={result.thresholds[value]===null} onClick={()=>{setModality(value);setExpanded(false);}}>{value}<span>{result.matches[value]}</span></button>)}</div>
