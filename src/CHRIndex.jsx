@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {api} from './api.js';
+import {chrLocation} from './chr-location.js';
 import {cardPriceSummary,directoryOffer} from './directory-offer.js';
 import {RangeChart} from './HospitalComparison.jsx';
 import {dollars,hospitalRanges,initialZip,positive,rangeLabel,validZip} from './imaging-prices.js';
@@ -13,11 +14,7 @@ function listed(offer,modality){
 function sourceOf(row){for(const value of [row.price_file_url,row.price_page_url]){try{const url=new URL(value);if(['https:','http:'].includes(url.protocol))return url.href;}catch{}}return null;}
 export default function CHRIndex({offer}){
   const zip=initialZip(offer.entry);
-  const state=String(offer.entry.states||'').trim().toUpperCase();
-  const ohio=['OH','OHIO'].includes(state);
-  const location=offer.entry.locations?.find(item=>Number.isFinite(item.latitude)&&Number.isFinite(item.longitude));
-  const latitude=location?.latitude,longitude=location?.longitude;
-  const city=String(location?.city||offer.entry.area||'').split(',')[0].trim();
+  const {ohio,city,latitude,longitude}=chrLocation(offer);
   const mri=listed(offer,'MRI')||'0';
   const ct=listed(offer,'CT')||'0';
   const [busy,setBusy]=useState(false);
