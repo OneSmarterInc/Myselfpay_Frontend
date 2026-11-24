@@ -1,3 +1,5 @@
+import CHRIndex from "../CHRIndex.jsx";
+import {directoryOffer} from "../directory-offer.js";
 import Icon from "./Icon.jsx";
 
 import { comparePrice } from "./priceComparison.js";
@@ -46,7 +48,7 @@ export default function OwnerPages({ center, route, navigate }) {
 
     ) : (
 
-      <><DirectoryPrices center={center} /><OwnerList center={center} navigate={navigate} type="pricing" /></>
+      <><CenterCHRComparison center={center} /><DirectoryPrices center={center} /><OwnerList center={center} navigate={navigate} type="pricing" /></>
 
     );
 
@@ -1142,3 +1144,15 @@ function DirectoryPrices({ center }) {
 
 }
 
+
+
+function CenterCHRComparison({center}) {
+ const [retry,setRetry]=useState(0);
+ const resource=useResource(`/centers/${center.id}/chr-offer`,retry);
+ if(resource.loading)return <p role="status">Loading center CHR index...</p>;
+ if(resource.error)return <section className="panel"><Alert error>{resource.error}</Alert><button onClick={()=>setRetry(n=>n+1)}>Retry CHR index</button></section>;
+ if(!resource.data)return null;
+ const {entry,offer}=resource.data;
+ const selected=offer?{...offer,entry}:directoryOffer(entry);
+ return <section className="center-chr-comparison"><h1>CHR index</h1><CHRIndex key={center.id} offer={selected} /></section>;
+}

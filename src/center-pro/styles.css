@@ -1569,3 +1569,11 @@
 .center-pro-root .previous-scans-panel th:nth-child(2){width:15%}
 .center-pro-root .previous-scans-panel th:nth-child(n+3){width:15%}
 @media(max-width:680px){.center-pro-root .previous-scans-panel table{table-layout:auto}.center-pro-root .previous-scans-panel td,.center-pro-root .previous-scans-panel td:first-child{width:auto;text-align:left;padding:10px 16px}}
+
+.center-pro-root .center-chr-comparison{margin-bottom:32px;min-width:0}
+.center-pro-root .center-chr-comparison>.chr-screen{max-width:none;width:100%}
+.center-pro-root .center-chr-comparison .hospital-comparison{margin:16px 0;max-width:none}
+.center-pro-root .center-chr-comparison .hc-hospital-table{table-layout:fixed;width:100%}
+.center-pro-root .center-chr-comparison .hc-hospital-table th,.center-pro-root .center-chr-comparison .hc-hospital-table td{padding:10px 8px;font-size:14px;line-height:1.5;vertical-align:top}
+.center-pro-root .center-chr-comparison .hc-hospital-table th:first-child{width:32%;text-align:left}
+@media(max-width:600px){.center-pro-root .center-chr-comparison .hc-hospital-table th:first-child{width:auto}.center-pro-root .center-chr-comparison .hc-hospital-table td{padding:0}}
