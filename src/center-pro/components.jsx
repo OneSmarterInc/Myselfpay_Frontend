@@ -101,7 +101,6 @@ export function Drawer({ open, onClose, onNavigate, route, role }) {
             ["overview", "Overview"],
             ["requests", "Requests"],
             ["availability", "Scheduling"],
-            ["nearby-companies", "Employee to near you"],
             ["audit", "Activity log"],
           ]
         : [
@@ -112,7 +111,6 @@ export function Drawer({ open, onClose, onNavigate, route, role }) {
             ["pricing", "Price comparison"],
             ["previous-scans", "Previous scans"],
             ["outreach", "Referrals"],
-            ["nearby-companies", "Employee to near you"],
             ["subscription", "Subscription"],
             ["audit", "Activity log"],
           ];
