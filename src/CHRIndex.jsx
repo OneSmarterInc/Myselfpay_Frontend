@@ -26,6 +26,7 @@ export default function CHRIndex({offer}){
   const sequence=useRef(0);
   useEffect(()=>{const media=matchMedia('(max-width:600px)');const change=()=>setPhone(media.matches);media.addEventListener('change',change);return()=>{media.removeEventListener('change',change);sequence.current++;};},[]);
   useEffect(()=>{
+    if(!ohio)return;
     if(!validZip(zip)&&!(ohio&&!zip)){setError('This center has no saved five-digit ZIP code. Hospital comparison is unavailable.');return;}
     const request=++sequence.current;setBusy(true);setError('');
     const params=new URLSearchParams({zip,mri,ct});
@@ -38,6 +39,7 @@ export default function CHRIndex({offer}){
   const ranges=hospitalRanges(rows.map(row=>({...row.prices[modality],self_pay_median:row.prices[modality].cash_price})));
   const knownDistances=rows.length>0&&rows.every(row=>Number.isFinite(row.distance_miles));
   const initialCount=phone?4:6;
+  if(!ohio)return <section className="chr-screen"><section className="hospital-comparison" aria-labelledby="dialogTitle"><h2 id="dialogTitle">CHR index</h2><p role="status">Data for this state is not available at this moment.</p></section></section>;
   return <section className="chr-screen">
     <section className="hospital-comparison" aria-labelledby="dialogTitle">
       <div className="hc-heading"><div><h2 id="dialogTitle">Hospitals near you publish</h2><p>{result?`${result.hospital_count} hospital${result.hospital_count===1?'':'s'} within 50 miles of ZIP ${result.zip} have a lowest MRI or CT cash price above this center’s saved price.`:'Comparing hospital prices using this center’s saved ZIP code and prices.'}</p></div></div>
