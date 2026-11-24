@@ -1,3 +1,4 @@
+import { arrangeZipResults } from './zip-results.js';
 import { centerCardOffers } from './center-card-offers.js';
 import { cardLocation } from './card-location.js';
 import { presentListing } from './directory-policy.js';
@@ -62,15 +63,18 @@ function coverageSummary(showPublished=false){
 }
 function initialSearch(){const q=state.location.trim().toLowerCase();const leads=q&&!/^\d/.test(q)?DIRECTORY.filter(d=>d.area.toLowerCase().includes(q)||d.states.toLowerCase()===q):[];return `<div class="panel"><h2>${state.location?'Browse imaging centers in your state':'Where would you like to search?'}</h2><p>${state.mod&&state.body.trim()?'Your exam details are ready. Enter a city or state to find options.':'Select your state to browse imaging centers. All other filters are optional.'}</p><p class="small" id="catalogStatus" role="status">${esc(catalogStatus())}</p><div class="actions">${import.meta.env?.PROD?'':'<button id="sampleSearch">Try sample: knee MRI in Cincinnati</button>'}<button id="browseDirectory">Browse all facilities</button></div>${import.meta.env?.PROD?'':'<p class="small">The sample is a demonstration search, not a recommendation for a medical test.</p>'}<p class="small">Enter a city or ZIP to see how far each facility is.</p>${leads.length?'<h3>Directory locations in your search area</h3><p class="small">Entries may cover multiple locations. Service availability and exact addresses require confirmation.</p>'+leads.map(d=>`<div class="lead"><strong>${esc(d.name)}</strong><p>${esc(d.area)}</p><a href="${esc(d.source)}" target="_blank" rel="noopener noreferrer">Check provider locations</a></div>`).join(''):''}</div>`}
 function groupedCards(found){
- const listings=[...found,...(state.programs||[]),...(state.programEntries||[]).map(e=>directoryOffer(e,state)),...(state.nearbyUnpriced||[]).map(e=>directoryOffer(e,state))];
+ let listings=[...found,...(state.programs||[]),...(state.programEntries||[]).map(e=>directoryOffer(e,state)),...(state.nearbyUnpriced||[]).map(e=>directoryOffer(e,state))];
  const isPriced=o=>o.directory_only?!!o.published_prices?.some(p=>['MRI','CT'].includes(p.service)):Number.isFinite(o.amount)&&!['quote','conflict'].includes(o.type);
  const miles=o=>Number.isFinite(o.distance_miles)?o.distance_miles:Infinity;
  listings.sort((a,b)=>(isPriced(b)-isPriced(a))||((!state.sort||state.sort==='distance')?(miles(a)<miles(b)?-1:miles(a)>miles(b)?1:0):0));
+ const zipResults=arrangeZipResults(listings,state.spatialActive ? "" : state.location);
+ listings=zipResults.offers;
  const page=paginateGroups([listings],state.resultsPage||0);
  if(!page.total)return '';
  const [cards]=page.items;
  const pagination=page.pages>1?`<nav class="row between" aria-label="Imaging center results pages"><span role="status">Showing ${page.start}–${page.end} of ${page.total} listings · Page ${page.current+1} of ${page.pages}</span><div class="row"><button type="button" data-results-page="${page.current-1}" ${page.current===0?'disabled':''}>Previous</button><button type="button" data-results-page="${page.current+1}" ${page.current===page.pages-1?'disabled':''}>Next</button></div></nav>`:'';
- return cards.map(card).join('')+pagination;
+ const notice=zipResults.zip&&!zipResults.exact&&page.current===0?`<div class="notice zip-results-notice" role="status"><strong>No matching listings in ZIP ${esc(zipResults.zip)}</strong><p>Data for this ZIP code is not available in the current search results. Showing nearby centers and hospitals${state.resolvedLocation?.state?` in ${esc(state.resolvedLocation.state)}`:''}, nearest first. Other search filters still apply.</p></div>`:'';
+ return notice+cards.map(card).join('')+pagination;
 }
 function catalogStatus(){if(!catalogReady&&!summary?.spatial_api_version&&summary?.listing_count)return `Directory available: ${summary.listing_count} researched entries. Browse the directory for full details.`;return catalogReady?`Directory loaded: ${catalogCounts?.entry_count??DIRECTORY.length} researched entries · ${catalogCounts?.offer_count??offers.filter(o=>!o.directory_only).length} mapped price offers. Entries can represent facilities, branches or programs; coverage is limited.`:catalogError?'The full directory is temporarily unavailable. You can still search; choose Browse all facilities to retry.':'The full directory is loading. You can search now using your city, state or ZIP.'}
 function chatDisabled(){if(account?.tenant!=='guest')return false;return state.chatBlocked||(state.conversationId?(state.usage[state.conversationId]||0)>=5:Object.keys(state.usage).length>=3)}

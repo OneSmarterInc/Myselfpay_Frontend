@@ -648,6 +648,7 @@ export default function App() {
         !!data.search.location &&
         data.search.location.toLowerCase() !== "national",
       locationNotice: data.location_notice || "",
+      resolvedLocation: data.resolved_location || null,
       unlocatedOfferCount: data.unlocated_offer_count || 0,
       noExamPrice: !!data.no_exam_price,
       searched: true,
