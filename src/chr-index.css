@@ -40,3 +40,12 @@
  .chr-screen .hc-hospital-table tbody th,.chr-screen .hc-hospital-table tbody td{padding-top:0;padding-bottom:0}
  .chr-screen .hc-hospital-table tbody th:first-child{font-size:13px}
 }
+
+/* Unavailable states need a short notice rather than the comparison workspace. */
+#modal.chr-index-dialog.chr-unavailable-dialog[open]{width:min(460px,calc(100vw - 32px));height:auto;max-height:calc(100dvh - 32px);margin:auto;border:1px solid #dedfdd;border-radius:12px;background:white}
+#modal.chr-unavailable-dialog>.modal-header{padding:12px 20px}
+#modal.chr-unavailable-dialog>.modal-body{flex:0 1 auto;padding:20px;overflow-y:auto;scrollbar-gutter:auto}
+.chr-unavailable-dialog .chr-screen{padding:0;margin:0;min-height:0}
+.chr-unavailable-dialog .hospital-comparison{padding:0;margin:0;border:0;background:white;border-radius:0}
+.chr-unavailable-dialog h2{font-size:20px;margin:0 0 12px}
+.chr-unavailable-dialog p{font-size:15px;line-height:1.6;margin:0}

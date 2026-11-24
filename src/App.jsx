@@ -1,3 +1,4 @@
+import { chrLocation } from './chr-location.js';
 import CHRIndex from "./CHRIndex.jsx";
 import HospitalComparison from "./HospitalComparison.jsx";
 import PasswordReset from "./PasswordReset.jsx";
@@ -154,7 +155,7 @@ export function OriginalHTML({ html, onInput, replace, disabled = false }) {
   return parse(html, options);
 }
 
-function Dialog({ children, onClose, booking = false, chr = false }) {
+function Dialog({ children, onClose, booking = false, chr = false, compact = false }) {
   const ref = useRef(null);
   useEffect(() => {
     ref.current?.showModal();
@@ -163,7 +164,7 @@ function Dialog({ children, onClose, booking = false, chr = false }) {
   return (
     <dialog
       id="modal"
-      className={booking ? "booking-flow-dialog" : chr ? "chr-index-dialog" : undefined}
+      className={booking ? "booking-flow-dialog" : chr ? "chr-index-dialog" + (compact ? " chr-unavailable-dialog" : "") : undefined}
       ref={ref}
       aria-labelledby="dialogTitle"
       onCancel={(event) => {
@@ -1533,7 +1534,7 @@ export default function App() {
         </span>
       </footer>
       {dialog && (
-        <Dialog onClose={close} booking={dialog.type === "booking"} chr={dialog.type === "chr-index"}>
+        <Dialog onClose={close} booking={dialog.type === "booking"} chr={dialog.type === "chr-index"} compact={dialog.type === "chr-index" && !chrLocation(dialog.offer).ohio}>
           {dialog.type === "chr-index" ? <CHRIndex offer={dialog.offer}/> : dialog.type === "booking-login" ? <section className="booking-account-choice">
             <h2 id="dialogTitle">{pendingBooking?.entry?.name ? `Request a time at ${pendingBooking.entry.name}` : "Request a time"}</h2>
             <p>Enter your mobile number and we text you a code. No password.</p>
