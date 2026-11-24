@@ -1,0 +1,16 @@
+import {useEffect,useState} from 'react';
+import {useResource} from './useResource.js';
+import {Alert,Pagination} from './components.jsx';
+
+function sourceLinks(text){return [...new Set((text.match(/https?:\/\/[^\s;]+/g)||[]))].filter(value=>{try{return ['https:','http:'].includes(new URL(value).protocol)}catch{return false}})}
+export default function NearbyCompanies({center}){
+ const [search,setSearch]=useState(''),[query,setQuery]=useState(''),[page,setPage]=useState(1),[size,setSize]=useState(10),[retry,setRetry]=useState(0);
+ useEffect(()=>{const timer=setTimeout(()=>{setQuery(search);setPage(1)},250);return()=>clearTimeout(timer)},[search]);
+ const resource=useResource(`/centers/${center.id}/nearby-companies?${new URLSearchParams({search:query,page:String(page),page_size:String(size)})}`,retry);
+ const headers=['Company Name','Company Address','Public Email Address','Email Type','Business Phone','Employee Count','Distance (Miles)','Location & Distance Status','Verification Status','Source Links'];
+ const fields=['company_name','company_address','public_email','email_type','business_phone','employee_count','distance_text','location_distance_status','verification_status'];
+ return <><div className="page-heading"><h1>Employee to near you</h1><p>Companies listed for your center within 100 miles. Employee counts, distances and verification labels are reproduced from the supplied directory.</p></div>
+ <section className="panel data-panel nearby-companies-panel"><div className="filters pricing-filters"><label>Search companies<input type="search" placeholder="Company name, address or public email" value={search} onChange={e=>setSearch(e.target.value)} /></label><label>Rows per page<select value={size} onChange={e=>{setSize(Number(e.target.value));setPage(1)}}><option>5</option><option>10</option><option>20</option></select></label></div>
+ {resource.loading?<p className="table-state" role="status">Loading companies...</p>:resource.error?<div className="table-state"><Alert error>{resource.error}</Alert><button onClick={()=>setRetry(n=>n+1)}>Retry</button></div>:!resource.data?.results.length?<div className="table-state"><h2>No companies available</h2><p>{query?'No companies match this search.':'No employer directory is mapped to this center yet.'}</p></div>:<div className="nearby-companies-scroll" tabIndex={0} role="region" aria-label="Company directory, scroll horizontally for all columns"><table><thead><tr>{headers.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{resource.data.results.map(row=><tr key={row.id}>{fields.map((field,i)=><td key={field} data-label={headers[i]}>{row[field]||'Not listed'}</td>)}<td data-label="Source Links">{sourceLinks(row.source_links).map((url,i)=><a href={url} key={url} target="_blank" rel="noopener noreferrer">Source {i+1}</a>)}{!sourceLinks(row.source_links).length&&'Not listed'}</td></tr>)}</tbody></table></div>}
+ {resource.data&&<Pagination count={resource.data.count} page={page} size={size} onPage={setPage}/>}</section><p className="source-note">Distances are those reported in the workbook. Unknown distances remain marked as supplied; records above 100 miles are excluded. Source verification labels have not been independently rechecked.</p></>;
+}
