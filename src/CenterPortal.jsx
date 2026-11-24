@@ -139,6 +139,7 @@ export function CenterLogin({ onDone }) {
     <section className="center-login">
       <p className="eyebrow">FOR IMAGING CENTERS</p>
       <h2 id="dialogTitle">{finding ? "Find your listing" : "Center login"}</h2>
+      <p className="center-help"><a href="#center-pro/sign-in">Assigned owner or staff? Sign in with a secure email link</a></p>
       {finding ? (
         <>
           <p>

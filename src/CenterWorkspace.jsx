@@ -1448,7 +1448,7 @@ function RequestDetail({ request, busy, onBack, onAction, onSave }) {
     </div>
   );
 }
-export default function CenterWorkspace({ onLogin }) {
+export default function CenterWorkspace({ onLogin, embedded = false, initialTab = "open" }) {
   const [sideOpen, setSideOpen] = useState(false);
   useEffect(() => {
     const flip = () => setSideOpen((open) => !open);
@@ -1459,7 +1459,7 @@ export default function CenterWorkspace({ onLogin }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(true),
     [message, setMessage] = useState("");
-  const [tab, setTab] = useState("open"),
+  const [tab, setTab] = useState(initialTab),
     [request, setRequest] = useState(null),
     [query, setQuery] = useState(""),
     [center, setCenter] = useState("all"),
@@ -1609,11 +1609,11 @@ export default function CenterWorkspace({ onLogin }) {
   }, [data, name]);
   return (
     <section
-      className="center-workspace"
+      className={"center-workspace" + (embedded ? " cw-embedded" : "")}
       aria-busy={busy}
       onSubmit={(e) => e.stopPropagation()}
     >
-      {data && (
+      {data && !embedded && (
         <>
         {sideOpen && <div className="side-scrim" onClick={() => setSideOpen(false)} />}
         <MemberSidebar

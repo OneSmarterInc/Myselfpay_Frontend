@@ -1,14 +1,18 @@
+import { ownerPortalCsrf } from "./center-pro/api.js";
 import { beginLoading } from "./loading-state.js";
 const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 let csrf = "";
 export async function centerAPI(action, data) {
   const endLoading = beginLoading();
   try {
-    const response = await fetch(`${base}/center/${action}`, {
+    const ownerPage = /^#center-pro\/(inbox|self-pay-prices|profiles)(?:$|\/)/.test(location.hash);
+    const scope = ownerPage ? sessionStorage.getItem("pro-center") : null;
+    const suffix = scope ? `?owner_center=${encodeURIComponent(scope)}` : "";
+    const response = await fetch(`${base}/center/${action}${suffix}`, {
       method: data === undefined ? "GET" : "POST",
       credentials: "include",
       cache: "no-store",
-      headers: { "Content-Type": "application/json", "X-Center-CSRF": csrf },
+      headers: { "Content-Type": "application/json", "X-Center-CSRF": csrf, ...(scope ? {"X-CSRFToken": ownerPortalCsrf()} : {}) },
       ...(data === undefined ? {} : { body: JSON.stringify(data) }),
       signal: AbortSignal.timeout(45000),
     });

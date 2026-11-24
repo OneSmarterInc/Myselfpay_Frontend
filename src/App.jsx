@@ -1,3 +1,5 @@
+import { lazy, Suspense } from 'react';
+const CenterProApp = lazy(() => import('./center-pro/App.jsx'));
 import CHRIndex from "./CHRIndex.jsx";
 import HospitalComparison from "./HospitalComparison.jsx";
 import PasswordReset from "./PasswordReset.jsx";
@@ -18,7 +20,7 @@ import NativeInfoPage, {isNativeInfo} from "./NativeInfoPage.jsx";
 import NativeLoading from "./NativeLoading.jsx";
 import useNativeKeyboard from './useNativeKeyboard.js';
 import UserDashboard from "./UserDashboard.jsx";
-import CenterPortal, { CenterFaq, CenterLogin } from "./CenterPortal.jsx";
+import CenterPortal, { CenterFaq } from "./CenterPortal.jsx";
 import {
   filterDirectory,
   sortDirectory,
@@ -93,7 +95,7 @@ const payload = (state) =>
 const route = () => {
   const path = location.pathname.replace(/\/+$/, "");
   const next = decodeURIComponent(location.hash.slice(1) || (path === "/center-login" ? "center-login" : path === "/center-portal" ? "center" : "home"));
-  return next === "faq" ? "home" : next;
+  return next === "center-login" ? "center-pro/sign-in" : next === "faq" ? "home" : next;
 };
 
 export function OriginalHTML({ html, onInput, replace, disabled = false }) {
@@ -866,7 +868,7 @@ export default function App() {
           resultsHeading: "",
           spatialActive: true,
           spatialLoading: true,
-          spatialStatus: "Waiting for browser location permission…",
+          spatialStatus: "Waiting for browser location permissionâ€¦",
           searched: true,
           dirty: false,
           selected: [],
@@ -944,7 +946,7 @@ export default function App() {
     }
     if (id === "welcomeCenter") {
       event.preventDefault();
-      setDialog({ type: "center-login" });
+      navigate("center-pro/sign-in");
       return;
     }
     if (
@@ -1217,7 +1219,7 @@ export default function App() {
       return (
         <div id="searchNotice" role="status">
           {state.dirty
-            ? "Search changed—click Find options to update results. Displayed results belong to your previous search."
+            ? "Search changedâ€”click Find options to update results. Displayed results belong to your previous search."
             : /^Distances are approximate straight-line miles\b/.test(
                   state.locationNotice || "",
                 ) &&
@@ -1311,7 +1313,7 @@ export default function App() {
           aria-expanded={locationsOpen}
           aria-controls="cityChoices"
         >
-          ▼
+          â–¼
         </button>
       );
     if (id === "dirRows")
@@ -1430,11 +1432,12 @@ export default function App() {
   const linkedBooking = /^(booking|request|clinic)\//.test(view);
   const memberFrame =
     isMember && !nativeApp && !["center", "center-login", "login", "signup", "reset-password", "home"].includes(view) && !/^(booking|clinic)\//.test(view);
+  if (view === "center" || view.startsWith("center-pro/")) return <Suspense fallback={<p role="status" style={{padding:24}}>Loading center workspace…</p>}><CenterProApp /></Suspense>;
   return (
     <div onClick={click} onSubmit={submit} ref={form} className={"app-root " + (nativeApp ? "native-app " : "") + (view === "center" ? "center-dashboard-active" : view === "dashboard" && account && account.tenant !== "guest" ? "dashboard-active" : linkedBooking ? "booking-link-layout" : "")}>
       {nativeApp ? <NativeAppHeader account={account} view={view} busy={busy||boot} onSearch={()=>openNativeSearch()} onHome={()=>navigate("home")} onDirectory={()=>setDialog({type:"directory"})} onSignOut={logout}/> : (
       <header className="site-header">
-        {(memberFrame || (view === "center" && centerSession)) && <button type="button" className="side-toggle" aria-label="Open menu" aria-expanded={sideOpen} onClick={()=>view === "center" ? window.dispatchEvent(new Event("msp-side-toggle")) : setSideOpen(o=>!o)}>☰</button>}
+        {(memberFrame || (view === "center" && centerSession)) && <button type="button" className="side-toggle" aria-label="Open menu" aria-expanded={sideOpen} onClick={()=>view === "center" ? window.dispatchEvent(new Event("msp-side-toggle")) : setSideOpen(o=>!o)}>â˜°</button>}
         <a
           className="brand"
           id="brandHome"
@@ -1505,10 +1508,10 @@ export default function App() {
 
       <div className={memberFrame ? "member-frame" : "plain-frame"}>
         {memberFrame && sideOpen && <div className="side-scrim" onClick={()=>setSideOpen(false)}/>}
-      {memberFrame && <MemberSidebar initials={memberLabel(account).initial} name={String(account.name || "").trim().split(/\s+/)[0] || memberLabel(account).text} detail={account.phone ? formatPhone(account.phone) + " · Verified" : "Personal account"} current={currentKey(view, dashTab)} onGo={sidebarGo} open={sideOpen} onClose={()=>setSideOpen(false)}/>}
+      {memberFrame && <MemberSidebar initials={memberLabel(account).initial} name={String(account.name || "").trim().split(/\s+/)[0] || memberLabel(account).text} detail={account.phone ? formatPhone(account.phone) + " Â· Verified" : "Personal account"} current={currentKey(view, dashTab)} onGo={sidebarGo} open={sideOpen} onClose={()=>setSideOpen(false)}/>}
       <main className={"shell" + (view === "center" ? " center-shell" : view === "dashboard" && account && account.tenant !== "guest" ? " dashboard-shell" : view === "search" && state.searched ? " results-shell" : "")} id="app">
         {account?.setup_required && view !== "login" && view !== "signup" && <p className="panel" role="status">Complete your account setup to request a time. <a href="#login">Verify your mobile number</a></p>}
-        {view === "center-login" ? <section className="panel center-direct-login"><CenterLogin onDone={()=>navigate("center")}/></section> : view === "reset-password" ? <PasswordReset onReset={clear}/> : (view === "login" || view === "signup") ? <MobileAccount key={view} signup={view === "signup"} facility={pendingBooking?.entry?.name} account={account} onDone={async member=>{setAccount(member);navigate("search");setToast("You are signed in.");if(member.zip_code && !pendingBooking) await search({...initialState(),location:member.zip_code,sort:"distance"});}}/> : nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center" ? <CenterPortal onLogin={()=>setDialog({type:"center-login"})}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>setDialog({type:"center-login"})} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} onForgotten={()=>{clear();navigate("home");setToast("Your account and requests are deleted.");}} /> : linkedBooking ? (
+        {view === "reset-password" ? <PasswordReset onReset={clear}/> : (view === "login" || view === "signup") ? <MobileAccount key={view} signup={view === "signup"} facility={pendingBooking?.entry?.name} account={account} onDone={async member=>{setAccount(member);navigate("search");setToast("You are signed in.");if(member.zip_code && !pendingBooking) await search({...initialState(),location:member.zip_code,sort:"distance"});}}/> : nativeApp && isNativeInfo(view) ? <NativeInfoPage route={view} onBack={()=>navigate(account ? "search" : "home")}/> : view === "center-legacy" ? <CenterPortal onLogin={()=>navigate("center-pro/sign-in")}/> : nativeApp && view === "home" ? <NativeWelcome onCenterLogin={()=>navigate("center-pro/sign-in")} onStart={openNativeSearch} busy={busy||boot} member={account&&account.tenant!=="guest"}/> : view === "dashboard" ? <UserDashboard key={account?.id || "guest"} account={account} onForgotten={()=>{clear();navigate("home");setToast("Your account and requests are deleted.");}} /> : linkedBooking ? (
           <OriginalBookingLink route={view} ui={ui} />
         ) : (
           <OriginalHTML html={markup} onInput={input} replace={replace} />
@@ -1520,7 +1523,7 @@ export default function App() {
       <footer className="site-footer" hidden={nativeApp}>
         <span className="footer-brand">
           <img src="/logo.png" alt="" width="28" height="28" />
-          MySelfPay by One Smarter, Inc. · Dayton, Ohio
+          MySelfPay by One Smarter, Inc. Â· Dayton, Ohio
         </span>
         <span className="footer-links">
           <button id="faqLinkFooter" type="button" className="link-button">FAQ</button>
@@ -1537,12 +1540,12 @@ export default function App() {
           {dialog.type === "chr-index" ? <CHRIndex offer={dialog.offer}/> : dialog.type === "booking-login" ? <section className="booking-account-choice">
             <h2 id="dialogTitle">{pendingBooking?.entry?.name ? `Request a time at ${pendingBooking.entry.name}` : "Request a time"}</h2>
             <p>Enter your mobile number and we text you a code. No password.</p>
-            {pendingBooking?.entry?.name && <p>We’ll hold your spot with {pendingBooking.entry.name}.</p>}
+            {pendingBooking?.entry?.name && <p>Weâ€™ll hold your spot with {pendingBooking.entry.name}.</p>}
             <div className="actions">
               <button className="primary" onClick={()=>navigate("signup")}>Continue with my phone</button>
               <button className="text-link" onClick={close}>Cancel</button>
             </div>
-          </section> : dialog.type === "center-faq" ? <CenterFaq /> : dialog.type === "center-login" ? <CenterLogin onDone={()=>{setDialog(null);if(view==="center") location.reload();else navigate("center");}}/> : dialog.type === "booking" ? (
+          </section> : dialog.type === "center-faq" ? <CenterFaq /> : dialog.type === "booking" ? (
             <OriginalBooking
               entry={dialog.entry}
               account={account}
