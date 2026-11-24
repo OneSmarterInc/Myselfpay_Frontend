@@ -319,3 +319,17 @@ header nav a.center-door{border:1px solid #b01b23;border-radius:9px;padding:8px 
 }
 @media(max-width:700px){.member-sidebar .dashboard-account-mini{display:flex}.member-sidebar .dashboard-tabs{display:flex;flex-direction:column;flex-wrap:nowrap;overflow:visible;padding:14px;max-width:none}.member-sidebar .dashboard-tabs button{flex:none;min-height:44px;font-size:14px}.member-sidebar .side-sub button{font-size:13px}.member-sidebar{border-right:0}}
 .member-sidebar .dashboard-tabs{overflow:visible;flex:0 0 auto}.member-sidebar .side-signout{margin-top:auto}
+
+/* Use the desktop width for the complete facility overview. */
+.facility-reference,.facility-reference:has(.hospital-comparison){width:100%;max-width:1240px}
+.facility-overview-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start;margin:20px 0}
+.facility-overview-grid>.flow-card{min-width:0;margin:0;padding:24px;overflow-wrap:anywhere}
+.facility-overview-grid .facility-reference-hero{grid-column:1;grid-row:1}
+.facility-overview-grid .facility-contact-card{grid-column:1;grid-row:2}
+.facility-overview-grid .facility-more-details{grid-column:2;grid-row:1 / span 2}
+.facility-more-details>h2:first-child{margin-top:0}
+.facility-more-details h2{font-size:19px;line-height:1.4;margin:22px 0 10px}
+.facility-more-details ul{padding-left:20px;line-height:1.6}
+.facility-reference .facility-request-action{position:static;margin-top:20px;padding-top:0}
+.facility-reference .facility-request-action .flow-primary{max-width:440px;display:block;margin:0 auto}
+@media(max-width:800px){.facility-overview-grid{grid-template-columns:minmax(0,1fr);gap:16px;margin:16px 0}.facility-overview-grid .flow-card{grid-column:auto;grid-row:auto;padding:20px}.facility-reference .facility-request-action .flow-primary{max-width:none;width:100%}}
