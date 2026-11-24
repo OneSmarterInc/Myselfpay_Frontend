@@ -1264,7 +1264,7 @@ export default function App() {
       return (
         <div
           id="cityChoices"
-          hidden={!locationsOpen}
+          hidden={!locationsOpen || choices.length === 0}
           style={{
             position: "absolute",
             top: "100%",
@@ -1297,11 +1297,7 @@ export default function App() {
                 {label}
               </button>
             ))
-          ) : (
-            <p className="small">
-              No suggestions. You can still search by city or ZIP.
-            </p>
-          )}
+          ) : null}
         </div>
       );
     if (id === "locationToggle")
