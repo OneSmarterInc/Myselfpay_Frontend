@@ -1,3 +1,4 @@
+import PreviousScans from "./PreviousScans.jsx";
 import NearbyCompanies from "./NearbyCompanies.jsx";
 import CenterWorkspace from "../CenterWorkspace.jsx";
 import { CenterFaq } from "../CenterPortal.jsx";
@@ -283,7 +284,7 @@ export default function App() {
             </div>}
             <WorkspaceSections route={route} role={center.role} />
             <div key={center.id + ":" + route}>
-              {route === "nearby-companies" ? <NearbyCompanies center={center} /> : center.role === "owner" && ["inbox", "self-pay-prices", "profiles"].includes(route) ? (
+              {route === "previous-scans" ? <PreviousScans center={center} /> : route === "nearby-companies" ? <NearbyCompanies center={center} /> : center.role === "owner" && ["inbox", "self-pay-prices", "profiles"].includes(route) ? (
                 <CenterWorkspace embedded initialTab={{inbox:"open","self-pay-prices":"prices",profiles:"profile"}[route]} onLogin={()=>navigate("sign-in")} />
               ) : route === "help" ? (
                 <section className="panel"><CenterFaq /><a href="/contact">Contact MySelfPay</a></section>

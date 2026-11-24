@@ -110,6 +110,7 @@ export function Drawer({ open, onClose, onNavigate, route, role }) {
             ["self-pay-prices", "Self-pay prices"],
             ["profiles", "Center profiles"],
             ["pricing", "Price comparison"],
+            ["previous-scans", "Previous scans"],
             ["outreach", "Referrals"],
             ["nearby-companies", "Employee to near you"],
             ["subscription", "Subscription"],
