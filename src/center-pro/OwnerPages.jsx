@@ -1154,5 +1154,5 @@ function CenterCHRComparison({center}) {
  if(!resource.data)return null;
  const {entry,offer}=resource.data;
  const selected=offer?{...offer,entry}:directoryOffer(entry);
- return <section className="center-chr-comparison"><h1>CHR index</h1><CHRIndex key={center.id} offer={selected} /></section>;
+ return <section className="center-chr-comparison"><h1>CHR index</h1><CHRIndex key={center.id} offer={selected} comparisonAPI={api} comparisonPath={`/centers/${center.id}/chr-index`} /></section>;
 }

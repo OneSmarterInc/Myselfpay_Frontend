@@ -12,7 +12,7 @@ function listed(offer,modality){
   return line?.match(/\$([\d,]+(?:\.\d+)?)/)?.[1]?.replaceAll(',','')||'';
 }
 function sourceOf(row){for(const value of [row.price_file_url,row.price_page_url]){try{const url=new URL(value);if(['https:','http:'].includes(url.protocol))return url.href;}catch{}}return null;}
-export default function CHRIndex({offer}){
+export default function CHRIndex({offer,comparisonAPI=api,comparisonPath="/chr-index"}){
   const zip=initialZip(offer.entry);
   const {ohio,city,latitude,longitude}=chrLocation(offer);
   const mri=listed(offer,'MRI')||'0';
@@ -31,9 +31,9 @@ export default function CHRIndex({offer}){
     const request=++sequence.current;setBusy(true);setError('');
     const params=new URLSearchParams({zip,mri,ct});
     if(!zip&&ohio){params.set('state','OH');params.set('city',city);if(latitude!==undefined&&longitude!==undefined){params.set('latitude',latitude);params.set('longitude',longitude);}}
-    api('/chr-index?'+params).then(data=>{if(request!==sequence.current)return;setResult(data);setModality(data.matches.MRI?'MRI':'CT');setExpanded(false);}).catch(error=>{if(request===sequence.current)setError(error.message);}).finally(()=>{if(request===sequence.current)setBusy(false);});
+    comparisonAPI(comparisonPath+'?'+params).then(data=>{if(request!==sequence.current)return;setResult(data);setModality(data.matches.MRI?'MRI':'CT');setExpanded(false);}).catch(error=>{if(request===sequence.current)setError(error.message);}).finally(()=>{if(request===sequence.current)setBusy(false);});
     return()=>{sequence.current++;};
-  },[zip,mri,ct,ohio,city,latitude,longitude]);
+  },[zip,mri,ct,ohio,city,latitude,longitude,comparisonAPI,comparisonPath]);
   const rows=(result?.hospitals||[]).filter(row=>row.prices[modality]);
   const threshold=result?.thresholds[modality];
   const ranges=hospitalRanges(rows.map(row=>({...row.prices[modality],self_pay_median:row.prices[modality].cash_price})));
