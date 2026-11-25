@@ -14,13 +14,13 @@ function facilityAmount(offer, modality) {
   const line = summary.split('\n').find(value => value.startsWith(modality + ':'));
   return line ? positive(Number(line.match(/\$([\d,]+(?:\.\d+)?)/)?.[1]?.replaceAll(',',''))) : null;
 }
-export function RangeChart({ranges, facilityPrice}) {
+export function RangeChart({ranges, facilityPrice, formatRange=rangeLabel}) {
   const ceiling = chartCeiling(ranges, facilityPrice);
   const marker = positive(facilityPrice) !== null ? facilityPrice / ceiling * 100 : null;
-  return <div className="hc-chart" role="img" aria-label={ranges.map(item=>`${item.label}: ${rangeLabel(item.values)}`).join('. ') + (marker !== null ? `. This facility ${dollars(facilityPrice)}.` : '')}>
+  return <div className="hc-chart" role="img" aria-label={ranges.map(item=>`${item.label}: ${formatRange(item.values)}`).join('. ') + (marker !== null ? `. This facility ${dollars(facilityPrice)}.` : '')}>
     {marker !== null && <div className="hc-marker-heading"><span style={{'--hc-marker':`${marker}%`}}>This facility {dollars(facilityPrice)}</span></div>}
     {ranges.map(item => <div className={`hc-range hc-range-${item.key}`} key={item.key}>
-      <div className="hc-range-label"><strong>{item.label}</strong><span>{rangeLabel(item.values)}</span></div>
+      <div className="hc-range-label"><strong>{item.label}</strong><span>{formatRange(item.values)}</span></div>
       <div className="hc-track">{item.values.length > 0 && <span className="hc-range-fill" style={{left:`${Math.min(...item.values)/ceiling*100}%`,width:`${Math.max(0.6,(Math.max(...item.values)-Math.min(...item.values))/ceiling*100)}%`,maxWidth:'100%'}}/>}{marker !== null && <span className="hc-facility-line" style={{left:`${marker}%`}}/>}{!item.values.length && <span className="hc-track-empty">Not posted</span>}</div>
     </div>)}
     <div className="hc-axis">{[0,0.25,0.5,0.75,1].map(value=><span key={value}>{value===0?'$0':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(ceiling*value)}</span>)}</div>

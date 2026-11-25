@@ -14,7 +14,7 @@ function listed(offer,modality){
 }
 function sourceOf(row){for(const value of [row.price_file_url,row.price_page_url]){try{const url=new URL(value);if(['https:','http:'].includes(url.protocol))return url.href;}catch{}}return null;}
 export default function CHRIndex(props){
- if(isCalifornia(props.offer))return <CaliforniaHospitalPrices comparisonAPI={props.comparisonAPI||api} comparisonPath={props.comparisonPath||'/chr-index'}/>;
+ if(isCalifornia(props.offer))return <CaliforniaHospitalPrices comparisonAPI={props.comparisonAPI||api} comparisonPath={props.comparisonPath||'/chr-index'} mri={listed(props.offer,'MRI')} ct={listed(props.offer,'CT')}/>;
  return <OhioCHRIndex {...props}/>;
 }
 function OhioCHRIndex({offer,comparisonAPI=api,comparisonPath="/chr-index"}){
