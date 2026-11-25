@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {chrLocation,isCalifornia} from '../src/chr-location.js';
+import {chrLocation,isCalifornia,isDelaware,delawareLocation} from '../src/chr-location.js';
 describe('CHR Ohio center location',()=>{
  it('uses Ohio coordinates in a multi-state listing',()=>{
   const result=chrLocation({entry:{states:'OH; IN',area:'Cincinnati, OH; Richmond, IN',locations:[{state:'IN',city:'Richmond',latitude:39.8,longitude:-84.8},{state:'OH',city:'Cincinnati',latitude:39.14,longitude:-84.5}]}});
@@ -34,5 +34,18 @@ describe('California public card fallback',()=>{
   expect(isCalifornia({entry:{states:'NV'},region:'California'})).toBe(false);
   expect(isCalifornia({entry:{states:'CA'},locations:[{state:'NV'}]})).toBe(false);
   expect(isCalifornia({entry:{area:'California Street, NY'}})).toBe(false);
+ });
+});
+
+describe('Delaware CHR routing',()=>{
+ it('supports Delaware records including incomplete scoped state fields',()=>{
+  expect(isDelaware({entry:{states:'DE'},locations:[{city:'Dover'}]})).toBe(true);
+  expect(isDelaware({entry:{state:'Delaware'}})).toBe(true);
+  expect(isDelaware({entry:{states:'OH'}})).toBe(false);
+  expect(isDelaware({entry:{states:'DE'},locations:[{state:'NJ'}]})).toBe(false);
+ });
+ it('uses the Delaware location rather than an Ohio branch',()=>{
+  const location=delawareLocation({entry:{states:'OH; DE',locations:[{state:'OH',city:'Cincinnati',latitude:39,longitude:-84},{state:'DE',city:'Dover',latitude:39.15,longitude:-75.5}]}});
+  expect(location.city).toBe('Dover');expect(location.latitude).toBe(39.15);
  });
 });
