@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 const CenterProApp = lazy(() => import('./center-pro/App.jsx'));
-import { chrLocation, isCalifornia, isDelaware, isVermont } from './chr-location.js';
+import { chrLocation, isCalifornia, isDelaware, isVermont, isAlaska } from './chr-location.js';
 import CHRIndex from "./CHRIndex.jsx";
 import HospitalComparison from "./HospitalComparison.jsx";
 import PasswordReset from "./PasswordReset.jsx";
@@ -1534,7 +1534,7 @@ export default function App() {
         </span>
       </footer>
       {dialog && (
-        <Dialog onClose={close} booking={dialog.type === "booking"} chr={dialog.type === "chr-index"} compact={dialog.type === "chr-index" && !chrLocation(dialog.offer).ohio && !isCalifornia(dialog.offer) && !isDelaware(dialog.offer) && !isVermont(dialog.offer)}>
+        <Dialog onClose={close} booking={dialog.type === "booking"} chr={dialog.type === "chr-index"} compact={dialog.type === "chr-index" && !chrLocation(dialog.offer).ohio && !isCalifornia(dialog.offer) && !isDelaware(dialog.offer) && !isVermont(dialog.offer) && !isAlaska(dialog.offer)}>
           {dialog.type === "chr-index" ? <CHRIndex offer={dialog.offer}/> : dialog.type === "booking-login" ? <section className="booking-account-choice">
             <h2 id="dialogTitle">{pendingBooking?.entry?.name ? `Request a time at ${pendingBooking.entry.name}` : "Request a time"}</h2>
             <p>Enter your mobile number and we text you a code. No password.</p>
