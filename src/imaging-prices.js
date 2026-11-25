@@ -15,7 +15,7 @@ export function initialZip(entry = {}, search = {}, account = {}) {
   const saved = String(account?.zip_code || '').slice(0,5);
   const location = entry.locations?.find(item => validZip(item.zip))?.zip;
   const address = String(entry.coverage || '').match(/\b\d{5}(?:-\d{4})?\b/)?.[0]?.slice(0,5);
-  return explicit || (validZip(saved) ? saved : '') || location || address || '';
+  return explicit || (validZip(saved) ? saved : '') || (validZip(entry.zip || entry.zip_code) ? String(entry.zip || entry.zip_code) : '') || location || address || '';
 }
 export function normalizeHospitals(rows, zip) {
   const seen = new Set();

@@ -647,7 +647,7 @@ function ContactEditor({ field, current, entryId, onDone }) {
 
 function ProfileFieldEditor({ center, field, current, pending, onDone }) {
   const isSite = field === "website",
-    label = isSite ? "website" : "address",
+    label = isSite ? "website" : field === "zip" ? "ZIP code" : "address",
     [editing, setEditing] = useState(false),
     [value, setValue] = useState(current || ""),
     [busy, setBusy] = useState(false),
@@ -696,13 +696,16 @@ function ProfileFieldEditor({ center, field, current, pending, onDone }) {
   return (
     <form className="cw-contact-form" onSubmit={send}>
       <label>
-        {isSite ? "Website" : "Street address"}
+        {isSite ? "Website" : field === "zip" ? "ZIP code" : "Street address"}
         <input
           type={isSite ? "url" : "text"}
           value={value}
           disabled={busy}
-          maxLength={isSite ? 300 : 200}
-          placeholder={isSite ? "https://" : "Street, city, state, ZIP"}
+          maxLength={isSite ? 300 : field === "zip" ? 5 : 200}
+          inputMode={field === "zip" ? "numeric" : undefined}
+          pattern={field === "zip" ? "[0-9]{5}" : undefined}
+          required
+          placeholder={isSite ? "https://" : field === "zip" ? "e.g. 45432" : "Street, city, state, ZIP"}
           onChange={(e) => setValue(e.target.value)}
         />
       </label>
@@ -1133,6 +1136,7 @@ function Profile({
                 />
               </dd>
             </div>
+            <div><dt>ZIP code</dt><dd><ProfileFieldEditor center={center} field="zip" current={center.zip || center.zip_code || ""} pending={profile.find(p=>p.entry_key===center.id && p.field==="zip" && p.status==="pending")} onDone={result=>{setNote(result.message || "Sent for review.");onSaved?.();}} /></dd></div>
             {(center.coverage || center.area) && (
               <div>
                 <dt>Coverage</dt>
