@@ -1601,3 +1601,13 @@
  .center-pro-root .saved-zip-history dl>div{padding-left:10px}
  .center-pro-root .saved-zip-history dd{font-size:18px}
 }
+
+.center-pro-root .staff-add-panel,.center-pro-root .staff-remove-panel{margin-bottom:20px}
+.center-pro-root .staff-add-panel .actions{margin-top:16px}
+.center-pro-root .staff-add-panel .source-note{margin-bottom:0}
+.center-pro-root .staff-access-panel .filters{grid-template-columns:minmax(0,1fr)}
+.center-pro-root .staff-access-panel th:nth-child(1){width:26%}
+.center-pro-root .staff-access-panel th:nth-child(2){width:34%}
+.center-pro-root .staff-access-panel th:nth-child(3){width:14%}
+.center-pro-root .staff-access-panel th:nth-child(4){width:26%}
+.center-pro-root .staff-access-panel td[data-label="Work email"]{overflow-wrap:anywhere}

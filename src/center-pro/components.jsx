@@ -110,6 +110,7 @@ export function Drawer({ open, onClose, onNavigate, route, role }) {
             ["profiles", "Center profiles"],
             ["pricing", "Price comparison"],
             ["previous-scans", "Previous scans"],
+            ["staff", "Manage staff"],
             ["subscription", "Subscription"],
             ["audit", "Activity log"],
           ];

@@ -1,3 +1,4 @@
+import ManageStaff from './ManageStaff.jsx';
 import PreviousScans from "./PreviousScans.jsx";
 import NearbyCompanies from "./NearbyCompanies.jsx";
 import CenterWorkspace from "../CenterWorkspace.jsx";
@@ -304,6 +305,8 @@ export default function App() {
                 />
               ) : /^(pricing|outreach)(\/\d+)?$/.test(route) ? (
                 <OwnerPages center={center} route={route} navigate={navigate} />
+              ) : route === "staff" ? (
+                <ManageStaff center={center} />
               ) : route === "audit" ? (
                 <Audit center={center} />
               ) : ["working-hours", "availability"].includes(route) ? (
