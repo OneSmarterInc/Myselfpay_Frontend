@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {api} from './api.js';
-import {chrLocation} from './chr-location.js';
+import {chrLocation,isCalifornia} from './chr-location.js';
+import CaliforniaHospitalPrices from './CaliforniaHospitalPrices.jsx';
 import {cardPriceSummary,directoryOffer} from './directory-offer.js';
 import {RangeChart} from './HospitalComparison.jsx';
 import {dollars,hospitalRanges,initialZip,positive,rangeLabel,validZip} from './imaging-prices.js';
@@ -12,7 +13,11 @@ function listed(offer,modality){
   return line?.match(/\$([\d,]+(?:\.\d+)?)/)?.[1]?.replaceAll(',','')||'';
 }
 function sourceOf(row){for(const value of [row.price_file_url,row.price_page_url]){try{const url=new URL(value);if(['https:','http:'].includes(url.protocol))return url.href;}catch{}}return null;}
-export default function CHRIndex({offer,comparisonAPI=api,comparisonPath="/chr-index"}){
+export default function CHRIndex(props){
+ if(isCalifornia(props.offer))return <CaliforniaHospitalPrices comparisonAPI={props.comparisonAPI||api} comparisonPath={props.comparisonPath||'/chr-index'}/>;
+ return <OhioCHRIndex {...props}/>;
+}
+function OhioCHRIndex({offer,comparisonAPI=api,comparisonPath="/chr-index"}){
   const zip=initialZip(offer.entry);
   const {ohio,city,latitude,longitude}=chrLocation(offer);
   const mri=listed(offer,'MRI')||'0';

@@ -12,3 +12,10 @@ export function chrLocation(offer) {
   return {ohio,city:String(location?.city||entry.area||'').split(/[;,]/)[0].trim(),
     latitude:hasCoordinates?latitude:undefined,longitude:hasCoordinates?longitude:undefined};
 }
+
+export function isCalifornia(offer) {
+ const entry=offer.entry||{};
+ const scoped=offer.locations?.length?offer.locations:null;
+ const states=scoped?scoped.map(location=>location.state):[entry.states,...(entry.locations||[]).map(location=>location.state)];
+ return states.some(value=>String(value||'').split(/[;,|/]/).some(state=>/^(CA|CALIFORNIA)$/i.test(state.trim())));
+}
