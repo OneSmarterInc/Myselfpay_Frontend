@@ -19,3 +19,20 @@ describe('California CHR availability',()=>{
  });
  it('respects an offer scoped to another state',()=>expect(isCalifornia({entry:{states:'CA; NV'},locations:[{state:'NV'}]})).toBe(false));
 });
+
+describe('California public card fallback',()=>{
+ it('retains the saved CA state for incomplete scoped locations',()=>{
+  expect(isCalifornia({entry:{states:'CA'},locations:[{city:'Anaheim'}]})).toBe(true);
+  expect(isCalifornia({entry:{state:'California'},locations:[{latitude:33.8,longitude:-117.9}]})).toBe(true);
+ });
+ it('recognizes state labels and legacy city/state fields',()=>{
+  expect(isCalifornia({entry:{states:'CA (California)'}})).toBe(true);
+  expect(isCalifornia({entry:{},region:'Anaheim, CA'})).toBe(true);
+  expect(isCalifornia({entry:{area:'California'}})).toBe(true);
+ });
+ it('keeps explicit out-of-state cards unavailable rather than using the search state',()=>{
+  expect(isCalifornia({entry:{states:'NV'},region:'California'})).toBe(false);
+  expect(isCalifornia({entry:{states:'CA'},locations:[{state:'NV'}]})).toBe(false);
+  expect(isCalifornia({entry:{area:'California Street, NY'}})).toBe(false);
+ });
+});

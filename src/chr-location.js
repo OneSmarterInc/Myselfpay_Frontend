@@ -15,7 +15,15 @@ export function chrLocation(offer) {
 
 export function isCalifornia(offer) {
  const entry=offer.entry||{};
- const scoped=offer.locations?.length?offer.locations:null;
- const states=scoped?scoped.map(location=>location.state):[entry.states,...(entry.locations||[]).map(location=>location.state)];
- return states.some(value=>String(value||'').split(/[;,|/]/).some(state=>/^(CA|CALIFORNIA)$/i.test(state.trim())));
+ const stateOf=location=>location.state||location.state_code||location.stateCode;
+ const populated=values=>values.map(value=>String(value||'').trim()).filter(Boolean);
+ const matches=values=>values.some(value=>/\b(?:CA|California)\b/i.test(value));
+ // A known scoped state takes precedence. A partial location must not erase
+ // the center's saved state merely because its state property is missing.
+ const scoped=populated((offer.locations||[]).map(stateOf));
+ if(scoped.length)return matches(scoped);
+ const saved=populated([entry.states,entry.state,...(entry.locations||[]).map(stateOf)]);
+ if(saved.length)return matches(saved);
+ // Legacy cards sometimes carry state only in a city/state label.
+ return [offer.region,entry.area,entry.address].some(value=>/(?:^|[,;|/])\s*(?:CA|California)(?:\s+\d{5}(?:-\d{4})?)?\s*(?:$|[,;|/])/i.test(String(value||'')));
 }
