@@ -4,7 +4,7 @@ import CenterWorkspace from "../CenterWorkspace.jsx";
 import { CenterFaq } from "../CenterPortal.jsx";
 import './styles.css';
 import Icon from "./Icon.jsx";
-import { activityLabel, activityCategory } from "./activity.js";
+import { activityLabel, activityCategory, activityDetails } from "./activity.js";
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { useResource } from "./useResource.js";
@@ -392,10 +392,10 @@ function Audit({ center }) {
                       <td data-label="Time">
                         {dateTime(r.created_at, center.timezone)}
                       </td>
-                      <td data-label="Reference">{r.reference}</td>
+                      <td data-label="Reference"><span className="audit-reference">{r.reference}</span>{r.performed_by && <span className="cell-note">{r.performed_by}</span>}</td>
                       <td data-label="Activity">
                         <strong className="audit-event">{activityLabel(r.action)}</strong>
-                        <span className="cell-note">{activityCategory(r.action)}</span>
+                        <span className="cell-note">{activityCategory(r.action)}</span>{activityDetails(r).map((line,index)=><span className="audit-change" key={index}>{line}</span>)}
                       </td>
                     </tr>
                   ))}
