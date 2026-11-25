@@ -9,3 +9,11 @@ export function cardLocation(offer) {
   const region = String(offer.region || entry.area || entry.states || '').trim();
   return zip && !new RegExp(`\\b${zip}\\b`).test(region) ? `${region}${region ? ' ' : ''}(${zip})` : region;
 }
+
+// Approved portal edits publish to address; coverage remains descriptive text.
+export function cardAddress(entry = {}) {
+  const address = String(entry.address || '').trim();
+  if (address) return address;
+  const coverage = String(entry.coverage || '').replace(/\(?\d{3}\)?[-. ]?\d{3}[-. ]\d{4}/g, '').replace(/[.\s]+$/, '').trim();
+  return /^\d+\s+\S/.test(coverage) ? coverage : '';
+}
