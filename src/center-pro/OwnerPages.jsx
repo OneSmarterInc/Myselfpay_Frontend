@@ -48,7 +48,7 @@ export default function OwnerPages({ center, route, navigate }) {
 
     ) : (
 
-      <><CenterCHRComparison center={center} /><DirectoryPrices center={center} /><OwnerList center={center} navigate={navigate} type="pricing" /></>
+      <><CenterCHRComparison center={center} /><OwnerList center={center} navigate={navigate} type="pricing" /></>
 
     );
 
@@ -1097,54 +1097,6 @@ function PriceIndicator({ price, benchmark }) {
 }
 
 
-
-
-
-function DirectoryPrices({ center }) {
-
-  const [search,setSearch] = useState("");
-
-  const [query,setQuery] = useState("");
-
-  const [page,setPage] = useState(1);
-
-  const [size,setSize] = useState(10);
-
-  const [retry,setRetry] = useState(0);
-
-  useEffect(()=>{const timer=setTimeout(()=>{setQuery(search);setPage(1)},250);return ()=>clearTimeout(timer)},[search]);
-
-  const resource=useResource(`/centers/${center.id}/directory-prices?${new URLSearchParams({search:query,page:String(page),page_size:String(size)})}`,retry);
-
-  const own=resource.data?.current_center;
-
-  function priceText(row,modality) {
-
-    const offers=row.offers.filter(o=>o.exam.toUpperCase()===modality && o.price!==null);
-
-    return offers.length ? offers.map(o=>`${o.scope || modality}${o.contrast==='unknown'?'':` (${o.contrast} contrast)`}: ${o.type==='starting'?'From ':''}${money(o.price)}`).join('; ') : row[modality.toLowerCase()];
-
-  }
-
-  return <>
-
-    <div className="page-heading"><h1>Center pricing and comparisons</h1><p>Review your center's saved prices alongside public directory pricing for centers with available prices.</p></div>
-
-    {own && <section className="panel directory-current-prices"><h2>Current center: {own.name}</h2><div className="directory-price-summary"><div><strong>MRI</strong><p>{priceText(own,'MRI')}</p></div><div><strong>CT</strong><p>{priceText(own,'CT')}</p></div><div><strong>Other imaging</strong><p>{own.other}</p></div></div></section>}
-
-    <section className="panel data-panel directory-pricing-panel">
-
-      <div className="filters pricing-filters"><label>Search priced centers<input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Center, location or exam" /></label><label>Rows per page<select value={size} onChange={e=>{setSize(Number(e.target.value));setPage(1)}}><option>5</option><option>10</option><option>20</option></select></label></div>
-
-      {resource.loading ? <p className="table-state" role="status">Loading directory prices...</p> : resource.error ? <div className="table-state"><Alert error>{resource.error}</Alert><button onClick={()=>setRetry(n=>n+1)}>Retry</button></div> : !resource.data?.results.length ? <p className="table-state">No centers match your search.</p> : <table><thead><tr><th>Center</th><th>MRI</th><th>CT</th><th>Other imaging</th><th>Compared with your center</th></tr></thead><tbody>{resource.data.results.map(row=><tr key={row.id}><td data-label="Center"><strong>{row.name}</strong>{row.current && <span className="badge neutral">Current center</span>}<span className="cell-note">{row.location}</span></td><td data-label="MRI">{priceText(row,'MRI')}</td><td data-label="CT">{priceText(row,'CT')}</td><td data-label="Other imaging">{row.other}</td><td data-label="Comparison">{row.current?'Your saved prices':row.comparisons.length?row.comparisons.map((c,i)=><p key={i}>{c.exam} {c.contrast}: {c.difference===0?'Same price':`${money(Math.abs(c.difference))} ${c.difference>0?'higher':'lower'}`}</p>):'No matching published numeric prices'}</td></tr>)}</tbody></table>}
-
-      {resource.data && <Pagination count={resource.data.count} page={page} size={size} onPage={setPage} />}
-
-    </section><p className="source-note">Only centers with a numeric imaging price are listed. Comparisons require the same exam, scope, contrast and price type; unavailable prices are never treated as zero.</p>
-
-  </>;
-
-}
 
 
 
