@@ -49,3 +49,16 @@ describe('Delaware CHR routing',()=>{
   expect(location.city).toBe('Dover');expect(location.latitude).toBe(39.15);
  });
 });
+
+
+it('scopes program CHR to the searched state without changing facility locations', async()=>{
+ const {programCHRContext,isLouisiana}=await import('../src/chr-location.js');
+ const program={entry:{location_type:'program',states:'National',zip:'99999'}};
+ const scoped=programCHRContext(program,{state:'LA',zip:'70112'});
+ expect(isLouisiana(scoped)).toBe(true);
+ expect(scoped.entry.zip).toBe('70112');
+ expect(program.entry.zip).toBe('99999');
+ const center={entry:{location_type:'facility',states:'OH'}};
+ expect(programCHRContext(center,{state:'LA'})).toBe(center);
+ expect(programCHRContext(program,null)).toBe(program);
+});

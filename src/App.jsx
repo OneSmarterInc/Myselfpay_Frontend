@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 const CenterProApp = lazy(() => import('./center-pro/App.jsx'));
-import { chrLocation, isCalifornia, isDelaware, isVermont, isAlaska, isPennsylvania, isLouisiana } from './chr-location.js';
+import { programCHRContext, chrLocation, isCalifornia, isDelaware, isVermont, isAlaska, isPennsylvania, isLouisiana } from './chr-location.js';
 import CHRIndex from "./CHRIndex.jsx";
 import HospitalComparison from "./HospitalComparison.jsx";
 import PasswordReset from "./PasswordReset.jsx";
@@ -1033,7 +1033,7 @@ export default function App() {
     if (target.dataset.chr) {
       event.preventDefault();
       const offer = allOffers.find(item => item.id === target.dataset.chr);
-      if (offer) setDialog({type:"chr-index",offer});
+      if (offer) setDialog({type:"chr-index",offer:programCHRContext(offer,spatialSnapshot ? {state:spatialSnapshot.state} : state.resolvedLocation)});
       return;
     }
     if (target.dataset.detail) {

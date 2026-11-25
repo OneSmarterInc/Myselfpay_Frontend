@@ -110,3 +110,12 @@ export function isLouisiana(offer) {
  // Legacy cards sometimes carry state only in a city/state label.
  return [offer.region,entry.area,entry.address].some(value=>/(?:^|[,;|/])\s*(?:LA|Louisiana)(?:\s+\d{5}(?:-\d{4})?)?\s*(?:$|[,;|/])/i.test(String(value||'')));
 }
+
+// Programs have no single facility address; scope only their CHR view to the search.
+export function programCHRContext(offer, location) {
+ if (offer.entry?.location_type !== 'program' || !/^[A-Z]{2}$/.test(location?.state||'')) return offer;
+ const zip=String(location.zip||location.zip_code||'');
+ const scoped={state:location.state,city:location.city||'',latitude:location.latitude,longitude:location.longitude};
+ if (/^\d{5}$/.test(zip)) scoped.zip=zip;
+ return {...offer,chrProgram:true,locations:[scoped],entry:{...offer.entry,states:location.state,state:location.state,zip:scoped.zip||'',zip_code:'',coverage:'',locations:[scoped]}};
+}
