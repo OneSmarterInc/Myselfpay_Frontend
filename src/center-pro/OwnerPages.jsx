@@ -758,7 +758,7 @@ function OutreachDetails({ center, id, navigate }) {
 
     [saved, setSaved] = useState(false);
 
-  const target = useResource(`/centers/${center.id}/outreach/${id}`, refresh);
+  const target = useResource(`/centers/${center.id}/outreach/${id}`);
 
   async function save(e) {
 
@@ -774,13 +774,15 @@ function OutreachDetails({ center, id, navigate }) {
 
     try {
 
-      await api(`/centers/${center.id}/outreach/${id}/activities`, {
+      const activity = await api(`/centers/${center.id}/outreach/${id}/activities`, {
 
         method: "POST",
 
         body: { kind, note },
 
       });
+
+      target.replaceData(activity.target || {...target.data, status: activity.kind, updated_at: activity.created_at});
 
       setNote("");
 
