@@ -50,3 +50,19 @@ export function delawareLocation(offer){
  const valid=location?.latitude!=null&&location?.longitude!=null&&Number.isFinite(latitude)&&Number.isFinite(longitude);
  return {city:String(location?.city||entry.area||'').split(/[;,]/)[0].trim(),latitude:valid?latitude:undefined,longitude:valid?longitude:undefined};
 }
+
+export function isVermont(offer) {
+ const entry=offer.entry||{};
+ const stateOf=location=>location.state||location.state_code||location.stateCode;
+ const populated=values=>values.map(value=>String(value||'').trim()).filter(Boolean);
+ const matches=values=>values.some(value=>/\b(?:VT|Vermont)\b/i.test(value));
+ // A known scoped state takes precedence. A partial location must not erase
+ // the center's saved state merely because its state property is missing.
+ const scoped=populated((offer.locations||[]).map(stateOf));
+ if(scoped.length)return matches(scoped);
+ const saved=populated([entry.states,entry.state,...(entry.locations||[]).map(stateOf)]);
+ if(saved.length)return matches(saved);
+ // Legacy cards sometimes carry state only in a city/state label.
+ return [offer.region,entry.area,entry.address].some(value=>/(?:^|[,;|/])\s*(?:VT|Vermont)(?:\s+\d{5}(?:-\d{4})?)?\s*(?:$|[,;|/])/i.test(String(value||'')));
+}
+

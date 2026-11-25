@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {api} from './api.js';
-import {chrLocation,isCalifornia,isDelaware,delawareLocation} from './chr-location.js';
+import {chrLocation,isCalifornia,isDelaware,isVermont,delawareLocation} from './chr-location.js';
 import CaliforniaHospitalPrices from './CaliforniaHospitalPrices.jsx';
 import {cardPriceSummary,directoryOffer} from './directory-offer.js';
 import {RangeChart} from './HospitalComparison.jsx';
@@ -14,7 +14,7 @@ function listed(offer,modality){
 }
 function sourceOf(row){for(const value of [row.price_file_url,row.price_page_url]){try{const url=new URL(value);if(['https:','http:'].includes(url.protocol))return url.href;}catch{}}return null;}
 export default function CHRIndex(props){
- if(isCalifornia(props.offer)||isDelaware(props.offer))return <CaliforniaHospitalPrices stateCode={isDelaware(props.offer)?"DE":"CA"} comparisonAPI={props.comparisonAPI||api} comparisonPath={props.comparisonPath||'/chr-index'} mri={listed(props.offer,'MRI')} ct={listed(props.offer,'CT')}/>;
+ if(isCalifornia(props.offer)||isDelaware(props.offer)||isVermont(props.offer))return <CaliforniaHospitalPrices stateCode={isVermont(props.offer)?"VT":isDelaware(props.offer)?"DE":"CA"} comparisonAPI={props.comparisonAPI||api} comparisonPath={props.comparisonPath||'/chr-index'} mri={listed(props.offer,'MRI')} ct={listed(props.offer,'CT')}/>;
  return <OhioCHRIndex {...props} delaware={isDelaware(props.offer)}/>;
 }
 function OhioCHRIndex({offer,comparisonAPI=api,comparisonPath="/chr-index",delaware=false}){
