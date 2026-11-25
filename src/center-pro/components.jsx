@@ -110,7 +110,6 @@ export function Drawer({ open, onClose, onNavigate, route, role }) {
             ["profiles", "Center profiles"],
             ["pricing", "Price comparison"],
             ["previous-scans", "Previous scans"],
-            ["outreach", "Referrals"],
             ["subscription", "Subscription"],
             ["audit", "Activity log"],
           ];
@@ -176,9 +175,6 @@ export function Drawer({ open, onClose, onNavigate, route, role }) {
 export function WorkspaceSections({ route, role }) {
   const groups = [
     ...(role === "staff" ? [{ label: "Scheduling", items: [["availability", "Available slots"], ["working-hours", "Working hours"]], aliases: [] }] : []),
-    ...(role === "owner" ? [
-      { label: "Referrals", items: [["outreach", "Outreach"], ["referrals", "Referral pad"]], aliases: [] },
-    ] : []),
   ];
   const group = groups.find(g => g.items.some(([path]) => path === route) || g.aliases.includes(route));
   if (!group) return null;

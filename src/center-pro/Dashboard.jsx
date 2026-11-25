@@ -37,10 +37,6 @@ export default function Dashboard({ center, navigate }) {
 
     ["pricing", "Pricing", "Review and update published offers"],
 
-    ["outreach", "Referral outreach", "Manage your outreach activity"],
-
-    ["referrals", "Referral pad", "Open your printable booking QR"],
-
   ];
 
   const stats = admin ? [["Centers", data?.count, "Across your organization"], ["Audit events", activity.data?.count, "Organization activity"]] : [
