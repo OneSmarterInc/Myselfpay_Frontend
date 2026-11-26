@@ -3,7 +3,7 @@ import {RangeChart} from './HospitalComparison.jsx';
 import {dollars} from './imaging-prices.js';
 import {californiaRanges,californiaPriceRange,californiaReference,californiaRangeLabel} from './california-ranges.js';
 export default function CaliforniaHospitalPrices({comparisonAPI,comparisonPath,mri,ct,stateCode="CA"}){
- const stateName=stateCode==="HI"?"Hawaii":stateCode==="MI"?"Michigan":stateCode==="LA"?"Louisiana":stateCode==="PA"?"Pennsylvania":stateCode==="AK"?"Alaska":stateCode==="VT"?"Vermont":stateCode==="DE"?"Delaware":"California";
+ const stateName=stateCode==="CO"?"Colorado":stateCode==="HI"?"Hawaii":stateCode==="MI"?"Michigan":stateCode==="LA"?"Louisiana":stateCode==="PA"?"Pennsylvania":stateCode==="AK"?"Alaska":stateCode==="VT"?"Vermont":stateCode==="DE"?"Delaware":"California";
  const [state,setState]=useState({loading:true,data:null,error:''}),[retry,setRetry]=useState(0),[expanded,setExpanded]=useState(false);
  const [modality,setModality]=useState(()=>californiaReference(mri)!==null?'MRI':'CT');
  const [phone,setPhone]=useState(()=>matchMedia('(max-width:600px)').matches);
