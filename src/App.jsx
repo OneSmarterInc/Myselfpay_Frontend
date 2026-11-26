@@ -1,4 +1,3 @@
-import {useCHRAvailability} from './useCHRAvailability.js';
 import { lazy, Suspense } from 'react';
 const CenterProApp = lazy(() => import('./center-pro/App.jsx'));
 import { programCHRContext, chrLocation, isCalifornia, isDelaware, isVermont, isAlaska, isPennsylvania, isLouisiana, isMichigan, isHawaii, isColorado, isArkansas, isNewMexico, isIllinois, isIndiana, isAlabama, isKentucky } from './chr-location.js';
@@ -345,12 +344,9 @@ export default function App() {
       state.mod,
     ],
   );
-  const chrContext=useMemo(()=>spatialSnapshot ? {state:spatialSnapshot.state} : state.resolvedLocation,[spatialSnapshot,state.resolvedLocation]);
-  const chrAvailability=useCHRAvailability(allOffers,chrContext,`${view}:${state.resultsPage}:${dialog?.type||''}`);
   const ui = originalUI({
     state: {
       ...state,
-      chrAvailability,
       nativeApp,
       nativeFiltersOpen,
       nativeBusy: busy,
