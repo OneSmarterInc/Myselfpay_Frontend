@@ -1,3 +1,4 @@
+import {chrListedPrice as listed} from './chr-availability.js';
 import {californiaRanges,californiaPriceRange,californiaRangeLabel} from './california-ranges.js';
 import {useEffect,useRef,useState} from 'react';
 import {api} from './api.js';
@@ -8,11 +9,6 @@ import {RangeChart} from './HospitalComparison.jsx';
 import {dollars,hospitalRanges,initialZip,positive,rangeLabel,validZip} from './imaging-prices.js';
 import './chr-index.css';
 
-function listed(offer,modality){
-  if(offer?.mod===modality&&positive(offer.amount)!==null)return String(offer.amount);
-  const line=(cardPriceSummary(directoryOffer(offer.entry))||'').split('\n').find(value=>value.startsWith(modality+':'));
-  return line?.match(/\$([\d,]+(?:\.\d+)?)/)?.[1]?.replaceAll(',','')||'';
-}
 function sourceOf(row){for(const value of [row.price_file_url,row.price_page_url]){try{const url=new URL(value);if(['https:','http:'].includes(url.protocol))return url.href;}catch{}}return null;}
 export default function CHRIndex(props){
  if(props.offer.chrProgram)return <><p className="hc-help">Hospital prices for your searched area. Program prices are starting prices; confirm the participating site and exact exam.</p><CHRIndex {...props} offer={{...props.offer,chrProgram:false}}/></>;
