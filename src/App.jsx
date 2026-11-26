@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 const CenterProApp = lazy(() => import('./center-pro/App.jsx'));
-import { programCHRContext, chrLocation, isCalifornia, isDelaware, isVermont, isAlaska, isPennsylvania, isLouisiana, isMichigan, isHawaii, isColorado, isArkansas, isNewMexico, isIllinois } from './chr-location.js';
+import { programCHRContext, chrLocation, isCalifornia, isDelaware, isVermont, isAlaska, isPennsylvania, isLouisiana, isMichigan, isHawaii, isColorado, isArkansas, isNewMexico, isIllinois, isIndiana } from './chr-location.js';
 import CHRIndex from "./CHRIndex.jsx";
 import HospitalComparison from "./HospitalComparison.jsx";
 import PasswordReset from "./PasswordReset.jsx";
@@ -1534,7 +1534,7 @@ export default function App() {
         </span>
       </footer>
       {dialog && (
-        <Dialog onClose={close} booking={dialog.type === "booking"} chr={dialog.type === "chr-index"} compact={dialog.type === "chr-index" && !chrLocation(dialog.offer).ohio && !isCalifornia(dialog.offer) && !isDelaware(dialog.offer) && !isVermont(dialog.offer) && !isAlaska(dialog.offer) && !isPennsylvania(dialog.offer) && !isLouisiana(dialog.offer) && !isMichigan(dialog.offer) && !isHawaii(dialog.offer) && !isColorado(dialog.offer) && !isArkansas(dialog.offer) && !isNewMexico(dialog.offer) && !isIllinois(dialog.offer)}>
+        <Dialog onClose={close} booking={dialog.type === "booking"} chr={dialog.type === "chr-index"} compact={dialog.type === "chr-index" && !chrLocation(dialog.offer).ohio && !isCalifornia(dialog.offer) && !isDelaware(dialog.offer) && !isVermont(dialog.offer) && !isAlaska(dialog.offer) && !isPennsylvania(dialog.offer) && !isLouisiana(dialog.offer) && !isMichigan(dialog.offer) && !isHawaii(dialog.offer) && !isColorado(dialog.offer) && !isArkansas(dialog.offer) && !isNewMexico(dialog.offer) && !isIllinois(dialog.offer) && !isIndiana(dialog.offer)}>
           {dialog.type === "chr-index" ? <CHRIndex offer={dialog.offer}/> : dialog.type === "booking-login" ? <section className="booking-account-choice">
             <h2 id="dialogTitle">{pendingBooking?.entry?.name ? `Request a time at ${pendingBooking.entry.name}` : "Request a time"}</h2>
             <p>Enter your mobile number and we text you a code. No password.</p>
