@@ -1,7 +1,7 @@
 import {californiaRanges,californiaPriceRange,californiaRangeLabel} from './california-ranges.js';
 import {useEffect,useRef,useState} from 'react';
 import {api} from './api.js';
-import {chrLocation,isCalifornia,isDelaware,isVermont,isAlaska,isPennsylvania,isLouisiana,isMichigan,isHawaii,isColorado,isArkansas,isNewMexico,isIllinois,isIndiana,isAlabama,delawareLocation} from './chr-location.js';
+import {chrLocation,isCalifornia,isDelaware,isVermont,isAlaska,isPennsylvania,isLouisiana,isMichigan,isHawaii,isColorado,isArkansas,isNewMexico,isIllinois,isIndiana,isAlabama,isKentucky,delawareLocation} from './chr-location.js';
 import CaliforniaHospitalPrices from './CaliforniaHospitalPrices.jsx';
 import {cardPriceSummary,directoryOffer} from './directory-offer.js';
 import {RangeChart} from './HospitalComparison.jsx';
@@ -16,7 +16,7 @@ function listed(offer,modality){
 function sourceOf(row){for(const value of [row.price_file_url,row.price_page_url]){try{const url=new URL(value);if(['https:','http:'].includes(url.protocol))return url.href;}catch{}}return null;}
 export default function CHRIndex(props){
  if(props.offer.chrProgram)return <><p className="hc-help">Hospital prices for your searched area. Program prices are starting prices; confirm the participating site and exact exam.</p><CHRIndex {...props} offer={{...props.offer,chrProgram:false}}/></>;
- if(isCalifornia(props.offer)||isDelaware(props.offer)||isVermont(props.offer)||isAlaska(props.offer)||isPennsylvania(props.offer)||isLouisiana(props.offer)||isMichigan(props.offer)||isHawaii(props.offer)||isColorado(props.offer)||isArkansas(props.offer)||isNewMexico(props.offer)||isIllinois(props.offer)||isIndiana(props.offer)||isAlabama(props.offer))return <CaliforniaHospitalPrices stateCode={isAlabama(props.offer)?"AL":isIndiana(props.offer)?"IN":isIllinois(props.offer)?"IL":isNewMexico(props.offer)?"NM":isArkansas(props.offer)?"AR":isColorado(props.offer)?"CO":isHawaii(props.offer)?"HI":isMichigan(props.offer)?"MI":isLouisiana(props.offer)?"LA":isPennsylvania(props.offer)?"PA":isAlaska(props.offer)?"AK":isVermont(props.offer)?"VT":isDelaware(props.offer)?"DE":"CA"} comparisonAPI={props.comparisonAPI||api} comparisonPath={props.comparisonPath||'/chr-index'} mri={listed(props.offer,'MRI')} ct={listed(props.offer,'CT')}/>;
+ if(isCalifornia(props.offer)||isDelaware(props.offer)||isVermont(props.offer)||isAlaska(props.offer)||isPennsylvania(props.offer)||isLouisiana(props.offer)||isMichigan(props.offer)||isHawaii(props.offer)||isColorado(props.offer)||isArkansas(props.offer)||isNewMexico(props.offer)||isIllinois(props.offer)||isIndiana(props.offer)||isAlabama(props.offer)||isKentucky(props.offer))return <CaliforniaHospitalPrices stateCode={isKentucky(props.offer)?"KY":isAlabama(props.offer)?"AL":isIndiana(props.offer)?"IN":isIllinois(props.offer)?"IL":isNewMexico(props.offer)?"NM":isArkansas(props.offer)?"AR":isColorado(props.offer)?"CO":isHawaii(props.offer)?"HI":isMichigan(props.offer)?"MI":isLouisiana(props.offer)?"LA":isPennsylvania(props.offer)?"PA":isAlaska(props.offer)?"AK":isVermont(props.offer)?"VT":isDelaware(props.offer)?"DE":"CA"} comparisonAPI={props.comparisonAPI||api} comparisonPath={props.comparisonPath||'/chr-index'} mri={listed(props.offer,'MRI')} ct={listed(props.offer,'CT')}/>;
  return <OhioCHRIndex {...props} delaware={isDelaware(props.offer)}/>;
 }
 function OhioCHRIndex({offer,comparisonAPI=api,comparisonPath="/chr-index",delaware=false}){
