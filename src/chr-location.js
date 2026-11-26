@@ -434,3 +434,18 @@ export function isConnecticut(offer) {
  // Legacy cards sometimes carry state only in a city/state label.
  return [offer.region,entry.area,entry.address].some(value=>/(?:^|[,;|/])\s*(?:CT|Connecticut)(?:\s+\d{5}(?:-\d{4})?)?\s*(?:$|[,;|/])/i.test(String(value||'')));
 }
+
+export function isNebraska(offer) {
+ const entry=offer.entry||{};
+ const stateOf=location=>location.state||location.state_code||location.stateCode;
+ const populated=values=>values.map(value=>String(value||'').trim()).filter(Boolean);
+ const matches=values=>values.some(value=>/\b(?:NE|Nebraska)\b/i.test(value));
+ // A known scoped state takes precedence. A partial location must not erase
+ // the center's saved state merely because its state property is missing.
+ const scoped=populated((offer.locations||[]).map(stateOf));
+ if(scoped.length)return matches(scoped);
+ const saved=populated([entry.states,entry.state,...(entry.locations||[]).map(stateOf)]);
+ if(saved.length)return matches(saved);
+ // Legacy cards sometimes carry state only in a city/state label.
+ return [offer.region,entry.area,entry.address].some(value=>/(?:^|[,;|/])\s*(?:NE|Nebraska)(?:\s+\d{5}(?:-\d{4})?)?\s*(?:$|[,;|/])/i.test(String(value||'')));
+}
