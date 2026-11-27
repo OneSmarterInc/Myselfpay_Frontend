@@ -217,9 +217,9 @@ it("marks ranges with a currency symbol only on the lower endpoint", () => {
 });
 
 
-it("preserves all workbook card prices and verification wording", () => {
+it("shows the lowest workbook price once per scan type", () => {
   const offer=directoryOffer({name:"Workbook Center",workbook_prices:true,price_verification:"unverified",mri:"Without contrast $499; with contrast $599",ct:"$200",other:"Ultrasound $150"});
-  expect(cardPriceSummary(offer)).toBe("MRI $499 without contrast\nMRI $599 with contrast\nCT $200\nUltrasound $150");
+  expect(cardPriceSummary(offer)).toBe("MRI $499 without contrast\nCT $200\nUltrasound $150");
 });
 
 
@@ -228,7 +228,7 @@ it("removes workbook source commentary while retaining starting prices and scan 
  expect(cardPriceSummary(offer)).toBe("MRI from $265 without contrast\nCT from $130 without contrast\nMammogram from $140\nUltrasound from $115\nX-ray from $33");
 });
 it("does not invent contrast and keeps combined protocols and ranges",()=>{
- expect(cardPriceSummary(directoryOffer({workbook_prices:true,mri:"$330",ct:"With and without contrast $300–$450"}))).toBe("MRI $330\nCT $300–$450 with and without contrast");
+ expect(cardPriceSummary(directoryOffer({workbook_prices:true,mri:"$330",ct:"With and without contrast $300–$450"}))).toBe("MRI $330\nCT from $300 with and without contrast");
 });
 
 
@@ -240,4 +240,12 @@ it("defaults to the most distinct available prices and keeps missing prices last
  expect(availablePriceCount(many)).toBe(4);
  expect(mostPricesFirst([empty,single,many,tied]).map(o=>o.entry.name)).toEqual(["Many","Single","Tied","Empty"]);
  expect(availablePriceCount(directoryOffer({mri:"$265 — UNVERIFIED source price(s)\nFrom $265 without contrast",workbook_prices:true}))).toBe(1);
+});
+
+
+it("selects numeric minimums across repeated prices without changing the source",()=>{
+ const entry={workbook_prices:true,mri:"$3430.44; $3651.96; $5782.14; $3338.40; $3338.40",ct:"$3688.62; $2389.92; $4557.54",other:"X-ray $100; X-ray $80"};
+ const offer=directoryOffer(entry);
+ expect(cardPriceSummary(offer)).toBe("MRI $3338.40\nCT $2389.92\nX-ray $80");
+ expect(offer.entry.mri).toBe(entry.mri);
 });

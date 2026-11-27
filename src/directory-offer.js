@@ -146,11 +146,26 @@ function workbookPriceLines({ service, text }) {
   return [...new Set(output)];
 }
 
+function lowestScanPrices(prices) {
+  const lowest = new Map();
+  for (const line of prices.flatMap(workbookPriceLines)) {
+    const match = line.match(/^(.*?)\s+(?:(?:from|up to|average)\s+)?\$(\d[\d,]*(?:\.\d{1,2})?)/i);
+    if (!match) continue;
+    const key = match[1].trim().toLowerCase();
+    const amount = Number(match[2].replaceAll(",", ""));
+    if (!lowest.has(key) || amount < lowest.get(key).amount) {
+      const text = line.replace(/(?:from\s+)?(\$\d[\d,]*(?:\.\d{1,2})?)\s*[–-]\s*\$\d[\d,]*(?:\.\d{1,2})?/i, "from $1");
+      lowest.set(key, {amount, text});
+    }
+  }
+  return [...lowest.values()].map(price => price.text);
+}
+
 export function cardPriceSummary(offer) {
   if (!offer.directory_only || !offer.published_prices?.length) return null;
 
 
-  if (offer.entry?.workbook_prices) return [...new Set(offer.published_prices.flatMap(workbookPriceLines))].join("\n") || "Ask for a price";
+  if (offer.entry?.workbook_prices) return lowestScanPrices(offer.published_prices).join("\n") || "Ask for a price";
   const services = offer.published_prices.filter((price) =>
     ["MRI", "CT"].includes(price.service),
   );
