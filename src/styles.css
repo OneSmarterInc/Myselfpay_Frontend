@@ -99,7 +99,9 @@ dialog .modal-body>*{max-width:100%}
 .directory-service-details dt{font-weight:700;margin-top:16px}.directory-service-details dd{margin:4px 0 16px;white-space:pre-line;overflow-wrap:anywhere}
 
 /* Results begin beneath navigation; secondary controls sit beside the cards. */
-.results-shell{margin-top:14px;max-width:1560px}
+.results-shell{margin-top:14px;width:100%;max-width:1340px}
+.results-shell .search-result-cards{width:100%;min-width:0;justify-items:stretch;align-content:start}
+.results-shell .search-result-cards>.card{width:100%;min-width:0;box-sizing:border-box}
 .search-results-grid{margin-top:0}
 .search-results-grid .search-tabs{margin:0;gap:6px}
 .search-results-grid .search-tabs button{padding:9px 10px}
