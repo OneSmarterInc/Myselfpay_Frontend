@@ -115,10 +115,42 @@ function primaryPrice(text) {
     ? chosen.text + (chosen.screening ? " (screening only)" : "")
     : "See price details";
 }
+
+function workbookPriceLines({ service, text }) {
+  const lines = text.split(/\n/).filter(line => !/UNVERIFIED source price|SUPPLIED FINDINGS/i.test(line));
+  const wording = lines.join("\n").trim() || text.split(/[—–]/)[0];
+  const output = [];
+  for (const clause of wording.split(/[;\n]/)) {
+    const prices = [...clause.matchAll(/(?:\$\s*|\bUSD\s*)(\d[\d,]*(?:\.\d{1,2})?)(?:\s*(?:to|[-–])\s*\$?\s*(\d[\d,]*(?:\.\d{1,2})?))?/gi)];
+    for (const [index, price] of prices.entries()) {
+      const before = clause.slice(index ? prices[index - 1].index + prices[index - 1][0].length : 0, price.index);
+      const after = clause.slice(price.index + price[0].length, prices[index + 1]?.index ?? clause.length);
+      if (/(?:surcharge|supplement|fee|add[- ]?on|additional|extra|plus)\s*(?:of|is|:)?\s*$/i.test(before) || /\+\s*$/.test(before)) continue;
+      const protocols = /\b(?:with\s*(?:and|\/)\s*without\s+contrast|without\s+and\s+with\s+contrast|without\s+contrast|non[- ]?contrast|with\s+contrast)\b/gi;
+      const preceding = [...before.matchAll(protocols)].at(-1)?.[0];
+      const following = after.match(/^\s*(with\s*(?:and|\/)\s*without\s+contrast|without\s+and\s+with\s+contrast|without\s+contrast|non[- ]?contrast|with\s+contrast)\b/i)?.[1];
+      let contrast = preceding || following || "";
+      contrast = /with\s*(?:and|\/)\s*without|without\s+and\s+with/i.test(contrast) ? "with and without contrast" : /without|non/i.test(contrast) ? "without contrast" : contrast ? "with contrast" : "";
+      let scan = service;
+      if (service === "Other imaging") {
+        const scanPattern = /PET\s*\/\s*CT|X[- ]?ray|ultrasound|mammogram|mammography|DEXA|bone density/gi;
+        scan = [...before.matchAll(scanPattern)].at(-1)?.[0] || clause.match(scanPattern)?.[0] || "Imaging";
+        scan = /x[- ]?ray/i.test(scan) ? "X-ray" : /mamm/i.test(scan) ? "Mammogram" : /ultrasound/i.test(scan) ? "Ultrasound" : /bone|dexa/i.test(scan) ? "DEXA" : scan;
+      }
+      const qualifier = /\b(?:from|starting(?:\s+at)?|as low as)\s*$/i.test(before) ? "from " : /\b(?:up to|maximum)\s*$/i.test(before) ? "up to " : /\baverage\s*$/i.test(before) ? "average " : "";
+      const amount = "$" + price[1] + (price[2] ? "–$" + price[2] : "");
+      const scope = /\b(?:screening|calcium)\b/i.test(clause) ? " (screening)" : "";
+      output.push(`${scan} ${qualifier}${amount}${contrast ? " " + contrast : ""}${scope}`);
+    }
+  }
+  return [...new Set(output)];
+}
+
 export function cardPriceSummary(offer) {
   if (!offer.directory_only || !offer.published_prices?.length) return null;
-  if (offer.entry?.workbook_prices) return offer.published_prices.map(({service, text}) => service + ": " + text).join("\n");
-  if (offer.entry?.workbook_prices) return offer.published_prices.map(({service, text}) => service + ": " + text).join("\n");
+
+
+  if (offer.entry?.workbook_prices) return [...new Set(offer.published_prices.flatMap(workbookPriceLines))].join("\n") || "Ask for a price";
   const services = offer.published_prices.filter((price) =>
     ["MRI", "CT"].includes(price.service),
   );

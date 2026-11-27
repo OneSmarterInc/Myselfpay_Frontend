@@ -217,5 +217,14 @@ it("marks ranges with a currency symbol only on the lower endpoint", () => {
 
 it("preserves all workbook card prices and verification wording", () => {
   const offer=directoryOffer({name:"Workbook Center",workbook_prices:true,price_verification:"unverified",mri:"Without contrast $499; with contrast $599",ct:"$200",other:"Ultrasound $150"});
-  expect(cardPriceSummary(offer)).toBe("MRI: Without contrast $499; with contrast $599\nCT: $200\nOther imaging: Ultrasound $150");
+  expect(cardPriceSummary(offer)).toBe("MRI $499 without contrast\nMRI $599 with contrast\nCT $200\nUltrasound $150");
+});
+
+
+it("removes workbook source commentary while retaining starting prices and scan names",()=>{
+ const offer=directoryOffer({workbook_prices:true,mri:"$265 — UNVERIFIED source price(s); scan and conditions below.\nFrom $265 without contrast",ct:"$130 — UNVERIFIED source price(s); scan and conditions below.\nFrom $130 without contrast",other:"$140 / $115 / $33 — UNVERIFIED source price(s); scan and conditions below.\nMammogram from $140; ultrasound from $115 (most body parts); X-ray from $33 (2 views)"});
+ expect(cardPriceSummary(offer)).toBe("MRI from $265 without contrast\nCT from $130 without contrast\nMammogram from $140\nUltrasound from $115\nX-ray from $33");
+});
+it("does not invent contrast and keeps combined protocols and ranges",()=>{
+ expect(cardPriceSummary(directoryOffer({workbook_prices:true,mri:"$330",ct:"With and without contrast $300–$450"}))).toBe("MRI $330\nCT $300–$450 with and without contrast");
 });
