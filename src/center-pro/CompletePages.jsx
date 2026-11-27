@@ -41,79 +41,39 @@ export function DataTable({ headers, rows }) {
 }
 
 export function SignIn({ session, onSession, devLogin, busy, navigate }) {
-  const [email, setEmail] = useState(""),
-    [sent, setSent] = useState(null),
-    [error, setError] = useState(""),
-    [sending, setSending] = useState(false);
-  async function submit(e) {
-    e.preventDefault();
-    setSending(true);
-    setError("");
-    try {
-      setSent(await api("/auth/request", { method: "POST", body: { email } }));
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setSending(false);
-    }
+  const [email,setEmail]=useState(''),[code,setCode]=useState(''),[sent,setSent]=useState(null),[error,setError]=useState(''),[sending,setSending]=useState(false),[verifying,setVerifying]=useState(false);
+  useEffect(()=>{sessionStorage.setItem('center-pro-mode','center')},[]);
+  async function submit(e){
+    e.preventDefault();setSending(true);setError('');
+    try{setSent(await api('/auth/otp/request',{method:'POST',body:{email}}));setCode('');}
+    catch(e){setError(e.message)}finally{setSending(false)}
   }
-  return (
-    <section className="panel auth">
-      <h1>{sent ? "Check your email" : "Center sign in"}</h1>
-      {error && <Alert error>{error}</Alert>}
-      {sent ? (
-        <>
-          <p>{sent.detail}</p>
-          {sent.development_url && (
-            <a className="button-link" href={sent.development_url}>
-              Open local sign-in link
-            </a>
-          )}
-          <div className="actions">
-            <button onClick={() => setSent(null)}>Use another email</button>
-          </div>
-        </>
-      ) : (
-        <>
-          <p>
-            Enter your assigned work email to receive a secure sign-in link. Your assigned center access determines which workspace opens.
-          </p>
-          <form onSubmit={submit}>
-            <label className="field">
-              Work email
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </label>
-            <div className="actions sign-in-actions">
-              <button type="submit" className="primary" disabled={sending}>
-                {sending ? "Requesting…" : "Email me a sign-in link"}
-              </button>
-            </div>
-          </form>
-        </>
-      )}
-      {session.development_login && (
-        <details className="developer-access">
-          <summary>Local sample accounts</summary>
-          <p>
-            Sample email: owner@example.test or staff@example.test. No email is
-            sent locally.
-          </p>
-          <div className="actions">
-            {["staff", "owner", "admin"].map((role) => (
-              <button key={role} disabled={busy} onClick={() => devLogin(role)}>
-                Sample {role}
-              </button>
-            ))}
-          </div>
-        </details>
-      )}
-    </section>
-  );
+  async function verify(e){
+    e.preventDefault();setVerifying(true);setError('');
+    try{const next=await api('/auth/otp/verify',{method:'POST',body:{challenge:sent.challenge,code}});onSession(next);navigate('overview');}
+    catch(e){setError(e.message)}finally{setVerifying(false)}
+  }
+  return <section className="panel auth">
+    <h1>{sent?'Enter your sign-in code':'Center sign in'}</h1>
+    {error&&<Alert error>{error}</Alert>}
+    {sent?<>
+      <p>{sent.detail}</p>
+      <p className="muted">Email: {email}</p>
+      {sent.development_code&&<p>Local development code: <strong>{sent.development_code}</strong></p>}
+      <form onSubmit={verify}>
+        <label className="field">Six-digit code<input key={sent.challenge} autoFocus type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={e=>setCode(e.target.value.replace(/[^0-9]/g,''))}/></label>
+        <div className="actions"><button type="submit" className="primary" disabled={verifying||sending||code.length!==6}>{verifying?'Signing in...':'Verify and sign in'}</button></div>
+      </form>
+      <div className="actions"><button type="button" disabled={sending||verifying} onClick={submit}>{sending?'Sending...':'Resend code'}</button><button type="button" disabled={sending||verifying} onClick={()=>{setSent(null);setCode('');setError('')}}>Use another email</button></div>
+    </>:<>
+      <p>Enter your center owner or staff email. We will email you a six-digit code to sign in.</p>
+      <form onSubmit={submit}>
+        <label className="field">Work email<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
+        <div className="actions sign-in-actions"><button type="submit" className="primary" disabled={sending}>{sending?'Sending...':'Email me a code'}</button></div>
+      </form>
+    </>}
+    {session?.development_login&&<details className="developer-access"><summary>Local sample accounts</summary><p>No email is sent for sample accounts.</p><div className="actions">{['staff','owner','admin'].map(role=><button key={role} disabled={busy} onClick={()=>devLogin(role)}>Sample {role}</button>)}</div></details>}
+  </section>;
 }
 
 export function VerifyLink({ token, onSession, navigate }) {
