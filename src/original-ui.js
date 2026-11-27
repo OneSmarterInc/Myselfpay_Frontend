@@ -6,7 +6,7 @@ import { approvedSlotLabel } from './approved-slot.js';
 import { CHAT_QUESTIONS } from './chat-questions.js';
 import { centerPhone, formatPhone } from './center-phone.js';
 import { groupCode } from './request-code.js';
-import { directoryOffer, cardPriceSummary } from './directory-offer.js';
+import { directoryOffer, cardPriceSummary, mostPricesFirst } from './directory-offer.js';
 import { paginateGroups } from './pagination.js';
 import { calendarFile } from './request-calendar.js';
 import { cityState, formatCount, hasPublishedPrice } from './directory-list.js';
@@ -69,7 +69,7 @@ function groupedCards(found){
  const miles=o=>Number.isFinite(o.distance_miles)?o.distance_miles:Infinity;
  listings.sort((a,b)=>(isPriced(b)-isPriced(a))||((!state.sort||state.sort==='distance')?(miles(a)<miles(b)?-1:miles(a)>miles(b)?1:0):0));
  const zipResults=arrangeZipResults(listings,state.spatialActive ? "" : state.location);
- listings=zipResults.offers;
+ listings=(!state.nearToMe && (!state.sort || state.sort==='distance')) ? mostPricesFirst(zipResults.offers) : zipResults.offers;
  const page=paginateGroups([listings],state.resultsPage||0);
  if(!page.total)return '';
  const [cards]=page.items;

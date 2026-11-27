@@ -159,3 +159,17 @@ export function cardPriceSummary(offer) {
     .map(({ service, text }) => service + ": " + primaryPrice(text))
     .join("\n");
 }
+
+
+export function availablePriceCount(offer) {
+  if (offer.directory_only) {
+    const lines = (offer.published_prices || []).flatMap(workbookPriceLines);
+    return new Set(lines).size;
+  }
+  if (offer.card_prices?.length) return new Set(offer.card_prices.filter(line => /\$\s*\d/.test(line))).size;
+  return Number.isFinite(offer.amount) && offer.amount > 0 && !["quote", "conflict"].includes(offer.type) ? 1 : 0;
+}
+export function mostPricesFirst(offers) {
+  const scored = offers.map((offer, index) => ({offer, index, count: availablePriceCount(offer)}));
+  return scored.sort((a, b) => b.count - a.count || a.index - b.index).map(item => item.offer);
+}

@@ -3,6 +3,8 @@ import {
   directoryOffer,
   storedPrices,
   cardPriceSummary,
+  mostPricesFirst,
+  availablePriceCount,
 } from "../src/directory-offer.js";
 import { originalUI } from "../src/original-ui.js";
 
@@ -227,4 +229,15 @@ it("removes workbook source commentary while retaining starting prices and scan 
 });
 it("does not invent contrast and keeps combined protocols and ranges",()=>{
  expect(cardPriceSummary(directoryOffer({workbook_prices:true,mri:"$330",ct:"With and without contrast $300–$450"}))).toBe("MRI $330\nCT $300–$450 with and without contrast");
+});
+
+
+it("defaults to the most distinct available prices and keeps missing prices last",()=>{
+ const empty=directoryOffer({name:"Empty"});
+ const single=directoryOffer({name:"Single",mri:"$350",workbook_prices:true});
+ const many=directoryOffer({name:"Many",mri:"Without contrast $400; with contrast $500",ct:"$300",other:"X-ray $33",workbook_prices:true});
+ const tied=directoryOffer({name:"Tied",ct:"$200",workbook_prices:true});
+ expect(availablePriceCount(many)).toBe(4);
+ expect(mostPricesFirst([empty,single,many,tied]).map(o=>o.entry.name)).toEqual(["Many","Single","Tied","Empty"]);
+ expect(availablePriceCount(directoryOffer({mri:"$265 — UNVERIFIED source price(s)\nFrom $265 without contrast",workbook_prices:true}))).toBe(1);
 });
