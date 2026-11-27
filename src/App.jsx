@@ -1221,7 +1221,7 @@ export default function App() {
       return (
         <div id="searchNotice" role="status">
           {state.dirty
-            ? "Search changedâ€”click Find options to update results. Displayed results belong to your previous search."
+            ? ""
             : /^Distances are approximate straight-line miles\b/.test(
                   state.locationNotice || "",
                 ) &&
