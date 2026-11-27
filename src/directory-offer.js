@@ -117,6 +117,8 @@ function primaryPrice(text) {
 }
 export function cardPriceSummary(offer) {
   if (!offer.directory_only || !offer.published_prices?.length) return null;
+  if (offer.entry?.workbook_prices) return offer.published_prices.map(({service, text}) => service + ": " + text).join("\n");
+  if (offer.entry?.workbook_prices) return offer.published_prices.map(({service, text}) => service + ": " + text).join("\n");
   const services = offer.published_prices.filter((price) =>
     ["MRI", "CT"].includes(price.service),
   );

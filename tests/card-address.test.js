@@ -27,3 +27,10 @@ describe('approved center address display',()=>{
   expect(search).not.toContain('<script>bad</script>');
  });
 });
+
+
+it('keeps workbook email off public cards and preserves prices and network ZIPs',()=>{
+ const entry={name:'Network',booking_id:'net',area:'AL; GA; SC',states:'AL; GA; SC',workbook_prices:true,price_verification:'unverified',email:'info@example.test',email_scope:'Scheduling',zip_codes:'29169; 30092; 35242',mri:'Without contrast $499; with contrast $599',source:'https://example.test',locations:[{zip:'29169',state:'SC'},{zip:'30092',state:'GA'}]};
+ const {search,detail}=render(entry);
+ expect(search).toContain('Unverified source prices');expect(search).not.toContain('mailto:info@example.test');expect(search).not.toContain('<strong>Email</strong>');expect(search).toContain('with contrast $599');expect(search).not.toContain('(29169)');expect(detail).toContain('29169; 30092; 35242');
+});

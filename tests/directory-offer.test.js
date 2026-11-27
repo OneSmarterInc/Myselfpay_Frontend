@@ -213,3 +213,9 @@ it("marks ranges with a currency symbol only on the lower endpoint", () => {
     ),
   ).toBe("MRI: $500 onwards\nCT: $300 onwards");
 });
+
+
+it("preserves all workbook card prices and verification wording", () => {
+  const offer=directoryOffer({name:"Workbook Center",workbook_prices:true,price_verification:"unverified",mri:"Without contrast $499; with contrast $599",ct:"$200",other:"Ultrasound $150"});
+  expect(cardPriceSummary(offer)).toBe("MRI: Without contrast $499; with contrast $599\nCT: $200\nOther imaging: Ultrasound $150");
+});
