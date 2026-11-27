@@ -237,7 +237,7 @@ it("defaults to the most distinct available prices and keeps missing prices last
  const single=directoryOffer({name:"Single",mri:"$350",workbook_prices:true});
  const many=directoryOffer({name:"Many",mri:"Without contrast $400; with contrast $500",ct:"$300",other:"X-ray $33",workbook_prices:true});
  const tied=directoryOffer({name:"Tied",ct:"$200",workbook_prices:true});
- expect(availablePriceCount(many)).toBe(4);
+ expect(availablePriceCount(many)).toBe(3);
  expect(mostPricesFirst([empty,single,many,tied]).map(o=>o.entry.name)).toEqual(["Many","Single","Tied","Empty"]);
  expect(availablePriceCount(directoryOffer({mri:"$265 — UNVERIFIED source price(s)\nFrom $265 without contrast",workbook_prices:true}))).toBe(1);
 });
@@ -248,4 +248,15 @@ it("selects numeric minimums across repeated prices without changing the source"
  const offer=directoryOffer(entry);
  expect(cardPriceSummary(offer)).toBe("MRI $3338.40\nCT $2389.92\nX-ray $80");
  expect(offer.entry.mri).toBe(entry.mri);
+});
+
+
+it("ranks four priced scan types ahead of many repeated MRI and CT prices",()=>{
+ const kootenai=directoryOffer({name:"Kootenai",workbook_prices:true,mri:"$1384.50; $1500; $2000; $3000",ct:"$862.50; $900; $1100"});
+ const postFalls=directoryOffer({name:"Post Falls",workbook_prices:true,mri:"$550 without contrast",ct:"$500 without contrast",other:"Ultrasound $499; X-ray $95"});
+ expect(availablePriceCount(kootenai)).toBe(2);expect(availablePriceCount(postFalls)).toBe(4);
+ expect(mostPricesFirst([kootenai,postFalls])[0]).toBe(postFalls);
+ const entries=[kootenai.entry,postFalls.entry];
+ const ui=originalUI({state:{searched:true,selected:[],location:"Boise City, ID",sort:"distance",nearToMe:false,messages:[],nearbyUnpriced:entries},DIRECTORY:entries,offers:[kootenai,postFalls],results:[]});
+ const html=ui.search();expect(html.indexOf('<h3>Post Falls</h3>')).toBeLessThan(html.indexOf('<h3>Kootenai</h3>'));
 });

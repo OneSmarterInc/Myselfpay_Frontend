@@ -14,7 +14,8 @@ describe('approved center address display',()=>{
   expect(search).toContain('Address: Daytonn');
   expect(search).toContain('(45256)');
   expect(search).not.toContain('100 Old Road');
-  expect(search).toContain(encodeURIComponent('Synthetic Center, Daytonn'));
+  expect(search).not.toContain('>Directions</a>');
+  expect(detail).toContain(encodeURIComponent('Synthetic Center, Daytonn'));
   expect(detail).toContain('Daytonn');
   expect(detail).not.toContain('100 Old Road');
   expect(render(entry,true).search).toContain('Address: Daytonn');
