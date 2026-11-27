@@ -62,3 +62,12 @@ it('scopes program CHR to the searched state without changing facility locations
  expect(programCHRContext(center,{state:'LA'})).toBe(center);
  expect(programCHRContext(program,null)).toBe(program);
 });
+
+it('keeps Washington state separate from Washington DC',async()=>{
+ const {isWashington}=await import('../src/chr-location.js');
+ expect(isWashington({entry:{states:'WA'}})).toBe(true);
+ expect(isWashington({entry:{states:'Washington'}})).toBe(true);
+ expect(isWashington({entry:{area:'Seattle, WA'}})).toBe(true);
+ expect(isWashington({entry:{area:'Washington, DC'}})).toBe(false);
+ expect(isWashington({entry:{area:'Washington, District of Columbia'}})).toBe(false);
+});
