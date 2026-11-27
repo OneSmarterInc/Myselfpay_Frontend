@@ -187,3 +187,11 @@ export function mostPricesFirst(offers) {
   const scored = offers.map((offer, index) => ({offer, index, count: availablePriceCount(offer)}));
   return scored.sort((a, b) => b.count - a.count || a.index - b.index).map(item => item.offer);
 }
+
+
+export function highestDisplayedPrice(offer) {
+  const summary = offer.card_prices?.join("\n") || cardPriceSummary(offer) || cardPriceSummary(directoryOffer(offer.entry || {})) || "";
+  const prices = [...summary.matchAll(/\$\s*(\d[\d,]*(?:\.\d{1,2})?)/g)].map(match=>Number(match[1].replaceAll(",", ""))).filter(value=>Number.isFinite(value)&&value>0);
+  if (!offer.directory_only && Number.isFinite(offer.amount) && offer.amount>0 && !["quote","conflict"].includes(offer.type)) prices.push(offer.amount);
+  return prices.length ? Math.max(...prices) : null;
+}

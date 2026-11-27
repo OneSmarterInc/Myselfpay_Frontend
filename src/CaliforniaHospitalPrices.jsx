@@ -1,19 +1,19 @@
 import {useEffect,useState} from 'react';
 import {RangeChart} from './HospitalComparison.jsx';
 import {californiaRanges,californiaPriceRange,californiaReference,californiaRangeLabel} from './california-ranges.js';
-export default function CaliforniaHospitalPrices({comparisonAPI,comparisonPath,mri,ct,stateCode="CA"}){
+export default function CaliforniaHospitalPrices({comparisonAPI,comparisonPath,mri,ct,threshold,stateCode="CA"}){
  const stateName=stateCode==="ME"?"Maine":stateCode==="OR"?"Oregon":stateCode==="NY"?"New York":stateCode==="WA"?"Washington":stateCode==="NH"?"New Hampshire":stateCode==="VA"?"Virginia":stateCode==="PR"?"Puerto Rico":stateCode==="SC"?"South Carolina":stateCode==="NJ"?"New Jersey":stateCode==="ID"?"Idaho":stateCode==="NE"?"Nebraska":stateCode==="CT"?"Connecticut":stateCode==="AS"?"American Samoa":stateCode==="GA"?"Georgia":stateCode==="WI"?"Wisconsin":stateCode==="IA"?"Iowa":stateCode==="MT"?"Montana":stateCode==="OK"?"Oklahoma":stateCode==="SD"?"South Dakota":stateCode==="DC"?"District of Columbia":stateCode==="TN"?"Tennessee":stateCode==="RI"?"Rhode Island":stateCode==="ND"?"North Dakota":stateCode==="KY"?"Kentucky":stateCode==="AL"?"Alabama":stateCode==="IN"?"Indiana":stateCode==="IL"?"Illinois":stateCode==="NM"?"New Mexico":stateCode==="AR"?"Arkansas":stateCode==="CO"?"Colorado":stateCode==="HI"?"Hawaii":stateCode==="MI"?"Michigan":stateCode==="LA"?"Louisiana":stateCode==="PA"?"Pennsylvania":stateCode==="AK"?"Alaska":stateCode==="VT"?"Vermont":stateCode==="DE"?"Delaware":"California";
  const [state,setState]=useState({loading:true,data:null,error:''}),[retry,setRetry]=useState(0),[expanded,setExpanded]=useState(false);
 
  const [phone,setPhone]=useState(()=>matchMedia('(max-width:600px)').matches);
  useEffect(()=>{const media=matchMedia('(max-width:600px)');const change=()=>setPhone(media.matches);media.addEventListener('change',change);return()=>media.removeEventListener('change',change)},[]);
  useEffect(()=>{let active=true;setState({loading:true,data:null,error:''});setExpanded(false);
-  comparisonAPI(comparisonPath+'?'+new URLSearchParams({state:stateCode,view:'hospitals',mri:mri||'',ct:ct||''})).then(data=>{if(!Array.isArray(data.hospitals)||!Number.isFinite(data.source_records))throw new Error('Hospital price ranges are temporarily unavailable. Please try again shortly.');if(active)setState({loading:false,data,error:''})}).catch(error=>{if(active)setState({loading:false,data:null,error:error.message})});
+  comparisonAPI(comparisonPath+'?'+new URLSearchParams({state:stateCode,view:'hospitals',mri:mri||'',ct:ct||'',threshold:threshold||''})).then(data=>{if(!Array.isArray(data.hospitals)||!Number.isFinite(data.source_records))throw new Error('Hospital price ranges are temporarily unavailable. Please try again shortly.');if(active)setState({loading:false,data,error:''})}).catch(error=>{if(active)setState({loading:false,data:null,error:error.message})});
   return()=>{active=false};
- },[comparisonAPI,comparisonPath,retry,stateCode,mri,ct]);
+ },[comparisonAPI,comparisonPath,retry,stateCode,mri,ct,threshold]);
  const rows=state.data?.hospitals||[],ranges=californiaRanges(rows),initialCount=phone?4:6;
- const reference=californiaReference(mri)??californiaReference(ct)??100;
- const basis=californiaReference(mri)!==null?'MRI':californiaReference(ct)!==null?'CT':'Default';
+ const reference=californiaReference(threshold)??(Math.max(californiaReference(mri)||0,californiaReference(ct)||0)||100);
+ const basis=californiaReference(threshold)!==null?'Facility':californiaReference(mri)!==null||californiaReference(ct)!==null?'Facility':'Default';
  return <section className="chr-screen"><section className="hospital-comparison" aria-labelledby="ca-hospital-heading">
   <div className="hc-heading"><div><h2 id="ca-hospital-heading">Hospitals in {stateName} publish</h2><p>{state.data?`${state.data.hospital_count} hospitals in ${stateName} have ${state.data.source_records.toLocaleString('en-US')} source price records.`:`Loading ${stateName} hospital prices.`} Statewide hospital prices.</p></div></div>
   {state.loading&&<div className="hc-loading" role="status"><span className="hc-spinner" aria-hidden="true"/>Checking hospital prices...</div>}

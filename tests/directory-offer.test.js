@@ -5,6 +5,7 @@ import {
   cardPriceSummary,
   mostPricesFirst,
   availablePriceCount,
+  highestDisplayedPrice,
 } from "../src/directory-offer.js";
 import { originalUI } from "../src/original-ui.js";
 
@@ -259,4 +260,12 @@ it("ranks four priced scan types ahead of many repeated MRI and CT prices",()=>{
  const entries=[kootenai.entry,postFalls.entry];
  const ui=originalUI({state:{searched:true,selected:[],location:"Boise City, ID",sort:"distance",nearToMe:false,messages:[],nearbyUnpriced:entries},DIRECTORY:entries,offers:[kootenai,postFalls],results:[]});
  const html=ui.search();expect(html.indexOf('<h3>Post Falls</h3>')).toBeLessThan(html.indexOf('<h3>Kootenai</h3>'));
+});
+
+
+it("uses the highest displayed scan price for CHR comparison and no price returns null",()=>{
+ const heartland=directoryOffer({workbook_prices:true,mri:"$575",ct:"$325",other:"Ultrasound $150; X-ray $60"});
+ expect(highestDisplayedPrice(heartland)).toBe(575);
+ expect(highestDisplayedPrice(directoryOffer({workbook_prices:true,mri:"$300",ct:"$400",other:"Ultrasound $750"}))).toBe(750);
+ expect(highestDisplayedPrice(directoryOffer({mri:"Quote required"}))).toBeNull();
 });
