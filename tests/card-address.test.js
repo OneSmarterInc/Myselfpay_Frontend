@@ -34,3 +34,11 @@ it('keeps workbook email off public cards and preserves prices and network ZIPs'
  const {search,detail}=render(entry);
  expect(search).toContain('Unverified source prices');expect(search).not.toContain('mailto:info@example.test');expect(search).not.toContain('<strong>Email</strong>');expect(search).toContain('MRI $499 without contrast');expect(search).not.toContain('MRI $599 with contrast');expect(detail).toContain('with contrast $599');expect(search).not.toContain('(29169)');expect(detail).toContain('29169; 30092; 35242');
 });
+
+
+it('uses compact styling for a single price while keeping ask-for-price styling',()=>{
+ const priced=render({name:'Priced',booking_id:'priced',workbook_prices:true,mri:'From $350'}).search;
+ expect(priced).toContain('class="price compact-service-prices published-prices"');expect(priced).toContain('MRI from $350');
+ const missing=render({name:'Missing',booking_id:'missing',workbook_prices:true}).search;
+ expect(missing).toContain('Ask for a price');expect(missing).not.toContain('class="price compact-service-prices');
+});
