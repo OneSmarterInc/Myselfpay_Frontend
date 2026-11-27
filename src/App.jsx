@@ -1538,7 +1538,7 @@ export default function App() {
           {dialog.type === "chr-index" ? <CHRIndex offer={dialog.offer}/> : dialog.type === "booking-login" ? <section className="booking-account-choice">
             <h2 id="dialogTitle">{pendingBooking?.entry?.name ? `Request a time at ${pendingBooking.entry.name}` : "Request a time"}</h2>
             <p>Enter your mobile number and we text you a code. No password.</p>
-            {pendingBooking?.entry?.name && <p>Weâ€™ll hold your spot with {pendingBooking.entry.name}.</p>}
+            {pendingBooking?.entry?.name && <p>We'll hold your spot with {pendingBooking.entry.name}.</p>}
             <div className="actions">
               <button className="primary" onClick={()=>navigate("signup")}>Continue with my phone</button>
               <button className="text-link" onClick={close}>Cancel</button>
